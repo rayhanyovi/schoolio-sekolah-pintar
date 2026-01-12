@@ -1,0 +1,543 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum SubjectCategory {
+  SCIENCE
+  SOCIAL
+  LANGUAGE
+  ART
+  SPORTS
+  OTHER
+}
+
+enum EventType {
+  ACADEMIC
+  HOLIDAY
+  ACTIVITY
+  DEADLINE
+}
+
+enum ThreadStatus {
+  OPEN
+  RESOLVED
+  LOCKED
+}
+
+enum NoteVisibility {
+  PRIVATE
+  CLASS
+}
+
+enum Semester {
+  ODD
+  EVEN
+}
+
+enum DayOfWeek {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  SICK
+  PERMIT
+}
+
+enum AssignmentKind {
+  HOMEWORK
+  PROJECT
+  QUIZ
+  EXAM
+}
+
+enum AssignmentDeliveryType {
+  MCQ
+  FILE
+  ESSAY
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum SubmissionStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model User {
+  id             String   @id @default(cuid())
+  authUserId     String?  @unique
+  email          String?  @unique
+  name           String
+  firstName      String?
+  lastName       String?
+  role           Role
+  phone          String?
+  address        String?
+  bio            String?
+  avatarUrl      String?
+  birthDate      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+  parentProfile  ParentProfile?
+
+  createdEvents      CalendarEvent[]     @relation("EventCreator")
+  forumThreads       ForumThread[]
+  forumReplies       ForumReply[]
+  notes              Note[]
+  materials          Material[]
+  assignments        Assignment[]        @relation("AssignmentTeacher")
+  attendanceSessions AttendanceSession[] @relation("SessionTeacher")
+  classSchedules     ClassSchedule[]
+  homeroomClasses    Class[]             @relation("HomeroomTeacher")
+  subjectTeaching    SubjectTeacher[]
+  parentLinks        ParentStudent[]     @relation("ParentLinks")
+  childLinks         ParentStudent[]     @relation("ChildLinks")
+  assignmentSubmits  AssignmentSubmission[]
+  attendanceRecords  AttendanceRecord[]
+}
+
+model StudentProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  classId   String?
+  class     Class?   @relation(fields: [classId], references: [id])
+  gender    Gender?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TeacherProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ParentProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ParentStudent {
+  parentId  String
+  parent    User   @relation("ParentLinks", fields: [parentId], references: [id])
+  studentId String
+  student   User   @relation("ChildLinks", fields: [studentId], references: [id])
+
+  @@id([parentId, studentId])
+}
+
+model Class {
+  id                String   @id @default(cuid())
+  name              String
+  grade             Int
+  section           String
+  academicYearId    String?
+  academicYear      AcademicYear? @relation(fields: [academicYearId], references: [id])
+  homeroomTeacherId String?
+  homeroomTeacher   User?    @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id])
+  studentCount      Int      @default(0)
+  maleCount         Int      @default(0)
+  femaleCount       Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  students           StudentProfile[]
+  subjectLinks       SubjectClass[]
+  schedules          ClassSchedule[]
+  assignmentLinks    AssignmentClass[]
+  eventLinks         CalendarEventClass[]
+  notes              Note[]
+  materials          Material[]
+  forumThreads       ForumThread[]
+  attendanceSessions AttendanceSession[]
+}
+
+model AcademicYear {
+  id        String   @id @default(cuid())
+  year      String
+  semester  Semester
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classes Class[]
+}
+
+model Subject {
+  id           String   @id @default(cuid())
+  name         String
+  code         String
+  category     SubjectCategory
+  description  String?
+  hoursPerWeek Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  teachers           SubjectTeacher[]
+  classes            SubjectClass[]
+  assignments        Assignment[]
+  materials          Material[]
+  forumThreads       ForumThread[]
+  notes              Note[]
+  schedules          ClassSchedule[]
+  attendanceSessions AttendanceSession[]
+  questions          Question[]
+  questionPackages   QuestionPackage[]
+}
+
+model SubjectTeacher {
+  subjectId String
+  teacherId String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  teacher   User    @relation(fields: [teacherId], references: [id])
+
+  @@id([subjectId, teacherId])
+}
+
+model SubjectClass {
+  subjectId String
+  classId   String
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  class     Class   @relation(fields: [classId], references: [id])
+
+  @@id([subjectId, classId])
+}
+
+model ClassSchedule {
+  id        String    @id @default(cuid())
+  classId   String
+  subjectId String
+  teacherId String?
+  dayOfWeek DayOfWeek
+  startTime String
+  endTime   String
+  room      String?
+  color     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  class    Class   @relation(fields: [classId], references: [id])
+  subject  Subject @relation(fields: [subjectId], references: [id])
+  teacher  User?   @relation(fields: [teacherId], references: [id])
+  sessions AttendanceSession[]
+}
+
+model AttendanceSession {
+  id         String   @id @default(cuid())
+  classId    String
+  subjectId  String
+  teacherId  String?
+  scheduleId String?
+  date       DateTime
+  startTime  String?
+  endTime    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  class    Class          @relation(fields: [classId], references: [id])
+  subject  Subject        @relation(fields: [subjectId], references: [id])
+  teacher  User?          @relation("SessionTeacher", fields: [teacherId], references: [id])
+  schedule ClassSchedule? @relation(fields: [scheduleId], references: [id])
+  records  AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id         String           @id @default(cuid())
+  sessionId  String
+  studentId  String
+  status     AttendanceStatus
+  note       String?
+  recordedAt DateTime         @default(now())
+
+  session AttendanceSession @relation(fields: [sessionId], references: [id])
+  student User              @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+}
+
+model Assignment {
+  id                String             @id @default(cuid())
+  title             String
+  description       String?
+  subjectId         String
+  teacherId         String
+  dueDate           DateTime
+  kind              AssignmentKind?
+  deliveryType      AssignmentDeliveryType?
+  status            AssignmentStatus  @default(ACTIVE)
+  questionPackageId String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  subject         Subject            @relation(fields: [subjectId], references: [id])
+  teacher         User               @relation("AssignmentTeacher", fields: [teacherId], references: [id])
+  questionPackage QuestionPackage?   @relation(fields: [questionPackageId], references: [id])
+  classes         AssignmentClass[]
+  questions       AssignmentQuestion[]
+  submissions     AssignmentSubmission[]
+}
+
+model AssignmentClass {
+  assignmentId String
+  classId      String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  class        Class      @relation(fields: [classId], references: [id])
+
+  @@id([assignmentId, classId])
+}
+
+model AssignmentQuestion {
+  assignmentId String
+  questionId   String
+  position     Int?
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  question     Question   @relation(fields: [questionId], references: [id])
+
+  @@id([assignmentId, questionId])
+}
+
+model AssignmentSubmission {
+  id           String           @id @default(cuid())
+  assignmentId String
+  studentId    String
+  status       SubmissionStatus @default(PENDING)
+  submittedAt  DateTime?
+  grade        Int?
+  feedback     String?
+  response     Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+}
+
+model Material {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  subjectId   String
+  classId     String?
+  teacherId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subject     Subject @relation(fields: [subjectId], references: [id])
+  class       Class?  @relation(fields: [classId], references: [id])
+  teacher     User    @relation(fields: [teacherId], references: [id])
+  attachments MaterialAttachment[]
+}
+
+model MaterialAttachment {
+  id         String   @id @default(cuid())
+  materialId String
+  fileName   String
+  fileType   String
+  sizeLabel  String?
+  url        String?
+  storageKey String?
+  createdAt  DateTime @default(now())
+
+  material Material @relation(fields: [materialId], references: [id])
+}
+
+model Question {
+  id             String                 @id @default(cuid())
+  type           AssignmentDeliveryType
+  subjectId      String?
+  subjectText    String?
+  topic          String
+  difficulty     DifficultyLevel
+  text           String
+  options        String[]               @default([])
+  correctAnswers Int[]                  @default([])
+  rubric         String?
+  allowedFormats String[]               @default([])
+  points         Int
+  usageCount     Int                    @default(0)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  subject     Subject?           @relation(fields: [subjectId], references: [id])
+  packages    QuestionPackageItem[]
+  assignments AssignmentQuestion[]
+}
+
+model QuestionPackage {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  subjectId   String?
+  subjectText String?
+  lastUsedAt  DateTime?
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subject     Subject?            @relation(fields: [subjectId], references: [id])
+  items       QuestionPackageItem[]
+  assignments Assignment[]
+}
+
+model QuestionPackageItem {
+  packageId  String
+  questionId String
+  position   Int?
+  package    QuestionPackage @relation(fields: [packageId], references: [id])
+  question   Question        @relation(fields: [questionId], references: [id])
+
+  @@id([packageId, questionId])
+}
+
+model ForumThread {
+  id         String       @id @default(cuid())
+  title      String
+  content    String
+  subjectId  String
+  classId    String?
+  authorId   String
+  authorRole Role
+  status     ThreadStatus @default(OPEN)
+  isPinned   Boolean      @default(false)
+  replyCount Int          @default(0)
+  upvotes    Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  class   Class?  @relation(fields: [classId], references: [id])
+  author  User    @relation(fields: [authorId], references: [id])
+  replies ForumReply[]
+}
+
+model ForumReply {
+  id               String   @id @default(cuid())
+  threadId         String
+  content          String
+  authorId         String
+  authorRole       Role
+  isAcceptedAnswer Boolean  @default(false)
+  upvotes          Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  thread ForumThread @relation(fields: [threadId], references: [id])
+  author User       @relation(fields: [authorId], references: [id])
+}
+
+model Note {
+  id         String         @id @default(cuid())
+  title      String
+  content    String
+  subjectId  String?
+  classId    String?
+  authorId   String
+  visibility NoteVisibility @default(PRIVATE)
+  isPinned   Boolean        @default(false)
+  color      String?
+  tags       String[]       @default([])
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  subject Subject? @relation(fields: [subjectId], references: [id])
+  class   Class?   @relation(fields: [classId], references: [id])
+  author  User     @relation(fields: [authorId], references: [id])
+}
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  endDate     DateTime?
+  type        EventType
+  isRecurring Boolean  @default(false)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User?               @relation("EventCreator", fields: [createdById], references: [id])
+  classes   CalendarEventClass[]
+}
+
+model CalendarEventClass {
+  eventId String
+  classId String
+  event   CalendarEvent @relation(fields: [eventId], references: [id])
+  class   Class         @relation(fields: [classId], references: [id])
+
+  @@id([eventId, classId])
+}
+
+model SchoolProfile {
+  id            String   @id @default(cuid())
+  name          String
+  address       String
+  phone         String
+  email         String
+  website       String
+  principalName String
+  logoUrl       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ScheduleTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  startTime String
+  endTime   String
+  duration  Int
+  isBreak   Boolean  @default(false)
+  position  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
