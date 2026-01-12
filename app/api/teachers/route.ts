@@ -1,0 +1,24 @@
+import { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { jsonOk } from "@/lib/api";
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get("q")?.toLowerCase() ?? "";
+
+  const where: any = { role: "TEACHER" };
+  if (q) {
+    where.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { email: { contains: q, mode: "insensitive" } },
+    ];
+  }
+
+  const rows = await prisma.user.findMany({
+    where,
+    include: { teacherProfile: true },
+    orderBy: { name: "asc" },
+  });
+
+  return jsonOk(rows);
+}
