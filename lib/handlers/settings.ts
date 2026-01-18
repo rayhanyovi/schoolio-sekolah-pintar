@@ -1,15 +1,23 @@
 import { apiGet, apiPatch } from "@/lib/api-client";
+import {
+  scheduleTemplateListSchema,
+  schoolProfileSchema,
+} from "@/lib/schemas";
 
 export type SettingsPayload = Record<string, unknown>;
 
-export const getSchoolProfile = () =>
-  apiGet<SettingsPayload>("/api/settings/school-profile");
+export const getSchoolProfile = async () =>
+  schoolProfileSchema.parse(await apiGet("/api/settings/school-profile"));
 
-export const updateSchoolProfile = (payload: SettingsPayload) =>
-  apiPatch<SettingsPayload>("/api/settings/school-profile", payload);
+export const updateSchoolProfile = async (payload: SettingsPayload) =>
+  schoolProfileSchema.parse(
+    await apiPatch("/api/settings/school-profile", payload)
+  );
 
-export const getScheduleTemplates = () =>
-  apiGet<SettingsPayload[]>("/api/schedule-templates");
+export const getScheduleTemplates = async () =>
+  scheduleTemplateListSchema.parse(await apiGet("/api/schedule-templates"));
 
-export const updateScheduleTemplates = (templates: SettingsPayload[]) =>
-  apiPatch<SettingsPayload>("/api/schedule-templates", { templates });
+export const updateScheduleTemplates = async (templates: SettingsPayload[]) =>
+  scheduleTemplateListSchema.parse(
+    await apiPatch("/api/schedule-templates", { templates })
+  );

@@ -1,4 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api-client";
+import { calendarEventListSchema, calendarEventSchema } from "@/lib/schemas";
 
 export type CalendarPayload = Record<string, unknown>;
 
@@ -9,17 +10,33 @@ export type ListEventsParams = {
   classId?: string;
 };
 
-export const listEvents = (params?: ListEventsParams) =>
-  apiGet<CalendarPayload[]>("/api/calendar/events", params);
+export const listEvents = async (params?: ListEventsParams) =>
+  calendarEventListSchema.parse(await apiGet("/api/calendar/events", params));
 
-export const getEvent = (id: string) =>
-  apiGet<CalendarPayload>(`/api/calendar/events/${id}`);
+export const getEvent = async (id: string) =>
+  calendarEventSchema.parse(await apiGet(`/api/calendar/events/${id}`));
 
-export const createEvent = (payload: CalendarPayload) =>
-  apiPost<CalendarPayload>("/api/calendar/events", payload);
+export const createEvent = async (payload: CalendarPayload) => {
+  const created = await apiPost<CalendarPayload>(
+    "/api/calendar/events",
+    payload
+  );
+  if (created && typeof created === "object" && "id" in created) {
+    return getEvent(String(created.id));
+  }
+  return calendarEventSchema.parse(created);
+};
 
-export const updateEvent = (id: string, payload: CalendarPayload) =>
-  apiPatch<CalendarPayload>(`/api/calendar/events/${id}`, payload);
+export const updateEvent = async (id: string, payload: CalendarPayload) => {
+  const updated = await apiPatch<CalendarPayload>(
+    `/api/calendar/events/${id}`,
+    payload
+  );
+  if (updated && typeof updated === "object" && "id" in updated) {
+    return getEvent(String(updated.id));
+  }
+  return calendarEventSchema.parse(updated);
+};
 
 export const deleteEvent = (id: string) =>
   apiDelete<{ id: string }>(`/api/calendar/events/${id}`);

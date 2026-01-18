@@ -9,7 +9,12 @@ export async function GET(_: NextRequest, { params }: Params) {
   if (isMockEnabled()) {
     const item = mockAssignments.find((row) => row.id === params.id);
     if (!item) return jsonError("NOT_FOUND", "Assignment not found", 404);
-    return jsonOk(item);
+    return jsonOk({
+      ...item,
+      kind: item.type,
+      deliveryType: null,
+      type: item.type,
+    });
   }
 
   const row = await prisma.assignment.findUnique({
@@ -29,7 +34,9 @@ export async function GET(_: NextRequest, { params }: Params) {
     classIds: row.classes.map((link) => link.classId),
     dueDate: row.dueDate,
     createdAt: row.createdAt,
-    type: row.kind,
+    kind: row.kind,
+    deliveryType: row.deliveryType,
+    type: row.deliveryType ?? row.kind,
     status: row.status,
   };
 
@@ -46,7 +53,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       subjectId: body.subjectId,
       teacherId: body.teacherId,
       dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
-      kind: body.type ?? body.kind,
+      kind: body.kind ?? undefined,
+      deliveryType: body.deliveryType ?? body.type ?? undefined,
       status: body.status,
     },
   });

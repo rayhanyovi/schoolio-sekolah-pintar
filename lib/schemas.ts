@@ -34,6 +34,31 @@ export const userSchema = z
     name: z.string(),
     email: z.string().nullish(),
     role: z.string().nullish(),
+    studentProfile: z
+      .object({
+        classId: z.string().nullish(),
+        gender: z.string().nullish(),
+      })
+      .passthrough()
+      .nullish(),
+    parentLinks: z
+      .array(
+        z.object({
+          parentId: z.string(),
+          studentId: z.string(),
+        })
+      )
+      .nullish()
+      .transform((value) => value ?? []),
+    childLinks: z
+      .array(
+        z.object({
+          parentId: z.string(),
+          studentId: z.string(),
+        })
+      )
+      .nullish()
+      .transform((value) => value ?? []),
   })
   .passthrough();
 export const userListSchema = z.array(userSchema);
@@ -311,6 +336,8 @@ export const assignmentSchema = z.object({
   classIds: stringArray,
   dueDate: dateSchema,
   createdAt: dateSchema,
+  kind: z.string().nullish(),
+  deliveryType: z.string().nullish(),
   type: z.string().nullish(),
   status: z.string(),
 });

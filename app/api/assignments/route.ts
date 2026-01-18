@@ -18,7 +18,14 @@ export async function GET(request: NextRequest) {
       const statusMatch = status ? item.status === status : true;
       return classMatch && subjectMatch && teacherMatch && statusMatch;
     });
-    return jsonOk(data);
+    return jsonOk(
+      data.map((item) => ({
+        ...item,
+        kind: item.type,
+        deliveryType: null,
+        type: item.type,
+      }))
+    );
   }
 
   const where: any = {};
@@ -50,7 +57,9 @@ export async function GET(request: NextRequest) {
     classIds: row.classes.map((link) => link.classId),
     dueDate: row.dueDate,
     createdAt: row.createdAt,
-    type: row.kind,
+    kind: row.kind,
+    deliveryType: row.deliveryType,
+    type: row.deliveryType ?? row.kind,
     status: row.status,
   }));
 
@@ -70,7 +79,8 @@ export async function POST(request: NextRequest) {
       subjectId: body.subjectId,
       teacherId: body.teacherId,
       dueDate: new Date(body.dueDate),
-      kind: body.type ?? body.kind ?? null,
+      kind: body.kind ?? null,
+      deliveryType: body.deliveryType ?? body.type ?? null,
       status: body.status ?? "ACTIVE",
     },
   });

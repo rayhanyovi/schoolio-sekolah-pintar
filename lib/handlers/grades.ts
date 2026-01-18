@@ -1,4 +1,5 @@
 import { apiGet } from "@/lib/api-client";
+import { gradeListSchema, gradeSummaryListSchema } from "@/lib/schemas";
 
 export type GradePayload = Record<string, unknown>;
 
@@ -9,10 +10,10 @@ export type ListGradesParams = {
   termId?: string;
 };
 
-export const listGrades = (params?: ListGradesParams) =>
-  apiGet<GradePayload[]>("/api/grades", params);
+export const listGrades = async (params?: ListGradesParams) =>
+  gradeListSchema.parse(await apiGet("/api/grades", params));
 
-export const getGradesSummary = (params?: {
+export const getGradesSummary = async (params?: {
   classId?: string;
   subjectId?: string;
-}) => apiGet<GradePayload[]>("/api/grades/summary", params);
+}) => gradeSummaryListSchema.parse(await apiGet("/api/grades/summary", params));
