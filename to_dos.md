@@ -9,27 +9,25 @@
 - [x] components/subjects/SubjectCard.tsx
 - [x] components/subjects/SubjectFormDialog.tsx
 - [x] components/subjects/AssignTeacherDialog.tsx
-
-## Pending
-- [ ] components/pages/Users.tsx
-- [ ] components/admin/UserFormDialog.tsx
-- [ ] components/pages/Calendar.tsx
-- [ ] components/calendar/EventCard.tsx
-- [ ] components/calendar/EventFormDialog.tsx
-- [ ] components/pages/Forum.tsx
-- [ ] components/forum/ThreadCard.tsx
-- [ ] components/forum/ThreadDetailSheet.tsx
-- [ ] components/forum/ThreadFormDialog.tsx
-- [ ] components/pages/Notes.tsx
-- [ ] components/pages/QuestionBank.tsx
-- [ ] components/questions/SelectQuestionsDialog.tsx
-- [ ] components/questions/SelectPackageDialog.tsx
-- [ ] components/questions/PackageFormDialog.tsx
-- [ ] components/pages/Schedules.tsx
-- [ ] components/pages/Settings.tsx
-- [ ] components/pages/Analytics.tsx
-- [ ] components/pages/Attendance.tsx
-- [ ] components/pages/Grades.tsx
-- [ ] components/pages/Materials.tsx
-- [ ] components/pages/Assignments.tsx
-- [ ] lib/questionTypes.ts
+- [x] components/pages/Users.tsx
+- [x] components/admin/UserFormDialog.tsx
+- [x] components/pages/Calendar.tsx
+- [x] components/calendar/EventCard.tsx
+- [x] components/calendar/EventFormDialog.tsx
+- [x] components/pages/Forum.tsx
+- [x] components/forum/ThreadCard.tsx
+- [x] components/forum/ThreadDetailSheet.tsx
+- [x] components/forum/ThreadFormDialog.tsx
+- [x] components/pages/Notes.tsx
+- [x] components/pages/QuestionBank.tsx
+- [x] components/questions/SelectQuestionsDialog.tsx
+- [x] components/questions/SelectPackageDialog.tsx
+- [x] components/questions/PackageFormDialog.tsx
+- [x] components/pages/Schedules.tsx
+- [x] components/pages/Settings.tsx
+- [x] components/pages/Analytics.tsx
+- [x] components/pages/Attendance.tsx
+- [x] components/pages/Grades.tsx
+- [x] components/pages/Materials.tsx
+- [x] components/pages/Assignments.tsx
+- [x] lib/questionTypes.ts
