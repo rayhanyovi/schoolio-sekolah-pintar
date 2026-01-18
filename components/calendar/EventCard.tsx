@@ -4,14 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Calendar, Clock, Repeat } from "lucide-react";
-import { CalendarEvent } from "@/lib/mockData";
+import { CalendarEventSummary } from "@/lib/schemas";
 import { EVENT_TYPES, EVENT_COLORS, EventType } from "@/lib/constants";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
 interface EventCardProps {
-  event: CalendarEvent;
-  onEdit: (event: CalendarEvent) => void;
+  event: CalendarEventSummary;
+  onEdit: (event: CalendarEventSummary) => void;
   onDelete: (id: string) => void;
   canEdit: boolean;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -42,31 +42,36 @@ import {
   Edit,
   Copy,
   Trash2,
-  Play,
   Calendar,
   BarChart3,
-  Filter,
   LayoutGrid,
   List,
 } from "lucide-react";
 import {
-  SUBJECTS,
   ASSIGNMENT_TYPES,
   AssignmentType,
   DIFFICULTY_LEVELS,
   DifficultyLevel,
 } from "@/lib/constants";
 import {
-  Question,
-  QuestionPackage,
-  mockQuestions,
-  mockPackages,
-  getPackageQuestions,
-} from "@/lib/questionTypes";
+  createQuestion,
+  createQuestionPackage,
+  deleteQuestion,
+  deleteQuestionPackage,
+  listQuestionPackages,
+  listQuestions,
+  updateQuestion,
+  updateQuestionPackage,
+} from "@/lib/handlers/questions";
+import { listSubjects } from "@/lib/handlers/subjects";
+import {
+  QuestionPackageSummary,
+  QuestionSummary,
+  SubjectSummary,
+} from "@/lib/schemas";
 import { QuestionCard } from "@/components/questions/QuestionCard";
 import { QuestionFormDialog } from "@/components/questions/QuestionFormDialog";
 import { PackageFormDialog } from "@/components/questions/PackageFormDialog";
-import { QuestionPreview } from "@/components/questions/QuestionPreview";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -74,8 +79,10 @@ import { toast } from "sonner";
 
 export default function QuestionBank() {
   const [activeTab, setActiveTab] = useState<"questions" | "packages">("questions");
-  const [questions, setQuestions] = useState<Question[]>(mockQuestions);
-  const [packages, setPackages] = useState<QuestionPackage[]>(mockPackages);
+  const [questions, setQuestions] = useState<QuestionSummary[]>([]);
+  const [packages, setPackages] = useState<QuestionPackageSummary[]>([]);
+  const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -91,9 +98,41 @@ export default function QuestionBank() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Selected items
-  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
-  const [selectedPackage, setSelectedPackage] = useState<QuestionPackage | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<QuestionSummary | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<QuestionPackageSummary | null>(null);
   const [itemToDelete, setItemToDelete] = useState<{ type: "question" | "package"; id: string } | null>(null);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [questionData, packageData, subjectData] = await Promise.all([
+        listQuestions(),
+        listQuestionPackages(),
+        listSubjects(),
+      ]);
+      setQuestions(questionData);
+      setPackages(packageData);
+      setSubjects(subjectData);
+    } catch (error) {
+      toast.error("Gagal memuat bank soal");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const subjectOptions = useMemo(() => {
+    if (subjects.length) return subjects.map((subject) => subject.name);
+    const fromQuestions = questions.map((q) => q.subject).filter(Boolean);
+    const fromPackages = packages.map((pkg) => pkg.subject).filter(Boolean);
+    return Array.from(new Set([...fromQuestions, ...fromPackages]));
+  }, [subjects, questions, packages]);
+
+  const getPackageQuestions = (pkg: QuestionPackageSummary) =>
+    questions.filter((q) => pkg.questionIds.includes(q.id));
 
   // Filtered data
   const filteredQuestions = questions.filter((q) => {
@@ -124,68 +163,106 @@ export default function QuestionBank() {
   };
 
   // Handlers
-  const handleSaveQuestion = (questionData: Partial<Question>) => {
-    if (selectedQuestion) {
-      setQuestions((prev) =>
-        prev.map((q) => (q.id === selectedQuestion.id ? { ...q, ...questionData } : q))
-      );
-      toast.success("Soal berhasil diperbarui");
-    } else {
-      const newQuestion: Question = {
-        ...questionData,
-        id: `q${Date.now()}`,
-        createdAt: new Date(),
-        usageCount: 0,
-      } as Question;
-      setQuestions((prev) => [newQuestion, ...prev]);
-      toast.success("Soal baru berhasil ditambahkan");
+  const handleSaveQuestion = async (questionData: Partial<QuestionSummary>) => {
+    try {
+      const subjectId = questionData.subject
+        ? subjects.find((subject) => subject.name === questionData.subject)?.id
+        : undefined;
+      const payload = {
+        type: questionData.type,
+        subjectId,
+        subject: subjectId ? undefined : questionData.subject,
+        topic: questionData.topic,
+        difficulty: questionData.difficulty,
+        text: questionData.text,
+        options: questionData.options ?? [],
+        correctAnswers: questionData.correctAnswers ?? [],
+        rubric: questionData.rubric ?? undefined,
+        allowedFormats: questionData.allowedFormats ?? [],
+        points: questionData.points ?? 0,
+      };
+      if (selectedQuestion) {
+        await updateQuestion(selectedQuestion.id, payload);
+        toast.success("Soal berhasil diperbarui");
+      } else {
+        await createQuestion(payload);
+        toast.success("Soal baru berhasil ditambahkan");
+      }
+      setSelectedQuestion(null);
+      await loadData();
+    } catch (error) {
+      toast.error("Gagal menyimpan soal");
     }
-    setSelectedQuestion(null);
   };
 
-  const handleSavePackage = (packageData: Partial<QuestionPackage>) => {
-    if (selectedPackage) {
-      setPackages((prev) =>
-        prev.map((p) => (p.id === selectedPackage.id ? { ...p, ...packageData } : p))
-      );
-      toast.success("Paket soal berhasil diperbarui");
-    } else {
-      const newPackage: QuestionPackage = {
-        ...packageData,
-        id: `pkg${Date.now()}`,
-        createdAt: new Date(),
-        usageCount: 0,
-      } as QuestionPackage;
-      setPackages((prev) => [newPackage, ...prev]);
-      toast.success("Paket soal baru berhasil dibuat");
+  const handleSavePackage = async (
+    packageData: Partial<QuestionPackageSummary>
+  ) => {
+    try {
+      const subjectId = packageData.subject
+        ? subjects.find((subject) => subject.name === packageData.subject)?.id
+        : undefined;
+      const payload = {
+        name: packageData.name,
+        description: packageData.description,
+        subjectId,
+        subject: subjectId ? undefined : packageData.subject,
+        questionIds: packageData.questionIds ?? [],
+      };
+      if (selectedPackage) {
+        await updateQuestionPackage(selectedPackage.id, payload);
+        toast.success("Paket soal berhasil diperbarui");
+      } else {
+        await createQuestionPackage(payload);
+        toast.success("Paket soal baru berhasil dibuat");
+      }
+      setSelectedPackage(null);
+      await loadData();
+    } catch (error) {
+      toast.error("Gagal menyimpan paket soal");
     }
-    setSelectedPackage(null);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!itemToDelete) return;
-
-    if (itemToDelete.type === "question") {
-      setQuestions((prev) => prev.filter((q) => q.id !== itemToDelete.id));
-      toast.success("Soal berhasil dihapus");
-    } else {
-      setPackages((prev) => prev.filter((p) => p.id !== itemToDelete.id));
-      toast.success("Paket soal berhasil dihapus");
+    try {
+      if (itemToDelete.type === "question") {
+        await deleteQuestion(itemToDelete.id);
+        toast.success("Soal berhasil dihapus");
+      } else {
+        await deleteQuestionPackage(itemToDelete.id);
+        toast.success("Paket soal berhasil dihapus");
+      }
+      await loadData();
+    } catch (error) {
+      toast.error("Gagal menghapus data");
+    } finally {
+      setItemToDelete(null);
+      setDeleteDialogOpen(false);
     }
-    setItemToDelete(null);
-    setDeleteDialogOpen(false);
   };
 
-  const handleDuplicateQuestion = (question: Question) => {
-    const duplicated: Question = {
-      ...question,
-      id: `q${Date.now()}`,
-      text: `${question.text} (Salinan)`,
-      createdAt: new Date(),
-      usageCount: 0,
-    };
-    setQuestions((prev) => [duplicated, ...prev]);
-    toast.success("Soal berhasil diduplikasi");
+  const handleDuplicateQuestion = async (question: QuestionSummary) => {
+    try {
+      const subjectId = subjects.find((subject) => subject.name === question.subject)?.id;
+      await createQuestion({
+        type: question.type,
+        subjectId,
+        subject: subjectId ? undefined : question.subject,
+        topic: question.topic,
+        difficulty: question.difficulty,
+        text: `${question.text} (Salinan)`,
+        options: question.options ?? [],
+        correctAnswers: question.correctAnswers ?? [],
+        rubric: question.rubric ?? undefined,
+        allowedFormats: question.allowedFormats ?? [],
+        points: question.points ?? 0,
+      });
+      await loadData();
+      toast.success("Soal berhasil diduplikasi");
+    } catch (error) {
+      toast.error("Gagal menduplikasi soal");
+    }
   };
 
   const typeIcons = {
@@ -317,7 +394,7 @@ export default function QuestionBank() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Mapel</SelectItem>
-                {SUBJECTS.map((subject) => (
+                {subjectOptions.map((subject) => (
                   <SelectItem key={subject} value={subject}>
                     {subject}
                   </SelectItem>
@@ -377,29 +454,35 @@ export default function QuestionBank() {
 
         {/* Questions Tab */}
         <TabsContent value="questions" className="mt-4">
-          <div className={cn(
-            viewMode === "grid" 
-              ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
-              : "space-y-3"
-          )}>
-            {filteredQuestions.map((question) => (
-              <QuestionCard
-                key={question.id}
-                question={question}
-                onEdit={(q) => {
-                  setSelectedQuestion(q);
-                  setQuestionFormOpen(true);
-                }}
-                onDuplicate={handleDuplicateQuestion}
-                onDelete={(q) => {
-                  setItemToDelete({ type: "question", id: q.id });
-                  setDeleteDialogOpen(true);
-                }}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="text-center py-16 text-muted-foreground">
+              Memuat soal...
+            </div>
+          ) : (
+            <div className={cn(
+              viewMode === "grid" 
+                ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
+                : "space-y-3"
+            )}>
+              {filteredQuestions.map((question) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  onEdit={(q) => {
+                    setSelectedQuestion(q);
+                    setQuestionFormOpen(true);
+                  }}
+                  onDuplicate={handleDuplicateQuestion}
+                  onDelete={(q) => {
+                    setItemToDelete({ type: "question", id: q.id });
+                    setDeleteDialogOpen(true);
+                  }}
+                />
+              ))}
+            </div>
+          )}
 
-          {filteredQuestions.length === 0 && (
+          {!isLoading && filteredQuestions.length === 0 && (
             <div className="text-center py-16">
               <Library className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Tidak ada soal ditemukan</h3>
@@ -423,123 +506,135 @@ export default function QuestionBank() {
 
         {/* Packages Tab */}
         <TabsContent value="packages" className="mt-4">
-          <div className={cn(
-            viewMode === "grid" 
-              ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
-              : "space-y-3"
-          )}>
-            {filteredPackages.map((pkg) => {
-              const pkgQuestions = getPackageQuestions(pkg);
-              const totalPoints = pkgQuestions.reduce((sum, q) => sum + q.points, 0);
-              const types = new Set(pkgQuestions.map((q) => q.type));
+          {isLoading ? (
+            <div className="text-center py-16 text-muted-foreground">
+              Memuat paket soal...
+            </div>
+          ) : (
+            <div className={cn(
+              viewMode === "grid" 
+                ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
+                : "space-y-3"
+            )}>
+              {filteredPackages.map((pkg) => {
+                const pkgQuestions = getPackageQuestions(pkg);
+                const totalPoints = pkgQuestions.reduce((sum, q) => sum + q.points, 0);
+                const types = new Set(pkgQuestions.map((q) => q.type));
 
-              return (
-                <Card key={pkg.id} className="p-4 hover:shadow-md transition-all group">
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                      <Package className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h4 className="font-semibold text-foreground">{pkg.name}</h4>
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {pkg.description}
-                          </p>
+                return (
+                  <Card key={pkg.id} className="p-4 hover:shadow-md transition-all group">
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                        <Package className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="font-semibold text-foreground">{pkg.name}</h4>
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {pkg.description}
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedPackage(pkg);
+                                  setPackageFormOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  try {
+                                    const subjectId = subjects.find(
+                                      (subject) => subject.name === pkg.subject
+                                    )?.id;
+                                    await createQuestionPackage({
+                                      name: `${pkg.name} (Salinan)`,
+                                      description: pkg.description,
+                                      subjectId,
+                                      subject: subjectId ? undefined : pkg.subject,
+                                      questionIds: pkg.questionIds,
+                                    });
+                                    await loadData();
+                                    toast.success("Paket soal berhasil diduplikasi");
+                                  } catch (error) {
+                                    toast.error("Gagal menduplikasi paket");
+                                  }
+                                }}
+                              >
+                                <Copy className="h-4 w-4 mr-2" />
+                                Duplikat
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setItemToDelete({ type: "package", id: pkg.id });
+                                  setDeleteDialogOpen(true);
+                                }}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Hapus
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedPackage(pkg);
-                                setPackageFormOpen(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                const duplicated: QuestionPackage = {
-                                  ...pkg,
-                                  id: `pkg${Date.now()}`,
-                                  name: `${pkg.name} (Salinan)`,
-                                  createdAt: new Date(),
-                                  lastUsedAt: undefined,
-                                  usageCount: 0,
-                                };
-                                setPackages((prev) => [duplicated, ...prev]);
-                                toast.success("Paket soal berhasil diduplikasi");
-                              }}
-                            >
-                              <Copy className="h-4 w-4 mr-2" />
-                              Duplikat
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setItemToDelete({ type: "package", id: pkg.id });
-                                setDeleteDialogOpen(true);
-                              }}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
 
-                      <div className="flex flex-wrap items-center gap-2 mt-3">
-                        <Badge variant="outline">{pkg.subject}</Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {pkgQuestions.length} soal
-                        </span>
-                        <span className="text-xs text-muted-foreground">•</span>
-                        <span className="text-xs text-muted-foreground">
-                          {totalPoints} poin
-                        </span>
-                      </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                          <Badge variant="outline">{pkg.subject}</Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {pkgQuestions.length} soal
+                          </span>
+                          <span className="text-xs text-muted-foreground">•</span>
+                          <span className="text-xs text-muted-foreground">
+                            {totalPoints} poin
+                          </span>
+                        </div>
 
-                      <div className="flex items-center gap-2 mt-2">
-                        {Array.from(types).map((type) => {
-                          const Icon = typeIcons[type];
-                          return (
-                            <Badge key={type} variant="secondary" className="text-xs gap-1">
-                              <Icon className="h-3 w-3" />
-                              {ASSIGNMENT_TYPES[type]}
-                            </Badge>
-                          );
-                        })}
-                      </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          {Array.from(types).map((type) => {
+                            const Icon = typeIcons[type];
+                            return (
+                              <Badge key={type} variant="secondary" className="text-xs gap-1">
+                                <Icon className="h-3 w-3" />
+                                {ASSIGNMENT_TYPES[type]}
+                              </Badge>
+                            );
+                          })}
+                        </div>
 
-                      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {format(pkg.createdAt, "d MMM yyyy", { locale: id })}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <BarChart3 className="h-3 w-3" />
-                          Digunakan {pkg.usageCount}x
-                        </span>
+                        <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {format(pkg.createdAt, "d MMM yyyy", { locale: id })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <BarChart3 className="h-3 w-3" />
+                            Digunakan {pkg.usageCount}x
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
-          {filteredPackages.length === 0 && (
+          {!isLoading && filteredPackages.length === 0 && (
             <div className="text-center py-16">
               <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Tidak ada paket soal</h3>
@@ -566,6 +661,7 @@ export default function QuestionBank() {
         onOpenChange={setQuestionFormOpen}
         question={selectedQuestion}
         onSave={handleSaveQuestion}
+        subjects={subjects}
       />
 
       <PackageFormDialog
@@ -574,6 +670,7 @@ export default function QuestionBank() {
         package_={selectedPackage}
         onSave={handleSavePackage}
         availableQuestions={questions}
+        subjects={subjects}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -29,32 +29,32 @@ import {
   FileText,
   Upload,
   Library,
-  Filter,
 } from "lucide-react";
 import {
-  SUBJECTS,
   ASSIGNMENT_TYPES,
   AssignmentType,
   DIFFICULTY_LEVELS,
   DifficultyLevel,
 } from "@/lib/constants";
-import { Question, mockQuestions } from "@/lib/questionTypes";
+import { QuestionSummary, SubjectSummary } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 interface SelectQuestionsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelect: (questions: Question[]) => void;
-  questions?: Question[];
+  onSelect: (questions: QuestionSummary[]) => void;
+  questions?: QuestionSummary[];
   initialSelected?: string[];
+  subjects?: SubjectSummary[];
 }
 
 export function SelectQuestionsDialog({
   open,
   onOpenChange,
   onSelect,
-  questions = mockQuestions,
+  questions = [],
   initialSelected = [],
+  subjects,
 }: SelectQuestionsDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
@@ -75,6 +75,13 @@ export function SelectQuestionsDialog({
 
   const selectedQuestions = questions.filter((q) => selectedIds.includes(q.id));
   const totalPoints = selectedQuestions.reduce((sum, q) => sum + q.points, 0);
+
+  const subjectOptions =
+    subjects?.length
+      ? subjects.map((subject) => subject.name)
+      : Array.from(new Set(questions.map((question) => question.subject))).filter(
+          Boolean
+        );
 
   const toggleQuestion = (id: string) => {
     setSelectedIds((prev) =>
@@ -136,7 +143,7 @@ export function SelectQuestionsDialog({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Mapel</SelectItem>
-              {SUBJECTS.map((subject) => (
+              {subjectOptions.map((subject) => (
                 <SelectItem key={subject} value={subject}>
                   {subject}
                 </SelectItem>

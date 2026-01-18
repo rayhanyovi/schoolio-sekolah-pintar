@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, addMonths, subMonths, isAfter, isBefore, addDays } from "date-fns";
 import { id } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,38 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DAYS_OF_WEEK, DayOfWeek } from "@/lib/constants";
 import { ChevronLeft, ChevronRight, Clock, User, BookOpen, MapPin, FileText, AlertCircle } from "lucide-react";
-import { mockAssignments, Assignment } from "@/lib/mockData";
-
-// Demo schedule data
-interface ScheduleEntry {
-  id: string;
-  subject: string;
-  teacher: string;
-  time: string;
-  startTime: string;
-  endTime: string;
-  room: string;
-  dayOfWeek: DayOfWeek;
-  color: string;
-}
-
-const demoSchedules: ScheduleEntry[] = [
-  { id: "1", subject: "Matematika", teacher: "Pak Budi Santoso", time: "07:00 - 08:30", startTime: "07:00", endTime: "08:30", room: "Ruang 101", dayOfWeek: "MON", color: "bg-blue-500" },
-  { id: "2", subject: "Bahasa Indonesia", teacher: "Bu Sari Dewi", time: "08:45 - 10:15", startTime: "08:45", endTime: "10:15", room: "Ruang 101", dayOfWeek: "MON", color: "bg-emerald-500" },
-  { id: "3", subject: "Fisika", teacher: "Pak Ahmad Wijaya", time: "10:30 - 12:00", startTime: "10:30", endTime: "12:00", room: "Lab Fisika", dayOfWeek: "MON", color: "bg-purple-500" },
-  { id: "4", subject: "Bahasa Inggris", teacher: "Bu Dewi Lestari", time: "07:00 - 08:30", startTime: "07:00", endTime: "08:30", room: "Ruang 102", dayOfWeek: "TUE", color: "bg-amber-500" },
-  { id: "5", subject: "Kimia", teacher: "Pak Hendra", time: "08:45 - 10:15", startTime: "08:45", endTime: "10:15", room: "Lab Kimia", dayOfWeek: "TUE", color: "bg-rose-500" },
-  { id: "6", subject: "Biologi", teacher: "Bu Ratna", time: "10:30 - 12:00", startTime: "10:30", endTime: "12:00", room: "Lab Biologi", dayOfWeek: "TUE", color: "bg-teal-500" },
-  { id: "7", subject: "Sejarah", teacher: "Pak Joko", time: "07:00 - 08:30", startTime: "07:00", endTime: "08:30", room: "Ruang 103", dayOfWeek: "WED", color: "bg-orange-500" },
-  { id: "8", subject: "Geografi", teacher: "Bu Maya", time: "08:45 - 10:15", startTime: "08:45", endTime: "10:15", room: "Ruang 103", dayOfWeek: "WED", color: "bg-cyan-500" },
-  { id: "9", subject: "Ekonomi", teacher: "Pak Bambang", time: "10:30 - 12:00", startTime: "10:30", endTime: "12:00", room: "Ruang 104", dayOfWeek: "WED", color: "bg-indigo-500" },
-  { id: "10", subject: "PKN", teacher: "Bu Ani", time: "07:00 - 08:30", startTime: "07:00", endTime: "08:30", room: "Ruang 101", dayOfWeek: "THU", color: "bg-pink-500" },
-  { id: "11", subject: "Matematika", teacher: "Pak Budi Santoso", time: "08:45 - 10:15", startTime: "08:45", endTime: "10:15", room: "Ruang 101", dayOfWeek: "THU", color: "bg-blue-500" },
-  { id: "12", subject: "Seni Budaya", teacher: "Pak Rudi", time: "10:30 - 12:00", startTime: "10:30", endTime: "12:00", room: "Ruang Seni", dayOfWeek: "THU", color: "bg-violet-500" },
-  { id: "13", subject: "Olahraga", teacher: "Pak Dedi", time: "07:00 - 08:30", startTime: "07:00", endTime: "08:30", room: "Lapangan", dayOfWeek: "FRI", color: "bg-green-500" },
-  { id: "14", subject: "Bahasa Indonesia", teacher: "Bu Sari Dewi", time: "08:45 - 10:15", startTime: "08:45", endTime: "10:15", room: "Ruang 102", dayOfWeek: "FRI", color: "bg-emerald-500" },
-  { id: "15", subject: "Fisika", teacher: "Pak Ahmad Wijaya", time: "10:30 - 12:00", startTime: "10:30", endTime: "12:00", room: "Lab Fisika", dayOfWeek: "SAT", color: "bg-purple-500" },
-];
+import { listAssignments } from "@/lib/handlers/assignments";
+import { listSchedules } from "@/lib/handlers/schedules";
+import { AssignmentSummary, ScheduleSummary } from "@/lib/schemas";
 
 // Map JS day (0=Sun, 1=Mon, etc.) to our DayOfWeek
 const getDayOfWeek = (date: Date): DayOfWeek | null => {
@@ -58,24 +29,31 @@ const getDayOfWeek = (date: Date): DayOfWeek | null => {
   return mapping[jsDay] || null;
 };
 
-const getSchedulesForDate = (date: Date): ScheduleEntry[] => {
+const getSchedulesForDate = (
+  date: Date,
+  schedules: ScheduleSummary[]
+): ScheduleSummary[] => {
   const dayOfWeek = getDayOfWeek(date);
   if (!dayOfWeek) return [];
-  return demoSchedules.filter((s) => s.dayOfWeek === dayOfWeek);
+  return schedules.filter((s) => s.dayOfWeek === dayOfWeek);
 };
 
 // Get active assignments for a specific subject on/around a date
-const getActiveAssignmentsForSubject = (subjectName: string, date: Date): Assignment[] => {
-  return mockAssignments.filter((assignment) => {
-    // Match subject name (case insensitive partial match)
-    const subjectMatch = 
+const getActiveAssignmentsForSubject = (
+  subjectName: string,
+  date: Date,
+  assignments: AssignmentSummary[]
+): AssignmentSummary[] => {
+  return assignments.filter((assignment) => {
+    const subjectMatch =
       assignment.subjectName.toLowerCase().includes(subjectName.toLowerCase()) ||
       subjectName.toLowerCase().includes(assignment.subjectName.toLowerCase());
-    
-    // Check if assignment is still active (due date is after or on the selected date)
-    const isActive = assignment.status === "ACTIVE" && 
-      (isAfter(assignment.dueDate, date) || isSameDay(assignment.dueDate, date));
-    
+
+    const isActive =
+      assignment.status === "ACTIVE" &&
+      (isAfter(assignment.dueDate, date) ||
+        isSameDay(assignment.dueDate, date));
+
     return subjectMatch && isActive;
   });
 };
@@ -84,6 +62,29 @@ export default function Schedules() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [scheduleData, assignmentData] = await Promise.all([
+        listSchedules(),
+        listAssignments(),
+      ]);
+      setSchedules(scheduleData);
+      setAssignments(assignmentData);
+    } catch (error) {
+      // Keep UI usable even if data fails to load.
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -97,7 +98,9 @@ export default function Schedules() {
     setIsSheetOpen(true);
   };
 
-  const selectedSchedules = selectedDate ? getSchedulesForDate(selectedDate) : [];
+  const selectedSchedules = selectedDate
+    ? getSchedulesForDate(selectedDate, schedules)
+    : [];
   const dayLabels = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
   return (
@@ -154,7 +157,7 @@ export default function Schedules() {
           {/* Calendar Grid */}
           <div className="grid grid-cols-7 gap-1">
             {days.map((day) => {
-              const schedules = getSchedulesForDate(day);
+              const daySchedules = getSchedulesForDate(day, schedules);
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isToday = isSameDay(day, new Date());
               const isSelected = selectedDate && isSameDay(day, selectedDate);
@@ -187,20 +190,20 @@ export default function Schedules() {
                   
                   {/* Schedule entries */}
                   <div className="flex-1 space-y-1 overflow-hidden">
-                    {schedules.slice(0, 3).map((schedule) => (
+                    {daySchedules.slice(0, 3).map((schedule) => (
                       <div
                         key={schedule.id}
                         className={cn(
                           "text-xs px-1.5 py-0.5 rounded text-white truncate",
-                          schedule.color
+                          schedule.color || "bg-primary"
                         )}
                       >
-                        {schedule.subject}
+                        {schedule.subjectName}
                       </div>
                     ))}
-                    {schedules.length > 3 && (
+                    {daySchedules.length > 3 && (
                       <div className="text-xs text-muted-foreground pl-1">
-                        +{schedules.length - 3} lainnya
+                        +{daySchedules.length - 3} lainnya
                       </div>
                     )}
                   </div>
@@ -239,14 +242,16 @@ export default function Schedules() {
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     <Card className="overflow-hidden border-l-4" style={{ borderLeftColor: schedule.color.replace('bg-', '').includes('-') ? '' : undefined }}>
-                      <div className={cn("h-1.5", schedule.color)} />
+                      <div className={cn("h-1.5", schedule.color || "bg-primary")} />
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h3 className="font-semibold text-lg">{schedule.subject}</h3>
+                            <h3 className="font-semibold text-lg">{schedule.subjectName}</h3>
                             <Badge variant="outline" className="mt-1">
                               <Clock className="h-3 w-3 mr-1" />
-                              {schedule.time}
+                              {schedule.startTime && schedule.endTime
+                                ? `${schedule.startTime} - ${schedule.endTime}`
+                                : "Waktu belum diisi"}
                             </Badge>
                           </div>
                         </div>
@@ -254,17 +259,21 @@ export default function Schedules() {
                         <div className="space-y-2 text-sm text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-primary" />
-                            <span>{schedule.teacher}</span>
+                            <span>{schedule.teacherName || "Belum ditentukan"}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-primary" />
-                            <span>{schedule.room}</span>
+                            <span>{schedule.room || "Belum ditentukan"}</span>
                           </div>
                         </div>
 
                         {/* Active Assignments Section */}
                         {selectedDate && (() => {
-                          const assignments = getActiveAssignmentsForSubject(schedule.subject, selectedDate);
+                          const assignments = getActiveAssignmentsForSubject(
+                            schedule.subjectName,
+                            selectedDate,
+                            assignments
+                          );
                           if (assignments.length === 0) return null;
                           
                           return (
@@ -281,6 +290,17 @@ export default function Schedules() {
                                     (assignment.dueDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24)
                                   );
                                   const isUrgent = daysUntilDue <= 3;
+                                  const assignmentKind = assignment.kind ?? assignment.type ?? "";
+                                  const kindLabel =
+                                    assignmentKind === "HOMEWORK"
+                                      ? "PR"
+                                      : assignmentKind === "PROJECT"
+                                      ? "Proyek"
+                                      : assignmentKind === "QUIZ"
+                                      ? "Kuis"
+                                      : assignmentKind === "EXAM"
+                                      ? "Ujian"
+                                      : assignmentKind || "Tugas";
                                   
                                   return (
                                     <div
@@ -305,10 +325,7 @@ export default function Schedules() {
                                           variant={isUrgent ? "destructive" : "secondary"}
                                           className="shrink-0 text-xs"
                                         >
-                                          {assignment.type === "HOMEWORK" && "PR"}
-                                          {assignment.type === "PROJECT" && "Proyek"}
-                                          {assignment.type === "QUIZ" && "Kuis"}
-                                          {assignment.type === "EXAM" && "Ujian"}
+                                          {kindLabel}
                                         </Badge>
                                       </div>
                                       <div className="flex items-center gap-1.5 mt-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,19 @@ import { LinkUserDialog } from "@/components/admin/LinkUserDialog";
 import { UserStatsCard } from "@/components/admin/UserStatsCard";
 import { Role, ROLES, GRADES } from "@/lib/constants";
 import {
+  createUser,
+  deleteUser,
+  linkParentStudent,
+  listParents,
+  listStudents,
+  listTeachers,
+  unlinkParentStudent,
+  updateUser,
+  updateUserProfile,
+} from "@/lib/handlers/users";
+import { listClasses } from "@/lib/handlers/classes";
+import { ClassSummary, UserSummary } from "@/lib/schemas";
+import {
   Search,
   Plus,
   Users as UsersIcon,
@@ -39,132 +52,20 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Mock data
-const mockStudents = [
-  {
-    id: "s1",
-    name: "Ahmad Rizki",
-    email: "ahmad.rizki@student.sch.id",
-    role: ROLES.STUDENT as Role,
-    grade: 10,
-    classId: "1",
-    parentId: "p1",
-  },
-  {
-    id: "s2",
-    name: "Siti Nurhaliza",
-    email: "siti.nurhaliza@student.sch.id",
-    role: ROLES.STUDENT as Role,
-    grade: 10,
-    classId: "1",
-    parentId: "p2",
-  },
-  {
-    id: "s3",
-    name: "Budi Santoso",
-    email: "budi.santoso@student.sch.id",
-    role: ROLES.STUDENT as Role,
-    grade: 11,
-    classId: "3",
-    parentId: null,
-  },
-  {
-    id: "s4",
-    name: "Dewi Lestari",
-    email: "dewi.lestari@student.sch.id",
-    role: ROLES.STUDENT as Role,
-    grade: 11,
-    classId: "3",
-    parentId: "p3",
-  },
-  {
-    id: "s5",
-    name: "Eko Prasetyo",
-    email: "eko.prasetyo@student.sch.id",
-    role: ROLES.STUDENT as Role,
-    grade: 12,
-    classId: "5",
-    parentId: null,
-  },
-  {
-    id: "s6",
-    name: "Fitri Handayaxxni",
-    email: "fitri.handayani@student.sch.id",
-    role: ROLES.STUDENT as Role,
-    grade: 12,
-    classId: "5",
-    parentId: "p1",
-  },
-];
-
-const mockTeachers = [
-  {
-    id: "t1",
-    name: "Dr. Susilo Bambang",
-    email: "susilo.bambang@teacher.sch.id",
-    role: ROLES.TEACHER as Role,
-    subject: "Matematika",
-  },
-  {
-    id: "t2",
-    name: "Ir. Maya Sari",
-    email: "maya.sari@teacher.sch.id",
-    role: ROLES.TEACHER as Role,
-    subject: "Fisika",
-  },
-  {
-    id: "t3",
-    name: "Dra. Ani Wijaya",
-    email: "ani.wijaya@teacher.sch.id",
-    role: ROLES.TEACHER as Role,
-    subject: "Bahasa Indonesia",
-  },
-  {
-    id: "t4",
-    name: "M.Pd. Rudi Hartono",
-    email: "rudi.hartono@teacher.sch.id",
-    role: ROLES.TEACHER as Role,
-    subject: "Bahasa Inggris",
-  },
-];
-
-const mockParents = [
-  {
-    id: "p1",
-    name: "Hj. Kartini",
-    email: "kartini@parent.sch.id",
-    role: ROLES.PARENT as Role,
-    childrenIds: ["s1", "s6"],
-  },
-  {
-    id: "p2",
-    name: "Bp. Supriyadi",
-    email: "supriyadi@parent.sch.id",
-    role: ROLES.PARENT as Role,
-    childrenIds: ["s2"],
-  },
-  {
-    id: "p3",
-    name: "Ibu Ratna",
-    email: "ratna@parent.sch.id",
-    role: ROLES.PARENT as Role,
-    childrenIds: ["s4"],
-  },
-];
-
-const mockClasses = [
-  { id: "1", name: "X IPA 1", grade: 10 },
-  { id: "2", name: "X IPA 2", grade: 10 },
-  { id: "3", name: "XI IPA 1", grade: 11 },
-  { id: "4", name: "XI IPA 2", grade: 11 },
-  { id: "5", name: "XII IPA 1", grade: 12 },
-  { id: "6", name: "XII IPA 2", grade: 12 },
-];
+type UserRow = UserSummary & {
+  studentProfile?: { classId?: string | null };
+  parentLinks?: { studentId: string }[];
+};
 
 export default function Users() {
   const [activeTab, setActiveTab] = useState<
     "students" | "teachers" | "parents"
   >("students");
+  const [students, setStudents] = useState<UserRow[]>([]);
+  const [teachers, setTeachers] = useState<UserSummary[]>([]);
+  const [parents, setParents] = useState<UserRow[]>([]);
+  const [classes, setClasses] = useState<ClassSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
@@ -177,55 +78,121 @@ export default function Users() {
   const [linkingUser, setLinkingUser] = useState<any>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
+  const classById = useMemo(
+    () => new Map(classes.map((cls) => [cls.id, cls])),
+    [classes]
+  );
+
+  const studentById = useMemo(
+    () => new Map(students.map((student) => [student.id, student])),
+    [students]
+  );
+
+  const parentByStudentId = useMemo(() => {
+    const map = new Map<string, UserSummary>();
+    parents.forEach((parent) => {
+      parent.parentLinks?.forEach((link) => {
+        if (!map.has(link.studentId)) {
+          map.set(link.studentId, parent);
+        }
+      });
+    });
+    return map;
+  }, [parents]);
+
+  const reloadData = async () => {
+    try {
+      setIsLoading(true);
+      const [studentsData, teachersData, parentsData, classData] =
+        await Promise.all([
+          listStudents(),
+          listTeachers(),
+          listParents(),
+          listClasses(),
+        ]);
+      setStudents(studentsData as UserRow[]);
+      setTeachers(teachersData);
+      setParents(parentsData as UserRow[]);
+      setClasses(classData);
+    } catch (error) {
+      toast.error("Gagal memuat data pengguna");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    reloadData();
+  }, []);
+
   // Get stats
   const stats = {
-    totalStudents: mockStudents.length,
-    totalTeachers: mockTeachers.length,
-    totalParents: mockParents.length,
-    linkedStudents: mockStudents.filter((s) => s.parentId).length,
+    totalStudents: students.length,
+    totalTeachers: teachers.length,
+    totalParents: parents.length,
+    linkedStudents: students.filter((s) => parentByStudentId.has(s.id)).length,
   };
 
   // Filter logic
-  const filteredStudents = mockStudents.filter((student) => {
+  const filteredStudents = students.filter((student) => {
+    const email = student.email ?? "";
     const matchesSearch =
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchQuery.toLowerCase());
+      email.toLowerCase().includes(searchQuery.toLowerCase());
+    const classId = student.studentProfile?.classId ?? "";
+    const grade = classById.get(classId)?.grade;
     const matchesGrade =
-      gradeFilter === "all" || student.grade.toString() === gradeFilter;
-    const matchesClass =
-      classFilter === "all" || student.classId === classFilter;
+      gradeFilter === "all" || (grade?.toString() ?? "") === gradeFilter;
+    const matchesClass = classFilter === "all" || classId === classFilter;
     return matchesSearch && matchesGrade && matchesClass;
   });
 
-  const filteredTeachers = mockTeachers.filter(
-    (teacher) =>
+  const filteredTeachers = teachers.filter((teacher) => {
+    const email = teacher.email ?? "";
+    return (
       teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      teacher.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
-  const filteredParents = mockParents.filter(
-    (parent) =>
+  const filteredParents = parents.filter((parent) => {
+    const email = parent.email ?? "";
+    return (
       parent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      parent.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
-  const getClassName = (classId: string | null) => {
+  const getClassName = (classId: string | null | undefined) => {
     if (!classId) return null;
-    const cls = mockClasses.find((c) => c.id === classId);
-    return cls?.name || null;
+    return classById.get(classId)?.name ?? null;
   };
 
-  const getParentName = (parentId: string | null) => {
-    if (!parentId) return undefined;
-    const parent = mockParents.find((p) => p.id === parentId);
-    return parent?.name;
+  const getParentName = (studentId: string | null | undefined) => {
+    if (!studentId) return undefined;
+    return parentByStudentId.get(studentId)?.name;
   };
 
   const getChildrenNames = (childrenIds: string[]) => {
     const names = childrenIds
-      .map((id) => mockStudents.find((s) => s.id === id)?.name)
+      .map((id) => studentById.get(id)?.name)
       .filter(Boolean);
     return names.join(", ");
+  };
+
+  const buildFormData = (user: UserRow | UserSummary) => {
+    const classId =
+      "studentProfile" in user ? user.studentProfile?.classId ?? undefined : undefined;
+    const grade = classId ? classById.get(classId)?.grade : undefined;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email ?? "",
+      phone: "",
+      role: user.role as Role,
+      grade,
+      classId,
+    };
   };
 
   const handleAddUser = () => {
@@ -234,11 +201,9 @@ export default function Users() {
   };
 
   const handleEditUser = (id: string) => {
-    const user = [...mockStudents, ...mockTeachers, ...mockParents].find(
-      (u) => u.id === id
-    );
+    const user = [...students, ...teachers, ...parents].find((u) => u.id === id);
     if (user) {
-      setEditingUser(user);
+      setEditingUser(buildFormData(user as UserRow));
       setFormDialogOpen(true);
     }
   };
@@ -248,30 +213,99 @@ export default function Users() {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = () => {
-    toast.success("Pengguna berhasil dihapus");
-    setDeleteDialogOpen(false);
-    setDeletingUserId(null);
+  const handleConfirmDelete = async () => {
+    if (!deletingUserId) return;
+    try {
+      await deleteUser(deletingUserId);
+      toast.success("Pengguna berhasil dihapus");
+      await reloadData();
+    } catch (error) {
+      toast.error("Gagal menghapus pengguna");
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeletingUserId(null);
+    }
   };
 
   const handleLinkUser = (id: string) => {
-    const user = [...mockStudents, ...mockParents].find((u) => u.id === id);
+    const user = [...students, ...parents].find((u) => u.id === id);
     if (user) {
       setLinkingUser(user);
       setLinkDialogOpen(true);
     }
   };
 
-  const handleFormSubmit = (data: any) => {
-    if (editingUser) {
-      toast.success("Data pengguna berhasil diperbarui");
-    } else {
-      toast.success("Pengguna baru berhasil ditambahkan");
+  const handleFormSubmit = async (data: any) => {
+    try {
+      if (editingUser?.id) {
+        await updateUser(editingUser.id, {
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          phone: data.phone,
+        });
+        if (data.role === ROLES.STUDENT) {
+          await updateUserProfile(editingUser.id, {
+            studentProfile: { classId: data.classId ?? null },
+          });
+        }
+        toast.success("Data pengguna berhasil diperbarui");
+      } else {
+        await createUser({
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          phone: data.phone,
+          classId: data.classId ?? null,
+        });
+        toast.success("Pengguna baru berhasil ditambahkan");
+      }
+      await reloadData();
+    } catch (error) {
+      toast.error("Gagal menyimpan pengguna");
     }
   };
 
-  const handleLinkSubmit = (sourceUserId: string, targetUserIds: string[]) => {
-    toast.success("Hubungan berhasil disimpan");
+  const handleLinkSubmit = async (
+    sourceUserId: string,
+    targetUserIds: string[]
+  ) => {
+    if (!linkingUser) return;
+    try {
+      if (linkingUser.role === ROLES.PARENT) {
+        const currentIds =
+          linkingUser.parentLinks?.map((link: { studentId: string }) => link.studentId) ??
+          [];
+        const toAdd = targetUserIds.filter((id) => !currentIds.includes(id));
+        const toRemove = currentIds.filter((id) => !targetUserIds.includes(id));
+        await Promise.all([
+          ...toAdd.map((studentId) => linkParentStudent(sourceUserId, studentId)),
+          ...toRemove.map((studentId) =>
+            unlinkParentStudent(sourceUserId, studentId)
+          ),
+        ]);
+      } else {
+        const currentParentIds = parents
+          .filter((parent) =>
+            parent.parentLinks?.some((link) => link.studentId === sourceUserId)
+          )
+          .map((parent) => parent.id);
+        const toAdd = targetUserIds.filter((id) => !currentParentIds.includes(id));
+        const toRemove = currentParentIds.filter(
+          (id) => !targetUserIds.includes(id)
+        );
+        await Promise.all([
+          ...toAdd.map((parentId) => linkParentStudent(parentId, sourceUserId)),
+          ...toRemove.map((parentId) =>
+            unlinkParentStudent(parentId, sourceUserId)
+          ),
+        ]);
+      }
+      toast.success("Hubungan berhasil disimpan");
+      await reloadData();
+    } catch (error) {
+      toast.error("Gagal menyimpan hubungan");
+    }
   };
 
   const getAllowedRoles = (): Role[] => {
@@ -376,21 +410,21 @@ export default function Users() {
               <GraduationCap className="h-4 w-4" />
               <span className="hidden sm:inline">Siswa</span>
               <Badge variant="secondary" className="ml-1">
-                {mockStudents.length}
+                {students.length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="teachers" className="gap-2">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Guru</span>
               <Badge variant="secondary" className="ml-1">
-                {mockTeachers.length}
+                {teachers.length}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="parents" className="gap-2">
               <UsersIcon className="h-4 w-4" />
               <span className="hidden sm:inline">Orang Tua</span>
               <Badge variant="secondary" className="ml-1">
-                {mockParents.length}
+                {parents.length}
               </Badge>
             </TabsTrigger>
           </TabsList>
@@ -429,7 +463,7 @@ export default function Users() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Kelas</SelectItem>
-                    {mockClasses
+                    {classes
                       .filter(
                         (c) =>
                           gradeFilter === "all" ||
@@ -449,7 +483,11 @@ export default function Users() {
 
         {/* Students Tab */}
         <TabsContent value="students" className="mt-6">
-          {filteredStudents.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              Memuat data siswa...
+            </div>
+          ) : filteredStudents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <GraduationCap className="h-12 w-12 mb-4 opacity-50" />
               <p className="text-lg font-medium">Tidak ada siswa ditemukan</p>
@@ -462,13 +500,13 @@ export default function Users() {
                   key={student.id}
                   id={student.id}
                   name={student.name}
-                  email={student.email}
-                  role={student.role}
+                  email={student.email ?? ""}
+                  role={student.role as Role}
                   linkedTo={
-                    getParentName(student.parentId)
-                      ? `Ortu: ${getParentName(student.parentId)}`
-                      : getClassName(student.classId)
-                      ? `Kelas: ${getClassName(student.classId)}`
+                    getParentName(student.id)
+                      ? `Ortu: ${getParentName(student.id)}`
+                      : getClassName(student.studentProfile?.classId)
+                      ? `Kelas: ${getClassName(student.studentProfile?.classId)}`
                       : undefined
                   }
                   onEdit={handleEditUser}
@@ -482,7 +520,11 @@ export default function Users() {
 
         {/* Teachers Tab */}
         <TabsContent value="teachers" className="mt-6">
-          {filteredTeachers.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              Memuat data guru...
+            </div>
+          ) : filteredTeachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BookOpen className="h-12 w-12 mb-4 opacity-50" />
               <p className="text-lg font-medium">Tidak ada guru ditemukan</p>
@@ -497,9 +539,8 @@ export default function Users() {
                   key={teacher.id}
                   id={teacher.id}
                   name={teacher.name}
-                  email={teacher.email}
-                  role={teacher.role}
-                  linkedTo={`Mapel: ${teacher.subject}`}
+                  email={teacher.email ?? ""}
+                  role={teacher.role as Role}
                   onEdit={handleEditUser}
                   onDelete={handleDeleteUser}
                 />
@@ -510,7 +551,11 @@ export default function Users() {
 
         {/* Parents Tab */}
         <TabsContent value="parents" className="mt-6">
-          {filteredParents.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              Memuat data orang tua...
+            </div>
+          ) : filteredParents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <UsersIcon className="h-12 w-12 mb-4 opacity-50" />
               <p className="text-lg font-medium">
@@ -527,11 +572,13 @@ export default function Users() {
                   key={parent.id}
                   id={parent.id}
                   name={parent.name}
-                  email={parent.email}
-                  role={parent.role}
+                  email={parent.email ?? ""}
+                  role={parent.role as Role}
                   linkedTo={
-                    parent.childrenIds.length > 0
-                      ? `Anak: ${getChildrenNames(parent.childrenIds)}`
+                    parent.parentLinks && parent.parentLinks.length > 0
+                      ? `Anak: ${getChildrenNames(
+                          parent.parentLinks.map((link) => link.studentId)
+                        )}`
                       : undefined
                   }
                   onEdit={handleEditUser}
@@ -552,6 +599,7 @@ export default function Users() {
         initialData={editingUser}
         allowedRoles={getAllowedRoles()}
         title={getFormTitle()}
+        classes={classes}
       />
 
       <LinkUserDialog
@@ -560,23 +608,29 @@ export default function Users() {
         sourceUser={linkingUser}
         availableUsers={
           linkingUser?.role === ROLES.PARENT
-            ? mockStudents.map((s) => ({
-                id: s.id,
-                name: s.name,
-                email: s.email,
+            ? students.map((student) => ({
+                id: student.id,
+                name: student.name,
+                email: student.email ?? "",
               }))
-            : mockParents.map((p) => ({
-                id: p.id,
-                name: p.name,
-                email: p.email,
+            : parents.map((parent) => ({
+                id: parent.id,
+                name: parent.name,
+                email: parent.email ?? "",
               }))
         }
         linkedUserIds={
           linkingUser?.role === ROLES.PARENT
-            ? linkingUser?.childrenIds || []
-            : linkingUser?.parentId
-            ? [linkingUser.parentId]
-            : []
+            ? linkingUser?.parentLinks?.map(
+                (link: { studentId: string }) => link.studentId
+              ) || []
+            : parents
+                .filter((parent) =>
+                  parent.parentLinks?.some(
+                    (link) => link.studentId === linkingUser?.id
+                  )
+                )
+                .map((parent) => parent.id)
         }
         onLink={handleLinkSubmit}
         mode={

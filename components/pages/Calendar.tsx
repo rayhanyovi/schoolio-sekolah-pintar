@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,24 +17,63 @@ import {
 } from "lucide-react";
 import { EventCard } from "@/components/calendar/EventCard";
 import { EventFormDialog } from "@/components/calendar/EventFormDialog";
-import { mockEvents, CalendarEvent } from "@/lib/mockData";
+import {
+  createEvent,
+  deleteEvent,
+  listEvents,
+  updateEvent,
+} from "@/lib/handlers/calendar";
+import { CalendarEventSummary } from "@/lib/schemas";
 import { EVENT_TYPES, EVENT_COLORS, EventType } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
-import { format, isSameDay, isSameMonth, addMonths, subMonths, isAfter, isBefore, addDays } from "date-fns";
+import {
+  addDays,
+  addMonths,
+  endOfMonth,
+  format,
+  isAfter,
+  isBefore,
+  isSameDay,
+  isSameMonth,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
 import { id } from "date-fns/locale";
 
 export default function AcademicCalendar() {
   const { role } = useRoleContext();
   const { toast } = useToast();
-  const [events, setEvents] = useState<CalendarEvent[]>(mockEvents);
+  const [events, setEvents] = useState<CalendarEventSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedType, setSelectedType] = useState<string>("all");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventSummary | null>(null);
 
   const canEdit = role === "ADMIN" || role === "TEACHER";
+
+  const loadEvents = async (month: Date) => {
+    try {
+      setIsLoading(true);
+      const from = startOfMonth(month).toISOString();
+      const to = addDays(endOfMonth(month), 7).toISOString();
+      const data = await listEvents({ dateFrom: from, dateTo: to });
+      setEvents(data);
+    } catch (error) {
+      toast({
+        title: "Gagal memuat event",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents(currentMonth);
+  }, [currentMonth]);
 
   // Filter events by type
   const filteredEvents = events.filter(e => 
@@ -61,33 +100,47 @@ export default function AcademicCalendar() {
     return filteredEvents.map(e => e.date);
   }, [filteredEvents]);
 
-  const handleSubmit = (data: Partial<CalendarEvent>) => {
-    if (selectedEvent) {
-      setEvents(events.map(e => e.id === selectedEvent.id ? { ...e, ...data } as CalendarEvent : e));
-      toast({ title: "Berhasil", description: "Event berhasil diperbarui" });
-    } else {
-      const newEvent: CalendarEvent = {
-        id: Date.now().toString(),
-        title: data.title || "",
-        description: data.description || "",
-        date: data.date || new Date(),
+  const handleSubmit = async (data: Partial<CalendarEventSummary>) => {
+    try {
+      const payload = {
+        title: data.title,
+        description: data.description,
+        date: data.date,
         endDate: data.endDate,
-        type: data.type || "ACADEMIC",
-        isRecurring: data.isRecurring || false,
-        createdBy: "current-user",
+        type: data.type,
+        isRecurring: data.isRecurring,
       };
-      setEvents([...events, newEvent]);
-      toast({ title: "Berhasil", description: "Event baru berhasil ditambahkan" });
+      if (selectedEvent) {
+        await updateEvent(selectedEvent.id, payload);
+        toast({ title: "Berhasil", description: "Event berhasil diperbarui" });
+      } else {
+        await createEvent(payload);
+        toast({ title: "Berhasil", description: "Event baru berhasil ditambahkan" });
+      }
+      setSelectedEvent(null);
+      await loadEvents(currentMonth);
+    } catch (error) {
+      toast({
+        title: "Gagal menyimpan event",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
     }
-    setSelectedEvent(null);
   };
 
-  const handleDelete = (id: string) => {
-    setEvents(events.filter(e => e.id !== id));
-    toast({ title: "Berhasil", description: "Event berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteEvent(id);
+      toast({ title: "Berhasil", description: "Event berhasil dihapus" });
+      await loadEvents(currentMonth);
+    } catch (error) {
+      toast({
+        title: "Gagal menghapus event",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   };
 
-  const handleEdit = (event: CalendarEvent) => {
+  const handleEdit = (event: CalendarEventSummary) => {
     setSelectedEvent(event);
     setFormDialogOpen(true);
   };
@@ -157,7 +210,11 @@ export default function AcademicCalendar() {
                 <h4 className="font-semibold text-sm text-muted-foreground">
                   Event pada {format(selectedDate, "d MMMM yyyy", { locale: id })}
                 </h4>
-                {eventsOnSelectedDate.length > 0 ? (
+                {isLoading ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    Memuat event...
+                  </p>
+                ) : eventsOnSelectedDate.length > 0 ? (
                   <div className="space-y-2">
                     {eventsOnSelectedDate.map((event) => (
                       <EventCard
@@ -191,7 +248,14 @@ export default function AcademicCalendar() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[300px]">
-                {upcomingEvents.length > 0 ? (
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Memuat event...
+                    </p>
+                  </div>
+                ) : upcomingEvents.length > 0 ? (
                   <div className="space-y-3">
                     {upcomingEvents.map((event) => (
                       <div

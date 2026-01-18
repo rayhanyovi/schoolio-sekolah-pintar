@@ -1,95 +1,62 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ROLES } from "@/lib/constants";
 import { useRoleContext } from "@/hooks/useRoleContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { 
-  BookOpen, 
-  Plus, 
-  Search, 
-  FileText, 
-  Download, 
-  Eye, 
-  Pencil, 
-  Trash2, 
+import {
+  BookOpen,
+  Plus,
+  Search,
+  FileText,
+  Download,
+  Eye,
+  Pencil,
+  Trash2,
   Calendar,
   Clock,
-  Upload,
-  File,
-  X,
-  User
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-
-// Demo data
-const demoSchedules = [
-  { id: "1", className: "X-A", subject: "Matematika" },
-  { id: "2", className: "X-B", subject: "Matematika" },
-  { id: "3", className: "XI-A", subject: "Fisika" },
-];
-
-const demoSubjects = [
-  { id: "1", name: "Matematika", teacher: "Pak Budi" },
-  { id: "2", name: "Fisika", teacher: "Bu Sari" },
-  { id: "3", name: "Bahasa Indonesia", teacher: "Pak Ahmad" },
-];
-
-const demoMaterials = [
-  {
-    id: "1",
-    title: "Pengenalan Aljabar Linear",
-    description: "Materi dasar tentang aljabar linear meliputi vektor, matriks, dan operasi dasar. Cocok untuk pemula yang ingin memahami konsep dasar matematika tingkat lanjut.",
-    subject: "Matematika",
-    className: "X-A",
-    teacher: "Pak Budi",
-    createdAt: new Date(2025, 0, 2),
-    attachments: [
-      { name: "aljabar-linear.pdf", size: "2.4 MB", type: "pdf" },
-      { name: "latihan-soal.pdf", size: "1.1 MB", type: "pdf" },
-    ],
-  },
-  {
-    id: "2",
-    title: "Hukum Newton tentang Gerak",
-    description: "Pembahasan lengkap tentang tiga hukum Newton beserta contoh penerapannya dalam kehidupan sehari-hari.",
-    subject: "Fisika",
-    className: "XI-A",
-    teacher: "Bu Sari",
-    createdAt: new Date(2025, 0, 5),
-    attachments: [
-      { name: "hukum-newton.pptx", size: "5.2 MB", type: "pptx" },
-    ],
-  },
-  {
-    id: "3",
-    title: "Trigonometri Dasar",
-    description: "Konsep dasar trigonometri: sin, cos, tan, dan aplikasinya dalam menyelesaikan masalah geometri.",
-    subject: "Matematika",
-    className: "X-A",
-    teacher: "Pak Budi",
-    createdAt: new Date(2025, 0, 8),
-    attachments: [
-      { name: "trigonometri.pdf", size: "3.0 MB", type: "pdf" },
-      { name: "video-penjelasan.mp4", size: "45 MB", type: "video" },
-    ],
-  },
-];
-
-const demoChildren = [
-  { id: "1", name: "Anak 1 - Ahmad", class: "X-A" },
-  { id: "2", name: "Anak 2 - Budi", class: "XI-B" },
-];
+import {
+  createMaterial,
+  deleteMaterial,
+  listMaterials,
+  updateMaterial,
+} from "@/lib/handlers/materials";
+import { listSchedules } from "@/lib/handlers/schedules";
+import { listSubjects } from "@/lib/handlers/subjects";
+import { listTeachers, listStudents } from "@/lib/handlers/users";
+import {
+  MaterialSummary,
+  ScheduleSummary,
+  SubjectSummary,
+  UserSummary,
+} from "@/lib/schemas";
 
 const fileTypeIcons: Record<string, string> = {
   pdf: "📄",
@@ -101,44 +68,115 @@ const fileTypeIcons: Record<string, string> = {
 
 export default function Materials() {
   const { role } = useRoleContext();
-  
+
   if (role === ROLES.TEACHER || role === ROLES.ADMIN) {
     return <TeacherMaterialsView />;
   }
-  
+
   if (role === ROLES.PARENT) {
-    return <ParentMaterialsView />;
+    return (
+      <StudentMaterialsView
+        title="Materi Pembelajaran Anak"
+        description="Lihat materi yang diberikan kepada anak Anda"
+        allowStudentSelect
+      />
+    );
   }
-  
-  return <StudentMaterialsView />;
+
+  return (
+    <StudentMaterialsView
+      title="Materi Pembelajaran"
+      description="Akses materi dari semua mata pelajaran"
+      allowStudentSelect={false}
+    />
+  );
 }
 
 function TeacherMaterialsView() {
-  const [selectedSchedule, setSelectedSchedule] = useState<string>("");
+  const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
+  const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
+  const [teachers, setTeachers] = useState<UserSummary[]>([]);
+  const [materials, setMaterials] = useState<MaterialSummary[]>([]);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<typeof demoMaterials[0] | null>(null);
-  const [detailMaterial, setDetailMaterial] = useState<typeof demoMaterials[0] | null>(null);
+  const [editingMaterial, setEditingMaterial] = useState<MaterialSummary | null>(null);
+  const [detailMaterial, setDetailMaterial] = useState<MaterialSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredMaterials = selectedSchedule 
-    ? demoMaterials.filter(m => {
-        const schedule = demoSchedules.find(s => s.id === selectedSchedule);
-        return schedule && m.className === schedule.className && m.subject === schedule.subject;
-      })
-    : demoMaterials;
+  const selectedSchedule = schedules.find((schedule) => schedule.id === selectedScheduleId);
 
-  const handleEdit = (material: typeof demoMaterials[0]) => {
+  const loadMaterials = async (params?: { classId?: string; subjectId?: string; q?: string }) => {
+    setIsLoading(true);
+    try {
+      const data = await listMaterials(params);
+      setMaterials(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadBase = async () => {
+      setIsLoading(true);
+      try {
+        const [scheduleData, subjectData, teacherData] = await Promise.all([
+          listSchedules(),
+          listSubjects(),
+          listTeachers(),
+        ]);
+        setSchedules(scheduleData);
+        setSubjects(subjectData);
+        setTeachers(teacherData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadBase();
+  }, []);
+
+  useEffect(() => {
+    const params: { classId?: string; subjectId?: string; q?: string } = {};
+    if (selectedSchedule && selectedScheduleId !== "all") {
+      params.classId = selectedSchedule.classId;
+      params.subjectId = selectedSchedule.subjectId;
+    }
+    if (searchQuery.trim()) {
+      params.q = searchQuery.trim();
+    }
+    loadMaterials(params);
+  }, [selectedScheduleId, searchQuery, selectedSchedule]);
+
+  const handleEdit = (material: MaterialSummary) => {
     setEditingMaterial(material);
     setIsDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
+  const handleDelete = async (materialId: string) => {
+    await deleteMaterial(materialId);
+    await loadMaterials();
+  };
+
+  const handleSaveMaterial = async (payload: {
+    id?: string;
+    title: string;
+    description: string;
+    classId?: string | null;
+    subjectId: string;
+    teacherId: string;
+  }) => {
+    if (payload.id) {
+      await updateMaterial(payload.id, payload);
+    } else {
+      await createMaterial(payload);
+    }
     setIsDialogOpen(false);
     setEditingMaterial(null);
+    await loadMaterials();
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Materi Pembelajaran</h1>
@@ -155,54 +193,69 @@ function TeacherMaterialsView() {
             <DialogHeader>
               <DialogTitle>{editingMaterial ? "Edit Materi" : "Tambah Materi Baru"}</DialogTitle>
               <DialogDescription>
-                {editingMaterial ? "Ubah informasi materi pembelajaran" : "Isi informasi untuk materi baru"}
+                {editingMaterial
+                  ? "Ubah informasi materi pembelajaran"
+                  : "Isi informasi untuk materi baru"}
               </DialogDescription>
             </DialogHeader>
-            <MaterialForm material={editingMaterial} onClose={handleCloseDialog} />
+            <MaterialForm
+              material={editingMaterial}
+              schedules={schedules}
+              subjects={subjects}
+              teachers={teachers}
+              onClose={() => {
+                setIsDialogOpen(false);
+                setEditingMaterial(null);
+              }}
+              onSave={handleSaveMaterial}
+            />
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Filter */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
-            <Select value={selectedSchedule} onValueChange={setSelectedSchedule}>
+            <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
               <SelectTrigger className="w-full sm:w-[300px]">
                 <SelectValue placeholder="Filter berdasarkan jadwal..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Jadwal</SelectItem>
-                {demoSchedules.map((schedule) => (
+                {schedules.map((schedule) => (
                   <SelectItem key={schedule.id} value={schedule.id}>
-                    {schedule.className} - {schedule.subject}
+                    {schedule.className} - {schedule.subjectName}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Cari materi..." className="pl-10" />
+              <Input
+                placeholder="Cari materi..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Materials Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredMaterials.map((material) => (
+        {materials.map((material) => (
           <MaterialCard
             key={material.id}
             material={material}
             onView={() => setDetailMaterial(material)}
             onEdit={() => handleEdit(material)}
-            onDelete={() => {}}
+            onDelete={() => handleDelete(material.id)}
             showActions
           />
         ))}
       </div>
 
-      {filteredMaterials.length === 0 && (
+      {materials.length === 0 && (
         <Card className="p-12">
           <div className="text-center text-muted-foreground">
             <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -212,7 +265,6 @@ function TeacherMaterialsView() {
         </Card>
       )}
 
-      {/* Detail Sheet */}
       <Sheet open={!!detailMaterial} onOpenChange={() => setDetailMaterial(null)}>
         <SheetContent className="sm:max-w-lg overflow-y-auto">
           {detailMaterial && (
@@ -232,16 +284,23 @@ function TeacherMaterialsView() {
                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Tanggal Upload</h4>
                   <p className="text-sm flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    {format(detailMaterial.createdAt, "EEEE, d MMMM yyyy", { locale: id })}
+                    {format(detailMaterial.createdAt, "EEEE, d MMMM yyyy", {
+                      locale: id,
+                    })}
                   </p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Lampiran</h4>
                   <div className="space-y-2">
-                    {detailMaterial.attachments.map((file, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    {detailMaterial.attachments.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                      >
                         <div className="flex items-center gap-3">
-                          <span className="text-xl">{fileTypeIcons[file.type] || fileTypeIcons.default}</span>
+                          <span className="text-xl">
+                            {fileTypeIcons[file.type] || fileTypeIcons.default}
+                          </span>
                           <div>
                             <p className="text-sm font-medium">{file.name}</p>
                             <p className="text-xs text-muted-foreground">{file.size}</p>
@@ -252,6 +311,11 @@ function TeacherMaterialsView() {
                         </Button>
                       </div>
                     ))}
+                    {detailMaterial.attachments.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Belum ada lampiran
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -259,30 +323,100 @@ function TeacherMaterialsView() {
           )}
         </SheetContent>
       </Sheet>
+
+      {isLoading && (
+        <p className="text-sm text-muted-foreground">Memuat materi...</p>
+      )}
     </div>
   );
 }
 
-function StudentMaterialsView() {
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [detailMaterial, setDetailMaterial] = useState<typeof demoMaterials[0] | null>(null);
+type StudentMaterialsViewProps = {
+  title: string;
+  description: string;
+  allowStudentSelect: boolean;
+};
 
-  const filteredMaterials = demoMaterials.filter(m => {
-    const matchSubject = !selectedSubject || selectedSubject === "all" || m.subject === demoSubjects.find(s => s.id === selectedSubject)?.name;
-    const matchSearch = !searchQuery || m.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchSubject && matchSearch;
-  });
+function StudentMaterialsView({
+  title,
+  description,
+  allowStudentSelect,
+}: StudentMaterialsViewProps) {
+  const [materials, setMaterials] = useState<MaterialSummary[]>([]);
+  const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
+  const [students, setStudents] = useState<UserSummary[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [detailMaterial, setDetailMaterial] = useState<MaterialSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBase = async () => {
+      setIsLoading(true);
+      try {
+        const [materialData, subjectData, studentData] = await Promise.all([
+          listMaterials(),
+          listSubjects(),
+          listStudents(),
+        ]);
+        setMaterials(materialData);
+        setSubjects(subjectData);
+        setStudents(studentData);
+        if (!selectedStudentId && studentData.length > 0) {
+          setSelectedStudentId(studentData[0].id);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadBase();
+  }, [selectedStudentId]);
+
+  const selectedStudent = students.find((student) => student.id === selectedStudentId);
+  const studentClassId = selectedStudent?.studentProfile?.classId ?? null;
+
+  const filteredMaterials = useMemo(() => {
+    return materials.filter((material) => {
+      const matchSubject =
+        selectedSubjectId === "all" ||
+        !selectedSubjectId ||
+        material.subjectId === selectedSubjectId;
+      const matchSearch =
+        !searchQuery ||
+        material.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchClass =
+        !studentClassId || !material.classId || material.classId === studentClassId;
+      return matchSubject && matchSearch && matchClass;
+    });
+  }, [materials, selectedSubjectId, searchQuery, studentClassId]);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Materi Pembelajaran</h1>
-        <p className="text-muted-foreground">Akses materi dari semua mata pelajaran</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+          <p className="text-muted-foreground">{description}</p>
+        </div>
+        {allowStudentSelect && (
+          <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Pilih siswa..." />
+            </SelectTrigger>
+            <SelectContent>
+              {students.map((student) => (
+                <SelectItem key={student.id} value={student.id}>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {student.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -292,7 +426,7 @@ function StudentMaterialsView() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Materi</p>
-                <p className="text-xl font-bold">{demoMaterials.length}</p>
+                <p className="text-xl font-bold">{materials.length}</p>
               </div>
             </div>
           </CardContent>
@@ -305,7 +439,7 @@ function StudentMaterialsView() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Mata Pelajaran</p>
-                <p className="text-xl font-bold">{demoSubjects.length}</p>
+                <p className="text-xl font-bold">{subjects.length}</p>
               </div>
             </div>
           </CardContent>
@@ -317,8 +451,10 @@ function StudentMaterialsView() {
                 <Download className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Sudah Dibaca</p>
-                <p className="text-xl font-bold">8</p>
+                <p className="text-xs text-muted-foreground">Lampiran</p>
+                <p className="text-xl font-bold">
+                  {materials.reduce((sum, material) => sum + material.attachments.length, 0)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -331,24 +467,23 @@ function StudentMaterialsView() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Materi Baru</p>
-                <p className="text-xl font-bold">2</p>
+                <p className="text-xl font-bold">{filteredMaterials.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filter */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
               <SelectTrigger className="w-full sm:w-[250px]">
                 <SelectValue placeholder="Pilih mata pelajaran..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Mata Pelajaran</SelectItem>
-                {demoSubjects.map((subject) => (
+                {subjects.map((subject) => (
                   <SelectItem key={subject.id} value={subject.id}>
                     {subject.name}
                   </SelectItem>
@@ -357,8 +492,8 @@ function StudentMaterialsView() {
             </Select>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Cari materi..." 
+              <Input
+                placeholder="Cari materi..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -368,7 +503,6 @@ function StudentMaterialsView() {
         </CardContent>
       </Card>
 
-      {/* Materials Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredMaterials.map((material) => (
           <MaterialCard
@@ -379,7 +513,6 @@ function StudentMaterialsView() {
         ))}
       </div>
 
-      {/* Detail Sheet */}
       <Sheet open={!!detailMaterial} onOpenChange={() => setDetailMaterial(null)}>
         <SheetContent className="sm:max-w-lg overflow-y-auto">
           {detailMaterial && (
@@ -399,16 +532,25 @@ function StudentMaterialsView() {
                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Tanggal Upload</h4>
                   <p className="text-sm flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    {format(detailMaterial.createdAt, "EEEE, d MMMM yyyy", { locale: id })}
+                    {format(detailMaterial.createdAt, "EEEE, d MMMM yyyy", {
+                      locale: id,
+                    })}
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3">Lampiran ({detailMaterial.attachments.length})</h4>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                    Lampiran ({detailMaterial.attachments.length})
+                  </h4>
                   <div className="space-y-2">
-                    {detailMaterial.attachments.map((file, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    {detailMaterial.attachments.map((file) => (
+                      <div
+                        key={file.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                      >
                         <div className="flex items-center gap-3">
-                          <span className="text-xl">{fileTypeIcons[file.type] || fileTypeIcons.default}</span>
+                          <span className="text-xl">
+                            {fileTypeIcons[file.type] || fileTypeIcons.default}
+                          </span>
                           <div>
                             <p className="text-sm font-medium">{file.name}</p>
                             <p className="text-xs text-muted-foreground">{file.size}</p>
@@ -420,6 +562,9 @@ function StudentMaterialsView() {
                         </Button>
                       </div>
                     ))}
+                    {detailMaterial.attachments.length === 0 && (
+                      <p className="text-sm text-muted-foreground">Belum ada lampiran</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -427,51 +572,16 @@ function StudentMaterialsView() {
           )}
         </SheetContent>
       </Sheet>
+
+      {isLoading && (
+        <p className="text-sm text-muted-foreground">Memuat materi...</p>
+      )}
     </div>
   );
 }
 
-function ParentMaterialsView() {
-  const [selectedChild, setSelectedChild] = useState<string>(demoChildren[0]?.id || "");
-
-  return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Materi Pembelajaran Anak</h1>
-          <p className="text-muted-foreground">Lihat materi yang diberikan kepada anak Anda</p>
-        </div>
-        <Select value={selectedChild} onValueChange={setSelectedChild}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Pilih anak..." />
-          </SelectTrigger>
-          <SelectContent>
-            {demoChildren.map((child) => (
-              <SelectItem key={child.id} value={child.id}>
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {child.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Materials List */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {demoMaterials.map((material) => (
-          <MaterialCard key={material.id} material={material} onView={() => {}} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Shared Components
 interface MaterialCardProps {
-  material: typeof demoMaterials[0];
+  material: MaterialSummary;
   onView: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -520,96 +630,111 @@ function MaterialCard({ material, onView, onEdit, onDelete, showActions }: Mater
   );
 }
 
-interface MaterialFormProps {
-  material?: typeof demoMaterials[0] | null;
+type MaterialFormProps = {
+  material?: MaterialSummary | null;
+  schedules: ScheduleSummary[];
+  subjects: SubjectSummary[];
+  teachers: UserSummary[];
   onClose: () => void;
-}
+  onSave: (payload: {
+    id?: string;
+    title: string;
+    description: string;
+    classId?: string | null;
+    subjectId: string;
+    teacherId: string;
+  }) => void;
+};
 
-function MaterialForm({ material, onClose }: MaterialFormProps) {
-  const [files, setFiles] = useState<File[]>([]);
+function MaterialForm({
+  material,
+  schedules,
+  subjects,
+  teachers,
+  onClose,
+  onSave,
+}: MaterialFormProps) {
+  const initialScheduleId =
+    schedules.find(
+      (schedule) =>
+        schedule.classId === material?.classId &&
+        schedule.subjectId === material?.subjectId
+    )?.id ?? schedules[0]?.id ?? "";
+  const [scheduleId, setScheduleId] = useState(initialScheduleId);
+  const [title, setTitle] = useState(material?.title ?? "");
+  const [description, setDescription] = useState(material?.description ?? "");
+
+  useEffect(() => {
+    setScheduleId(initialScheduleId);
+  }, [initialScheduleId]);
+
+  const selectedSchedule = schedules.find((schedule) => schedule.id === scheduleId);
+  const fallbackTeacherId = teachers[0]?.id ?? material?.teacherId ?? "";
+  const subjectId = selectedSchedule?.subjectId ?? material?.subjectId ?? subjects[0]?.id ?? "";
+  const classId = selectedSchedule?.classId ?? material?.classId ?? null;
+  const teacherId = selectedSchedule?.teacherId ?? material?.teacherId ?? fallbackTeacherId;
+
+  const handleSubmit = () => {
+    if (!subjectId || !teacherId) return;
+    onSave({
+      id: material?.id,
+      title,
+      description,
+      classId,
+      subjectId,
+      teacherId,
+    });
+  };
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="schedule">Jadwal</Label>
-        <Select defaultValue={material ? "1" : undefined}>
+        <Select value={scheduleId} onValueChange={setScheduleId}>
           <SelectTrigger>
             <SelectValue placeholder="Pilih jadwal..." />
           </SelectTrigger>
           <SelectContent>
-            {demoSchedules.map((schedule) => (
+            {schedules.map((schedule) => (
               <SelectItem key={schedule.id} value={schedule.id}>
-                {schedule.className} - {schedule.subject}
+                {schedule.className} - {schedule.subjectName}
               </SelectItem>
             ))}
+            {schedules.length === 0 && (
+              <SelectItem value="none" disabled>
+                Belum ada jadwal
+              </SelectItem>
+            )}
           </SelectContent>
         </Select>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="title">Judul Materi</Label>
-        <Input 
-          id="title" 
+        <Input
+          id="title"
           placeholder="Masukkan judul materi..."
-          defaultValue={material?.title}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="description">Deskripsi</Label>
-        <Textarea 
-          id="description" 
+        <Textarea
+          id="description"
           placeholder="Jelaskan isi materi..."
           rows={4}
-          defaultValue={material?.description}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Lampiran</Label>
-        <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
-          <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground mb-2">
-            Drag & drop file atau klik untuk upload
-          </p>
-          <Input
-            type="file"
-            multiple
-            className="hidden"
-            id="file-upload"
-            onChange={(e) => setFiles(Array.from(e.target.files || []))}
-          />
-          <Button variant="outline" size="sm" asChild>
-            <label htmlFor="file-upload" className="cursor-pointer">
-              Pilih File
-            </label>
-          </Button>
-        </div>
-        {files.length > 0 && (
-          <div className="space-y-2 mt-3">
-            {files.map((file, i) => (
-              <div key={i} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                <div className="flex items-center gap-2">
-                  <File className="h-4 w-4" />
-                  <span className="text-sm">{file.name}</span>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6"
-                  onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Batal</Button>
-        <Button onClick={onClose}>
+        <Button variant="outline" onClick={onClose}>
+          Batal
+        </Button>
+        <Button onClick={handleSubmit} disabled={!subjectId || !teacherId}>
           {material ? "Simpan Perubahan" : "Tambah Materi"}
         </Button>
       </DialogFooter>

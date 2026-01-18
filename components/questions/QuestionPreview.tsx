@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, CircleCheck } from "lucide-react";
-import { Question } from "@/lib/questionTypes";
+import { QuestionSummary } from "@/lib/schemas";
 import { ASSIGNMENT_TYPES, DIFFICULTY_LEVELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface QuestionPreviewProps {
-  question: Question;
+  question: QuestionSummary;
   showAnswer?: boolean;
   number?: number;
 }

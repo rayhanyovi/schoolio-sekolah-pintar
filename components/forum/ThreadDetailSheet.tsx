@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ import {
   Send,
   MessageSquare
 } from "lucide-react";
-import { ForumThread, ForumReply, mockReplies } from "@/lib/mockData";
+import { createReply, listReplies } from "@/lib/handlers/forum";
+import { ForumReplySummary, ForumThreadSummary } from "@/lib/schemas";
 import { THREAD_STATUS, THREAD_STATUS_COLORS, ThreadStatus } from "@/lib/constants";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
@@ -24,10 +25,12 @@ import { useToast } from "@/hooks/use-toast";
 interface ThreadDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  thread: ForumThread | null;
+  thread: ForumThreadSummary | null;
   canModerate: boolean;
   onTogglePin: (id: string) => void;
   onToggleLock: (id: string) => void;
+  currentUserId?: string;
+  currentUserRole?: string;
 }
 
 export function ThreadDetailSheet({ 
@@ -36,36 +39,67 @@ export function ThreadDetailSheet({
   thread, 
   canModerate,
   onTogglePin,
-  onToggleLock
+  onToggleLock,
+  currentUserId,
+  currentUserRole,
 }: ThreadDetailSheetProps) {
   const { toast } = useToast();
-  const [replies, setReplies] = useState<ForumReply[]>(mockReplies);
+  const [replies, setReplies] = useState<ForumReplySummary[]>([]);
+  const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const [newReply, setNewReply] = useState("");
 
   if (!thread) return null;
 
-  const threadReplies = replies.filter(r => r.threadId === thread.id);
+  const threadReplies = replies.filter((r) => r.threadId === thread.id);
   const statusColor = THREAD_STATUS_COLORS[thread.status as ThreadStatus];
   const isLocked = thread.status === "LOCKED";
 
-  const handleSubmitReply = () => {
+  const loadReplies = async () => {
+    try {
+      setIsLoadingReplies(true);
+      const data = await listReplies(thread.id);
+      setReplies(data);
+    } catch (error) {
+      toast({
+        title: "Gagal memuat balasan",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    } finally {
+      setIsLoadingReplies(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open && thread?.id) {
+      loadReplies();
+    }
+  }, [open, thread?.id]);
+
+  const handleSubmitReply = async () => {
     if (!newReply.trim()) return;
-    
-    const reply: ForumReply = {
-      id: Date.now().toString(),
-      threadId: thread.id,
-      content: newReply,
-      authorId: "current-user",
-      authorName: "Anda",
-      authorRole: "STUDENT",
-      isAcceptedAnswer: false,
-      upvotes: 0,
-      createdAt: new Date(),
-    };
-    
-    setReplies([...replies, reply]);
-    setNewReply("");
-    toast({ title: "Berhasil", description: "Balasan berhasil dikirim" });
+    if (!currentUserId) {
+      toast({
+        title: "Tidak ada pengguna",
+        description: "Tambahkan pengguna terlebih dahulu sebelum membalas.",
+      });
+      return;
+    }
+
+    try {
+      await createReply(thread.id, {
+        content: newReply,
+        authorId: currentUserId,
+        authorRole: currentUserRole ?? "STUDENT",
+      });
+      setNewReply("");
+      await loadReplies();
+      toast({ title: "Berhasil", description: "Balasan berhasil dikirim" });
+    } catch (error) {
+      toast({
+        title: "Gagal mengirim balasan",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   };
 
   return (
@@ -145,7 +179,11 @@ export function ThreadDetailSheet({
               Balasan ({threadReplies.length})
             </h4>
             <ScrollArea className="h-[250px]">
-              {threadReplies.length > 0 ? (
+              {isLoadingReplies ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Memuat balasan...
+                </div>
+              ) : threadReplies.length > 0 ? (
                 <div className="space-y-3 pr-4">
                   {threadReplies.map((reply) => (
                     <div 

@@ -37,21 +37,21 @@ import {
   AssignmentType,
   DIFFICULTY_LEVELS,
   DifficultyLevel,
-  SUBJECTS,
 } from "@/lib/constants";
-import { Question } from "@/lib/questionTypes";
+import { QuestionSummary, SubjectSummary } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 interface QuestionFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  question?: Question | null;
-  onSave: (question: Partial<Question>) => void;
+  question?: QuestionSummary | null;
+  onSave: (question: Partial<QuestionSummary>) => void;
+  subjects: SubjectSummary[];
 }
 
-const defaultQuestion: Partial<Question> = {
+const defaultQuestion: Partial<QuestionSummary> = {
   type: "MCQ",
-  subject: "Matematika",
+  subject: "",
   topic: "",
   difficulty: "MEDIUM",
   text: "",
@@ -66,9 +66,10 @@ export function QuestionFormDialog({
   open,
   onOpenChange,
   question,
+  subjects,
   onSave,
 }: QuestionFormDialogProps) {
-  const [formData, setFormData] = useState<Partial<Question>>(defaultQuestion);
+  const [formData, setFormData] = useState<Partial<QuestionSummary>>(defaultQuestion);
   const isEditing = !!question;
 
   useEffect(() => {
@@ -80,9 +81,12 @@ export function QuestionFormDialog({
         allowedFormats: question.allowedFormats || ["pdf", "docx"],
       });
     } else {
-      setFormData(defaultQuestion);
+      setFormData({
+        ...defaultQuestion,
+        subject: subjects[0]?.name ?? "",
+      });
     }
-  }, [question, open]);
+  }, [question, open, subjects]);
 
   const handleTypeChange = (type: AssignmentType) => {
     setFormData((prev) => ({
@@ -215,9 +219,9 @@ export function QuestionFormDialog({
                   <SelectValue placeholder="Pilih mata pelajaran" />
                 </SelectTrigger>
                 <SelectContent>
-                  {SUBJECTS.map((subject) => (
-                    <SelectItem key={subject} value={subject}>
-                      {subject}
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.name}>
+                      {subject.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

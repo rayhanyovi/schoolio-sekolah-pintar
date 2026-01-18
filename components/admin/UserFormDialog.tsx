@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Role, ROLES, ROLE_LABELS, GRADES, Grade } from "@/lib/constants";
+import { ClassSummary } from "@/lib/schemas";
 import { User, GraduationCap, Mail, Phone, Calendar, Building2 } from "lucide-react";
 
 interface UserFormData {
@@ -38,6 +39,7 @@ interface UserFormDialogProps {
   onSubmit: (data: UserFormData) => void;
   initialData?: UserFormData;
   allowedRoles?: Role[];
+  classes?: ClassSummary[];
   title?: string;
   description?: string;
 }
@@ -49,22 +51,13 @@ const defaultFormData: UserFormData = {
   role: "STUDENT",
 };
 
-// Mock classes data
-const mockClasses = [
-  { id: "1", name: "X IPA 1", grade: 10 },
-  { id: "2", name: "X IPA 2", grade: 10 },
-  { id: "3", name: "XI IPA 1", grade: 11 },
-  { id: "4", name: "XI IPA 2", grade: 11 },
-  { id: "5", name: "XII IPA 1", grade: 12 },
-  { id: "6", name: "XII IPA 2", grade: 12 },
-];
-
 export function UserFormDialog({
   open,
   onOpenChange,
   onSubmit,
   initialData,
   allowedRoles = [ROLES.STUDENT, ROLES.TEACHER, ROLES.PARENT],
+  classes = [],
   title = "Tambah Pengguna",
   description = "Isi data pengguna baru di bawah ini.",
 }: UserFormDialogProps) {
@@ -86,8 +79,8 @@ export function UserFormDialog({
   };
 
   const filteredClasses = formData.grade
-    ? mockClasses.filter((c) => c.grade === formData.grade)
-    : mockClasses;
+    ? classes.filter((c) => c.grade === formData.grade)
+    : classes;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -202,7 +195,7 @@ export function UserFormDialog({
                 <Select
                   value={formData.classId}
                   onValueChange={(value) => setFormData({ ...formData, classId: value })}
-                  disabled={!formData.grade}
+                  disabled={!formData.grade || filteredClasses.length === 0}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih kelas" />

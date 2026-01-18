@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +19,20 @@ import {
   Save,
   CheckCircle
 } from "lucide-react";
-import { 
-  mockSchoolProfile, 
-  mockAcademicYears, 
-  mockScheduleTemplate,
-  SchoolProfile,
-  AcademicYear,
-  ClassScheduleTemplate
-} from "@/lib/mockData";
+import {
+  activateAcademicYear,
+  listAcademicYears,
+} from "@/lib/handlers/academic-years";
+import {
+  getSchoolProfile,
+  getScheduleTemplates,
+  updateSchoolProfile,
+} from "@/lib/handlers/settings";
+import {
+  AcademicYearSummary,
+  ScheduleTemplateSummary,
+  SchoolProfileSummary,
+} from "@/lib/schemas";
 import { SEMESTERS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
@@ -36,9 +42,18 @@ import { id } from "date-fns/locale";
 export default function Settings() {
   const { role } = useRoleContext();
   const { toast } = useToast();
-  const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(mockSchoolProfile);
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>(mockAcademicYears);
-  const [scheduleTemplate, setScheduleTemplate] = useState<ClassScheduleTemplate[]>(mockScheduleTemplate);
+  const [schoolProfile, setSchoolProfile] = useState<SchoolProfileSummary>({
+    name: "",
+    address: "",
+    phone: "",
+    email: "",
+    website: "",
+    principalName: "",
+    logoUrl: null,
+  });
+  const [academicYears, setAcademicYears] = useState<AcademicYearSummary[]>([]);
+  const [scheduleTemplate, setScheduleTemplate] = useState<ScheduleTemplateSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     assignmentReminders: true,
@@ -48,16 +63,46 @@ export default function Settings() {
 
   const isAdmin = role === "ADMIN";
 
-  const handleSaveProfile = () => {
-    toast({ title: "Berhasil", description: "Profil sekolah berhasil disimpan" });
+  const loadData = async () => {
+    setIsLoading(true);
+    const [profileResult, yearResult, templateResult] = await Promise.allSettled([
+      getSchoolProfile(),
+      listAcademicYears(),
+      getScheduleTemplates(),
+    ]);
+    if (profileResult.status === "fulfilled") {
+      setSchoolProfile(profileResult.value);
+    }
+    if (yearResult.status === "fulfilled") {
+      setAcademicYears(yearResult.value);
+    }
+    if (templateResult.status === "fulfilled") {
+      setScheduleTemplate(templateResult.value);
+    }
+    setIsLoading(false);
   };
 
-  const handleSetActiveYear = (yearId: string) => {
-    setAcademicYears(academicYears.map(y => ({
-      ...y,
-      isActive: y.id === yearId
-    })));
-    toast({ title: "Berhasil", description: "Tahun ajaran aktif berhasil diubah" });
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleSaveProfile = async () => {
+    try {
+      await updateSchoolProfile(schoolProfile);
+      toast({ title: "Berhasil", description: "Profil sekolah berhasil disimpan" });
+    } catch (error) {
+      toast({ title: "Gagal menyimpan", description: "Periksa data profil sekolah" });
+    }
+  };
+
+  const handleSetActiveYear = async (yearId: string) => {
+    try {
+      await activateAcademicYear(yearId);
+      await loadData();
+      toast({ title: "Berhasil", description: "Tahun ajaran aktif berhasil diubah" });
+    } catch (error) {
+      toast({ title: "Gagal mengubah", description: "Tidak dapat mengubah tahun ajaran" });
+    }
   };
 
   const handleSaveNotifications = () => {

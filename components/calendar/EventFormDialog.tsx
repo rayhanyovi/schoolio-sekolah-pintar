@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
-import { CalendarEvent } from "@/lib/mockData";
+import { CalendarEventSummary } from "@/lib/schemas";
 import { EVENT_TYPES, EventType } from "@/lib/constants";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -20,8 +20,8 @@ import { cn } from "@/lib/utils";
 interface EventFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  event?: CalendarEvent | null;
-  onSubmit: (data: Partial<CalendarEvent>) => void;
+  event?: CalendarEventSummary | null;
+  onSubmit: (data: Partial<CalendarEventSummary>) => void;
 }
 
 export function EventFormDialog({ open, onOpenChange, event, onSubmit }: EventFormDialogProps) {

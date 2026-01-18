@@ -32,22 +32,26 @@ import {
   GripVertical,
   X,
 } from "lucide-react";
-import { SUBJECTS, ASSIGNMENT_TYPES } from "@/lib/constants";
-import { Question, QuestionPackage, mockQuestions } from "@/lib/questionTypes";
+import {
+  QuestionPackageSummary,
+  QuestionSummary,
+  SubjectSummary,
+} from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
 interface PackageFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  package_?: QuestionPackage | null;
-  onSave: (pkg: Partial<QuestionPackage>) => void;
-  availableQuestions?: Question[];
+  package_?: QuestionPackageSummary | null;
+  onSave: (pkg: Partial<QuestionPackageSummary>) => void;
+  availableQuestions?: QuestionSummary[];
+  subjects: SubjectSummary[];
 }
 
-const defaultPackage: Partial<QuestionPackage> = {
+const defaultPackage: Partial<QuestionPackageSummary> = {
   name: "",
   description: "",
-  subject: "Matematika",
+  subject: "",
   questionIds: [],
 };
 
@@ -56,9 +60,10 @@ export function PackageFormDialog({
   onOpenChange,
   package_,
   onSave,
-  availableQuestions = mockQuestions,
+  availableQuestions = [],
+  subjects,
 }: PackageFormDialogProps) {
-  const [formData, setFormData] = useState<Partial<QuestionPackage>>(defaultPackage);
+  const [formData, setFormData] = useState<Partial<QuestionPackageSummary>>(defaultPackage);
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const isEditing = !!package_;
@@ -67,11 +72,14 @@ export function PackageFormDialog({
     if (package_) {
       setFormData(package_);
     } else {
-      setFormData(defaultPackage);
+      setFormData({
+        ...defaultPackage,
+        subject: subjects[0]?.name ?? "",
+      });
     }
     setSearchQuery("");
     setSubjectFilter("all");
-  }, [package_, open]);
+  }, [package_, open, subjects]);
 
   const selectedQuestions = availableQuestions.filter((q) =>
     formData.questionIds?.includes(q.id)
@@ -165,18 +173,18 @@ export function PackageFormDialog({
                     setFormData((prev) => ({ ...prev, subject: value }))
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih mata pelajaran" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SUBJECTS.map((subject) => (
-                      <SelectItem key={subject} value={subject}>
-                        {subject}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih mata pelajaran" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.name}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             </div>
 
             {/* Selected Questions */}
@@ -243,18 +251,18 @@ export function PackageFormDialog({
                   />
                 </div>
                 <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                  <SelectTrigger className="w-[140px] h-9">
-                    <SelectValue placeholder="Filter" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua</SelectItem>
-                    {SUBJECTS.map((subject) => (
-                      <SelectItem key={subject} value={subject}>
-                        {subject}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SelectTrigger className="w-[140px] h-9">
+                  <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua</SelectItem>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.name}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               </div>
             </div>
             <ScrollArea className="flex-1 p-2">

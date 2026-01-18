@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, ThumbsUp, Pin, Lock, Clock } from "lucide-react";
-import { ForumThread } from "@/lib/mockData";
+import { ForumThreadSummary } from "@/lib/schemas";
 import { THREAD_STATUS, THREAD_STATUS_COLORS, ThreadStatus } from "@/lib/constants";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 
 interface ThreadCardProps {
-  thread: ForumThread;
+  thread: ForumThreadSummary;
   onClick: () => void;
 }
 

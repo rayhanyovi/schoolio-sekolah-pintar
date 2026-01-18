@@ -1,70 +1,43 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ROLES } from "@/lib/constants";
 import { useRoleContext } from "@/hooks/useRoleContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { 
-  BarChart3, 
+import {
+  BarChart3,
   TrendingUp,
   TrendingDown,
   Award,
   BookOpen,
   Download,
-  User,
   Users,
   Calculator,
-  FileText
+  FileText,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from "recharts";
-
-// Demo data
-const demoSchedules = [
-  { id: "1", className: "X-A", subject: "Matematika" },
-  { id: "2", className: "X-B", subject: "Matematika" },
-  { id: "3", className: "XI-A", subject: "Fisika" },
-];
-
-const demoChildren = [
-  { id: "1", name: "Anak 1 - Ahmad", class: "X-A" },
-  { id: "2", name: "Anak 2 - Budi", class: "XI-B" },
-];
-
-// Teacher grade data
-const demoStudentGrades = [
-  { id: "1", name: "Ahmad Rizki", assignments: [85, 90, 78], average: 84.3 },
-  { id: "2", name: "Budi Santoso", assignments: [90, 88, 92], average: 90.0 },
-  { id: "3", name: "Citra Dewi", assignments: [75, 80, 85], average: 80.0 },
-  { id: "4", name: "Dian Purnama", assignments: [88, 85, 90], average: 87.7 },
-  { id: "5", name: "Eka Wijaya", assignments: [70, 75, 80], average: 75.0 },
-  { id: "6", name: "Fitri Handayani", assignments: [95, 92, 98], average: 95.0 },
-  { id: "7", name: "Galih Pratama", assignments: [82, 78, 85], average: 81.7 },
-  { id: "8", name: "Hana Safitri", assignments: [88, 90, 87], average: 88.3 },
-];
-
-// Student grade data
-const demoSubjectGrades = [
-  { subject: "Matematika", teacher: "Pak Budi", assignments: 3, average: 85, trend: "up" },
-  { subject: "Fisika", teacher: "Bu Sari", assignments: 2, average: 78, trend: "down" },
-  { subject: "Kimia", teacher: "Pak Andi", assignments: 3, average: 92, trend: "up" },
-  { subject: "Biologi", teacher: "Bu Dewi", assignments: 2, average: 88, trend: "stable" },
-  { subject: "Bahasa Indonesia", teacher: "Pak Ahmad", assignments: 4, average: 90, trend: "up" },
-  { subject: "Bahasa Inggris", teacher: "Bu Linda", assignments: 3, average: 82, trend: "stable" },
-];
-
-const demoAssignmentGrades = [
-  { id: "1", title: "Quiz Aljabar Linear", subject: "Matematika", grade: 85, maxGrade: 100, date: "5 Jan 2025" },
-  { id: "2", title: "Laporan Praktikum Newton", subject: "Fisika", grade: 78, maxGrade: 100, date: "10 Jan 2025" },
-  { id: "3", title: "Esai Trigonometri", subject: "Matematika", grade: 90, maxGrade: 100, date: "12 Jan 2025" },
-  { id: "4", title: "Ujian Kimia Dasar", subject: "Kimia", grade: 92, maxGrade: 100, date: "15 Jan 2025" },
-];
+import { listSchedules } from "@/lib/handlers/schedules";
+import { getGradesSummary, listGrades } from "@/lib/handlers/grades";
+import { listStudents } from "@/lib/handlers/users";
+import {
+  GradeSummary,
+  GradeSummaryRow,
+  ScheduleSummary,
+  UserSummary,
+} from "@/lib/schemas";
 
 const chartColors = [
   "hsl(var(--primary))",
@@ -77,33 +50,77 @@ const chartColors = [
 
 export default function Grades() {
   const { role } = useRoleContext();
-  
+
   if (role === ROLES.TEACHER || role === ROLES.ADMIN) {
     return <TeacherGradesView />;
   }
-  
+
   if (role === ROLES.PARENT) {
-    return <ParentGradesView />;
+    return <StudentGradesView title="Nilai Anak" allowStudentSelect />;
   }
-  
-  return <StudentGradesView />;
+
+  return <StudentGradesView title="Nilai Saya" allowStudentSelect={false} />;
 }
 
 function TeacherGradesView() {
-  const [selectedSchedule, setSelectedSchedule] = useState<string>("");
-  const [editingGrade, setEditingGrade] = useState<{ studentId: string; assignmentIdx: number } | null>(null);
+  const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
+  const [gradeSummary, setGradeSummary] = useState<GradeSummaryRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const classAverage = demoStudentGrades.reduce((sum, s) => sum + s.average, 0) / demoStudentGrades.length;
-  const highestAvg = Math.max(...demoStudentGrades.map(s => s.average));
-  const lowestAvg = Math.min(...demoStudentGrades.map(s => s.average));
+  useEffect(() => {
+    const loadSchedules = async () => {
+      setIsLoading(true);
+      try {
+        const data = await listSchedules();
+        setSchedules(data);
+        if (!selectedScheduleId && data.length > 0) {
+          setSelectedScheduleId(data[0].id);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadSchedules();
+  }, [selectedScheduleId]);
+
+  useEffect(() => {
+    const loadGrades = async () => {
+      const selected = schedules.find((schedule) => schedule.id === selectedScheduleId);
+      if (!selected) {
+        setGradeSummary([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const summary = await getGradesSummary({
+          classId: selected.classId,
+          subjectId: selected.subjectId,
+        });
+        setGradeSummary(summary);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadGrades();
+  }, [selectedScheduleId, schedules]);
+
+  const classAverage = gradeSummary.length
+    ? gradeSummary.reduce((sum, row) => sum + row.average, 0) / gradeSummary.length
+    : 0;
+  const highestAvg = gradeSummary.length
+    ? Math.max(...gradeSummary.map((row) => row.average))
+    : 0;
+  const lowestAvg = gradeSummary.length
+    ? Math.min(...gradeSummary.map((row) => row.average))
+    : 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Penilaian</h1>
-          <p className="text-muted-foreground">Kelola dan input nilai siswa</p>
+          <p className="text-muted-foreground">Rekap nilai siswa berdasarkan pengumpulan tugas</p>
         </div>
         <Button variant="outline">
           <Download className="h-4 w-4 mr-2" />
@@ -111,7 +128,6 @@ function TeacherGradesView() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -121,7 +137,7 @@ function TeacherGradesView() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Siswa</p>
-                <p className="text-xl font-bold">{demoStudentGrades.length}</p>
+                <p className="text-xl font-bold">{gradeSummary.length}</p>
               </div>
             </div>
           </CardContent>
@@ -167,17 +183,16 @@ function TeacherGradesView() {
         </Card>
       </div>
 
-      {/* Filter */}
       <Card>
         <CardContent className="p-4">
-          <Select value={selectedSchedule} onValueChange={setSelectedSchedule}>
+          <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
             <SelectTrigger className="w-full sm:w-[300px]">
-              <SelectValue placeholder="Pilih jadwal..." />
+              <SelectValue placeholder={isLoading ? "Memuat jadwal..." : "Pilih jadwal..."} />
             </SelectTrigger>
             <SelectContent>
-              {demoSchedules.map((schedule) => (
+              {schedules.map((schedule) => (
                 <SelectItem key={schedule.id} value={schedule.id}>
-                  {schedule.className} - {schedule.subject}
+                  {schedule.className} - {schedule.subjectName}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -185,11 +200,10 @@ function TeacherGradesView() {
         </CardContent>
       </Card>
 
-      {/* Grade Table */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Daftar Nilai</CardTitle>
-          <CardDescription>Klik nilai untuk mengedit</CardDescription>
+          <CardDescription>Rekap rata-rata nilai per siswa</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -198,51 +212,27 @@ function TeacherGradesView() {
                 <TableRow>
                   <TableHead className="w-12">No</TableHead>
                   <TableHead>Nama Siswa</TableHead>
-                  <TableHead className="text-center">Tugas 1</TableHead>
-                  <TableHead className="text-center">Tugas 2</TableHead>
-                  <TableHead className="text-center">Tugas 3</TableHead>
+                  <TableHead className="text-center">Jumlah Tugas</TableHead>
                   <TableHead className="text-center">Rata-rata</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {demoStudentGrades.map((student, idx) => (
-                  <TableRow key={student.id}>
+                {gradeSummary.map((student, idx) => (
+                  <TableRow key={student.studentId}>
                     <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                    <TableCell className="font-medium">{student.name}</TableCell>
-                    {student.assignments.map((grade, aIdx) => (
-                      <TableCell key={aIdx} className="text-center">
-                        {editingGrade?.studentId === student.id && editingGrade?.assignmentIdx === aIdx ? (
-                          <Input
-                            type="number"
-                            defaultValue={grade}
-                            className="w-16 h-8 text-center mx-auto"
-                            onBlur={() => setEditingGrade(null)}
-                            autoFocus
-                          />
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "font-medium",
-                              grade >= 85 ? "text-success" : grade >= 70 ? "text-warning" : "text-destructive"
-                            )}
-                            onClick={() => setEditingGrade({ studentId: student.id, assignmentIdx: aIdx })}
-                          >
-                            {grade}
-                          </Button>
-                        )}
-                      </TableCell>
-                    ))}
+                    <TableCell className="font-medium">{student.studentName}</TableCell>
+                    <TableCell className="text-center">{student.assignments}</TableCell>
                     <TableCell className="text-center">
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className={cn(
                           "font-bold",
-                          student.average >= 85 ? "bg-success/20 text-success" : 
-                          student.average >= 70 ? "bg-warning/20 text-warning" : 
-                          "bg-destructive/20 text-destructive"
+                          student.average >= 85
+                            ? "bg-success/20 text-success"
+                            : student.average >= 70
+                            ? "bg-warning/20 text-warning"
+                            : "bg-destructive/20 text-destructive"
                         )}
                       >
                         {student.average.toFixed(1)}
@@ -257,6 +247,13 @@ function TeacherGradesView() {
                     </TableCell>
                   </TableRow>
                 ))}
+                {gradeSummary.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                      Belum ada data nilai
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
@@ -266,25 +263,139 @@ function TeacherGradesView() {
   );
 }
 
-function StudentGradesView() {
-  const overallAverage = demoSubjectGrades.reduce((sum, s) => sum + s.average, 0) / demoSubjectGrades.length;
-  const totalAssignments = demoSubjectGrades.reduce((sum, s) => sum + s.assignments, 0);
+type StudentGradesViewProps = {
+  title: string;
+  allowStudentSelect: boolean;
+};
 
-  const chartData = demoSubjectGrades.map(s => ({
-    name: s.subject.slice(0, 3),
-    fullName: s.subject,
-    value: s.average,
+function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps) {
+  const [students, setStudents] = useState<UserSummary[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [grades, setGrades] = useState<GradeSummary[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBase = async () => {
+      setIsLoading(true);
+      try {
+        const [studentsData, schedulesData] = await Promise.all([
+          listStudents(),
+          listSchedules(),
+        ]);
+        setStudents(studentsData);
+        setSchedules(schedulesData);
+        if (!selectedStudentId && studentsData.length > 0) {
+          setSelectedStudentId(studentsData[0].id);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadBase();
+  }, [selectedStudentId]);
+
+  useEffect(() => {
+    const loadGrades = async () => {
+      if (!selectedStudentId) {
+        setGrades([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const data = await listGrades({ studentId: selectedStudentId });
+        setGrades(data);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadGrades();
+  }, [selectedStudentId]);
+
+  const selectedStudent = students.find((student) => student.id === selectedStudentId);
+  const classId = selectedStudent?.studentProfile?.classId ?? null;
+  const teacherBySubject = useMemo(() => {
+    const map = new Map<string, string>();
+    schedules
+      .filter((schedule) => (classId ? schedule.classId === classId : true))
+      .forEach((schedule) => {
+        if (!map.has(schedule.subjectId)) {
+          map.set(schedule.subjectId, schedule.teacherName);
+        }
+      });
+    return map;
+  }, [schedules, classId]);
+
+  const subjectGrades = useMemo(() => {
+    const buckets = new Map<
+      string,
+      { subjectId: string; subjectName: string; total: number; count: number }
+    >();
+    grades.forEach((entry) => {
+      if (entry.grade === null || entry.grade === undefined) return;
+      const existing = buckets.get(entry.subjectId);
+      if (existing) {
+        existing.total += entry.grade;
+        existing.count += 1;
+      } else {
+        buckets.set(entry.subjectId, {
+          subjectId: entry.subjectId,
+          subjectName: entry.subjectName,
+          total: entry.grade,
+          count: 1,
+        });
+      }
+    });
+    return Array.from(buckets.values()).map((entry) => ({
+      subjectId: entry.subjectId,
+      subjectName: entry.subjectName,
+      assignments: entry.count,
+      average: entry.count ? entry.total / entry.count : 0,
+      teacherName: teacherBySubject.get(entry.subjectId) ?? "-",
+    }));
+  }, [grades, teacherBySubject]);
+
+  const overallAverage = subjectGrades.length
+    ? subjectGrades.reduce((sum, subject) => sum + subject.average, 0) / subjectGrades.length
+    : 0;
+  const totalAssignments = subjectGrades.reduce((sum, subject) => sum + subject.assignments, 0);
+
+  const chartData = subjectGrades.map((subject) => ({
+    name: subject.subjectName.slice(0, 3),
+    fullName: subject.subjectName,
+    value: subject.average,
   }));
+
+  const recentGrades = grades
+    .filter((grade) => grade.grade !== null && grade.grade !== undefined)
+    .slice(0, 4);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Nilai Saya</h1>
-        <p className="text-muted-foreground">Lihat ringkasan nilai dan perkembangan belajar</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+          <p className="text-muted-foreground">Lihat ringkasan nilai dan perkembangan belajar</p>
+        </div>
+        {allowStudentSelect && (
+          <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Pilih siswa..." />
+            </SelectTrigger>
+            <SelectContent>
+              {students.map((student) => (
+                <SelectItem key={student.id} value={student.id}>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {student.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-4">
@@ -307,7 +418,7 @@ function StudentGradesView() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Mata Pelajaran</p>
-                <p className="text-xl font-bold">{demoSubjectGrades.length}</p>
+                <p className="text-xl font-bold">{subjectGrades.length}</p>
               </div>
             </div>
           </CardContent>
@@ -332,8 +443,10 @@ function StudentGradesView() {
                 <TrendingUp className="h-5 w-5 text-info" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Peringkat</p>
-                <p className="text-xl font-bold">5 / 30</p>
+                <p className="text-xs text-muted-foreground">Status</p>
+                <p className="text-xl font-bold">
+                  {overallAverage >= 75 ? "Baik" : "Perlu" }
+                </p>
               </div>
             </div>
           </CardContent>
@@ -341,7 +454,6 @@ function StudentGradesView() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Nilai per Mata Pelajaran</CardTitle>
@@ -352,19 +464,19 @@ function StudentGradesView() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
                     tickLine={false}
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                   />
-                  <YAxis 
-                    domain={[0, 100]} 
-                    axisLine={false} 
+                  <YAxis
+                    domain={[0, 100]}
+                    axisLine={false}
                     tickLine={false}
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
                   />
-                  <Tooltip 
+                  <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         return (
@@ -388,7 +500,6 @@ function StudentGradesView() {
           </CardContent>
         </Card>
 
-        {/* Subject List */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Ringkasan per Mapel</CardTitle>
@@ -396,34 +507,38 @@ function StudentGradesView() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {demoSubjectGrades.map((subject, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                  <div 
+              {subjectGrades.map((subject, i) => (
+                <div key={subject.subjectId} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
+                  <div
                     className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm"
                     style={{ backgroundColor: chartColors[i % chartColors.length] }}
                   >
-                    {subject.subject.slice(0, 2).toUpperCase()}
+                    {subject.subjectName.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{subject.subject}</p>
-                    <p className="text-xs text-muted-foreground">{subject.teacher}</p>
+                    <p className="font-medium truncate">{subject.subjectName}</p>
+                    <p className="text-xs text-muted-foreground">{subject.teacherName}</p>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-1">
-                      <span className="text-lg font-bold">{subject.average}</span>
-                      {subject.trend === "up" && <TrendingUp className="h-4 w-4 text-success" />}
-                      {subject.trend === "down" && <TrendingDown className="h-4 w-4 text-destructive" />}
+                      <span className="text-lg font-bold">{subject.average.toFixed(1)}</span>
+                      {subject.average >= 85 && <TrendingUp className="h-4 w-4 text-success" />}
+                      {subject.average < 70 && <TrendingDown className="h-4 w-4 text-destructive" />}
                     </div>
                     <p className="text-xs text-muted-foreground">{subject.assignments} tugas</p>
                   </div>
                 </div>
               ))}
+              {subjectGrades.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Belum ada nilai untuk ditampilkan
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Grades */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Nilai Tugas Terbaru</CardTitle>
@@ -431,203 +546,66 @@ function StudentGradesView() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {demoAssignmentGrades.map((grade) => (
+            {recentGrades.map((grade) => (
               <div key={grade.id} className="flex items-center justify-between p-3 rounded-lg border">
                 <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "h-10 w-10 rounded-lg flex items-center justify-center",
-                    grade.grade >= 85 ? "bg-success/10" : grade.grade >= 70 ? "bg-warning/10" : "bg-destructive/10"
-                  )}>
-                    <FileText className={cn(
-                      "h-5 w-5",
-                      grade.grade >= 85 ? "text-success" : grade.grade >= 70 ? "text-warning" : "text-destructive"
-                    )} />
+                  <div
+                    className={cn(
+                      "h-10 w-10 rounded-lg flex items-center justify-center",
+                      grade.grade >= 85
+                        ? "bg-success/10"
+                        : grade.grade >= 70
+                        ? "bg-warning/10"
+                        : "bg-destructive/10"
+                    )}
+                  >
+                    <FileText
+                      className={cn(
+                        "h-5 w-5",
+                        grade.grade >= 85
+                          ? "text-success"
+                          : grade.grade >= 70
+                          ? "text-warning"
+                          : "text-destructive"
+                      )}
+                    />
                   </div>
                   <div>
-                    <p className="font-medium">{grade.title}</p>
-                    <p className="text-sm text-muted-foreground">{grade.subject} • {grade.date}</p>
+                    <p className="font-medium">{grade.assignmentTitle}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {grade.subjectName}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={cn(
-                    "text-2xl font-bold",
-                    grade.grade >= 85 ? "text-success" : grade.grade >= 70 ? "text-warning" : "text-destructive"
-                  )}>
-                    {grade.grade}
-                  </p>
-                  <p className="text-xs text-muted-foreground">/ {grade.maxGrade}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function ParentGradesView() {
-  const [selectedChild, setSelectedChild] = useState<string>(demoChildren[0]?.id || "");
-  
-  const overallAverage = demoSubjectGrades.reduce((sum, s) => sum + s.average, 0) / demoSubjectGrades.length;
-
-  const chartData = demoSubjectGrades.map(s => ({
-    name: s.subject.slice(0, 3),
-    fullName: s.subject,
-    value: s.average,
-  }));
-
-  return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Nilai Anak</h1>
-          <p className="text-muted-foreground">Pantau perkembangan nilai anak Anda</p>
-        </div>
-        <Select value={selectedChild} onValueChange={setSelectedChild}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Pilih anak..." />
-          </SelectTrigger>
-          <SelectContent>
-            {demoChildren.map((child) => (
-              <SelectItem key={child.id} value={child.id}>
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {child.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Summary Card */}
-      <Card className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-                <Award className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Rata-rata Keseluruhan</p>
-                <p className="text-4xl font-bold text-primary">{overallAverage.toFixed(1)}</p>
-                <p className="text-sm text-muted-foreground">dari {demoSubjectGrades.length} mata pelajaran</p>
-              </div>
-            </div>
-            <div className="flex gap-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-success">{demoSubjectGrades.filter(s => s.average >= 85).length}</p>
-                <p className="text-xs text-muted-foreground">Nilai A</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-info">{demoSubjectGrades.filter(s => s.average >= 75 && s.average < 85).length}</p>
-                <p className="text-xs text-muted-foreground">Nilai B</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-warning">{demoSubjectGrades.filter(s => s.average < 75).length}</p>
-                <p className="text-xs text-muted-foreground">Perlu Perhatian</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Nilai per Mata Pelajaran</CardTitle>
-          <CardDescription>Perbandingan nilai antar mata pelajaran</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false}
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                />
-                <YAxis 
-                  domain={[0, 100]} 
-                  axisLine={false} 
-                  tickLine={false}
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                />
-                <Tooltip 
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="bg-popover border rounded-lg p-2 shadow-lg">
-                          <p className="text-sm font-medium">{payload[0].payload.fullName}</p>
-                          <p className="text-sm text-muted-foreground">Nilai: {payload[0].value}</p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {chartData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Subject Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Detail per Mata Pelajaran</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            {demoSubjectGrades.map((subject, i) => (
-              <div key={i} className="p-4 rounded-lg border">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: chartColors[i % chartColors.length] }}
-                    />
-                    <span className="font-medium">{subject.subject}</span>
-                  </div>
-                  <Badge 
+                  <p
                     className={cn(
-                      subject.average >= 85 ? "bg-success text-success-foreground" :
-                      subject.average >= 75 ? "bg-info text-info-foreground" :
-                      "bg-warning text-warning-foreground"
+                      "text-2xl font-bold",
+                      grade.grade >= 85
+                        ? "text-success"
+                        : grade.grade >= 70
+                        ? "text-warning"
+                        : "text-destructive"
                     )}
                   >
-                    {subject.average}
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span>{subject.average}%</span>
-                  </div>
-                  <Progress value={subject.average} className="h-2" />
-                </div>
-                <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{subject.teacher}</span>
-                  <span className="flex items-center gap-1">
-                    {subject.trend === "up" && <TrendingUp className="h-3 w-3 text-success" />}
-                    {subject.trend === "down" && <TrendingDown className="h-3 w-3 text-destructive" />}
-                    {subject.assignments} tugas dinilai
-                  </span>
+                    {grade.grade}
+                  </p>
+                  <p className="text-xs text-muted-foreground">/ 100</p>
                 </div>
               </div>
             ))}
+            {recentGrades.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Belum ada nilai yang dipublikasikan
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {isLoading && (
+        <p className="text-sm text-muted-foreground">Memuat data nilai...</p>
+      )}
     </div>
   );
 }

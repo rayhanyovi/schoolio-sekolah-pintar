@@ -7,15 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockSubjects } from "@/lib/mockData";
+import { SubjectSummary } from "@/lib/schemas";
 
 interface ThreadFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: { title: string; content: string; subjectId: string }) => void;
+  subjects: SubjectSummary[];
 }
 
-export function ThreadFormDialog({ open, onOpenChange, onSubmit }: ThreadFormDialogProps) {
+export function ThreadFormDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  subjects,
+}: ThreadFormDialogProps) {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -51,7 +57,7 @@ export function ThreadFormDialog({ open, onOpenChange, onSubmit }: ThreadFormDia
                 <SelectValue placeholder="Pilih mata pelajaran" />
               </SelectTrigger>
               <SelectContent>
-                {mockSubjects.map((subject) => (
+                {subjects.map((subject) => (
                   <SelectItem key={subject.id} value={subject.id}>
                     {subject.name}
                   </SelectItem>

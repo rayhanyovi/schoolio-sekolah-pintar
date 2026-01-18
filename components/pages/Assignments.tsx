@@ -1,32 +1,49 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROLES, ASSIGNMENT_TYPES, AssignmentType } from "@/lib/constants";
 import { useRoleContext } from "@/hooks/useRoleContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { SelectQuestionSourceDialog } from "@/components/questions/SelectQuestionSourceDialog";
 import { SelectPackageDialog } from "@/components/questions/SelectPackageDialog";
 import { SelectQuestionsDialog } from "@/components/questions/SelectQuestionsDialog";
-import { 
-  FileText, 
-  Plus, 
-  Search, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle,
+import {
+  FileText,
+  Plus,
+  Search,
+  Clock,
+  CheckCircle2,
   Calendar,
   Upload,
   File,
@@ -39,112 +56,181 @@ import {
   Users,
   ClipboardList,
   Award,
-  Library
+  Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isPast, differenceInDays } from "date-fns";
 import { id } from "date-fns/locale";
 import { toast } from "sonner";
+import {
+  createAssignment,
+  deleteAssignment,
+  listAssignments,
+  setAssignmentQuestions,
+  updateAssignment,
+  listAssignmentSubmissions,
+  createAssignmentSubmission,
+} from "@/lib/handlers/assignments";
+import { listSchedules } from "@/lib/handlers/schedules";
+import { listClasses } from "@/lib/handlers/classes";
+import { listGrades } from "@/lib/handlers/grades";
+import { listQuestions, listQuestionPackages } from "@/lib/handlers/questions";
+import { listSubjects } from "@/lib/handlers/subjects";
+import { listStudents } from "@/lib/handlers/users";
+import {
+  AssignmentSubmissionSummary,
+  AssignmentSummary,
+  ClassSummary,
+  GradeSummary,
+  QuestionPackageSummary,
+  QuestionSummary,
+  ScheduleSummary,
+  SubjectSummary,
+  UserSummary,
+} from "@/lib/schemas";
 
-// Demo data
-const demoSchedules = [
-  { id: "1", className: "X-A", subject: "Matematika" },
-  { id: "2", className: "X-B", subject: "Matematika" },
-  { id: "3", className: "XI-A", subject: "Fisika" },
-];
-
-const demoAssignments = [
-  {
-    id: "1",
-    title: "Quiz Aljabar Linear",
-    description: "Kerjakan soal-soal pilihan ganda tentang materi aljabar linear yang sudah dipelajari.",
-    type: "MCQ" as AssignmentType,
-    subject: "Matematika",
-    className: "X-A",
-    teacher: "Pak Budi",
-    dueDate: new Date(2025, 0, 15),
-    createdAt: new Date(2025, 0, 5),
-    questions: [
-      { id: "q1", text: "Apa hasil dari 2x + 3 = 7?", options: ["x = 1", "x = 2", "x = 3", "x = 4"], correctAnswer: 1 },
-      { id: "q2", text: "Jika y = 2x - 5, maka nilai y ketika x = 4 adalah?", options: ["3", "4", "5", "6"], correctAnswer: 0 },
-    ],
-    submissions: 25,
-    totalStudents: 30,
-  },
-  {
-    id: "2",
-    title: "Laporan Praktikum Hukum Newton",
-    description: "Upload laporan praktikum dalam format PDF. Maksimal 10 halaman.",
-    type: "FILE" as AssignmentType,
-    subject: "Fisika",
-    className: "XI-A",
-    teacher: "Bu Sari",
-    dueDate: new Date(2025, 0, 20),
-    createdAt: new Date(2025, 0, 8),
-    submissions: 18,
-    totalStudents: 28,
-  },
-  {
-    id: "3",
-    title: "Esai: Penerapan Trigonometri",
-    description: "Tuliskan esai minimal 500 kata tentang penerapan trigonometri dalam kehidupan sehari-hari.",
-    type: "ESSAY" as AssignmentType,
-    subject: "Matematika",
-    className: "X-A",
-    teacher: "Pak Budi",
-    dueDate: new Date(2025, 0, 10),
-    createdAt: new Date(2025, 0, 3),
-    submissions: 28,
-    totalStudents: 30,
-  },
-];
-
-const demoStudentAssignments = [
-  { ...demoAssignments[0], status: "pending" as const, grade: null },
-  { ...demoAssignments[1], status: "submitted" as const, submittedAt: new Date(2025, 0, 12), grade: null },
-  { ...demoAssignments[2], status: "graded" as const, submittedAt: new Date(2025, 0, 9), grade: 85 },
-];
-
-const demoChildren = [
-  { id: "1", name: "Anak 1 - Ahmad", class: "X-A" },
-  { id: "2", name: "Anak 2 - Budi", class: "XI-B" },
-];
-
-const typeConfig: Record<AssignmentType, { icon: typeof FileText; color: string; bgColor: string }> = {
+const typeConfig: Record<
+  AssignmentType,
+  { icon: typeof FileText; color: string; bgColor: string }
+> = {
   MCQ: { icon: ClipboardList, color: "text-primary", bgColor: "bg-primary/10" },
   FILE: { icon: Upload, color: "text-secondary", bgColor: "bg-secondary/10" },
   ESSAY: { icon: FileText, color: "text-accent", bgColor: "bg-accent/10" },
 };
 
+const ASSIGNMENT_KIND_LABELS: Record<string, string> = {
+  HOMEWORK: "PR",
+  PROJECT: "Proyek",
+  QUIZ: "Kuis",
+  EXAM: "Ujian",
+};
+
+const getDeliveryType = (assignment: AssignmentSummary): AssignmentType => {
+  const candidate = assignment.deliveryType ?? assignment.type ?? "FILE";
+  if (candidate === "MCQ" || candidate === "FILE" || candidate === "ESSAY") {
+    return candidate;
+  }
+  return "FILE";
+};
+
 export default function Assignments() {
   const { role } = useRoleContext();
-  
+
   if (role === ROLES.TEACHER || role === ROLES.ADMIN) {
     return <TeacherAssignmentsView />;
   }
-  
+
   if (role === ROLES.PARENT) {
-    return <ParentAssignmentsView />;
+    return (
+      <StudentAssignmentsView
+        title="Tugas Anak"
+        description="Pantau status tugas anak Anda"
+        allowStudentSelect
+      />
+    );
   }
-  
-  return <StudentAssignmentsView />;
+
+  return (
+    <StudentAssignmentsView
+      title="Tugas Saya"
+      description="Kerjakan dan kumpulkan tugas Anda"
+      allowStudentSelect={false}
+    />
+  );
 }
 
 function TeacherAssignmentsView() {
   const router = useRouter();
-  const [selectedSchedule, setSelectedSchedule] = useState<string>("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [detailAssignment, setDetailAssignment] = useState<typeof demoAssignments[0] | null>(null);
+  const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
+  const [classes, setClasses] = useState<ClassSummary[]>([]);
+  const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
+  const [questions, setQuestions] = useState<QuestionSummary[]>([]);
+  const [packages, setPackages] = useState<QuestionPackageSummary[]>([]);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string>("all");
+  const [detailAssignment, setDetailAssignment] = useState<AssignmentSummary | null>(null);
   const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
   const [packageDialogOpen, setPackageDialogOpen] = useState(false);
   const [questionsDialogOpen, setQuestionsDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
+  const [submissionCounts, setSubmissionCounts] = useState<Record<string, number>>({});
+  const [gradedCounts, setGradedCounts] = useState<Record<string, number>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredAssignments = selectedSchedule && selectedSchedule !== "all"
-    ? demoAssignments.filter(a => {
-        const schedule = demoSchedules.find(s => s.id === selectedSchedule);
-        return schedule && a.className === schedule.className && a.subject === schedule.subject;
-      })
-    : demoAssignments;
+  const loadBaseData = async () => {
+    setIsLoading(true);
+    try {
+      const [
+        assignmentData,
+        scheduleData,
+        classData,
+        subjectData,
+        questionData,
+        packageData,
+        gradeData,
+      ] = await Promise.all([
+        listAssignments(),
+        listSchedules(),
+        listClasses(),
+        listSubjects(),
+        listQuestions(),
+        listQuestionPackages(),
+        listGrades(),
+      ]);
+      setAssignments(assignmentData);
+      setSchedules(scheduleData);
+      setClasses(classData);
+      setSubjects(subjectData);
+      setQuestions(questionData);
+      setPackages(packageData);
+
+      const submissionMap: Record<string, number> = {};
+      const gradedMap: Record<string, number> = {};
+      gradeData.forEach((grade) => {
+        submissionMap[grade.assignmentId] =
+          (submissionMap[grade.assignmentId] ?? 0) + 1;
+        if (grade.status === "GRADED") {
+          gradedMap[grade.assignmentId] =
+            (gradedMap[grade.assignmentId] ?? 0) + 1;
+        }
+      });
+      setSubmissionCounts(submissionMap);
+      setGradedCounts(gradedMap);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBaseData();
+  }, []);
+
+  const classMap = useMemo(
+    () => new Map(classes.map((item) => [item.id, item])),
+    [classes]
+  );
+
+  const selectedSchedule = schedules.find((s) => s.id === selectedScheduleId);
+
+  const filteredAssignments =
+    selectedScheduleId !== "all" && selectedSchedule
+      ? assignments.filter(
+          (assignment) =>
+            assignment.classIds.includes(selectedSchedule.classId) &&
+            assignment.subjectId === selectedSchedule.subjectId
+        )
+      : assignments;
+
+  const totalSubmissions = Object.values(submissionCounts).reduce(
+    (sum, value) => sum + value,
+    0
+  );
+  const totalGraded = Object.values(gradedCounts).reduce(
+    (sum, value) => sum + value,
+    0
+  );
 
   const handleSourceSelect = (source: "package" | "bank" | "new") => {
     if (source === "package") {
@@ -156,9 +242,53 @@ function TeacherAssignmentsView() {
     }
   };
 
+  const handleSaveAssignment = async (payload: {
+    id?: string;
+    title: string;
+    description: string;
+    classIds: string[];
+    subjectId: string;
+    teacherId: string;
+    dueDate: string;
+    deliveryType: AssignmentType;
+    kind: string;
+  }) => {
+    const assignmentPayload = {
+      title: payload.title,
+      description: payload.description,
+      subjectId: payload.subjectId,
+      teacherId: payload.teacherId,
+      dueDate: payload.dueDate,
+      deliveryType: payload.deliveryType,
+      kind: payload.kind,
+      classIds: payload.classIds,
+    };
+
+    if (payload.id) {
+      await updateAssignment(payload.id, assignmentPayload);
+    } else {
+      const created = await createAssignment(assignmentPayload);
+      if (selectedPackageId || selectedQuestionIds.length > 0) {
+        await setAssignmentQuestions(created.id, {
+          questionPackageId: selectedPackageId,
+          questionIds: selectedQuestionIds.length ? selectedQuestionIds : undefined,
+        });
+      }
+    }
+
+    setSelectedPackageId(null);
+    setSelectedQuestionIds([]);
+    setIsDialogOpen(false);
+    await loadBaseData();
+  };
+
+  const handleDelete = async (assignmentId: string) => {
+    await deleteAssignment(assignmentId);
+    await loadBaseData();
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Tugas</h1>
@@ -176,45 +306,57 @@ function TeacherAssignmentsView() {
         </div>
       </div>
 
-      {/* Source Selection Dialog */}
       <SelectQuestionSourceDialog
         open={sourceDialogOpen}
         onOpenChange={setSourceDialogOpen}
         onSelectSource={handleSourceSelect}
       />
 
-      {/* Package Selection Dialog */}
       <SelectPackageDialog
         open={packageDialogOpen}
         onOpenChange={setPackageDialogOpen}
+        packages={packages}
+        questions={questions}
+        subjects={subjects}
         onSelect={(pkg) => {
-          toast.success(`Paket "${pkg.name}" dipilih. Lanjutkan untuk set jadwal.`);
+          setSelectedPackageId(pkg.id);
+          setSelectedQuestionIds([]);
+          toast.success(`Paket \"${pkg.name}\" dipilih. Lanjutkan untuk set jadwal.`);
           setIsDialogOpen(true);
         }}
       />
 
-      {/* Questions Selection Dialog */}
       <SelectQuestionsDialog
         open={questionsDialogOpen}
         onOpenChange={setQuestionsDialogOpen}
-        onSelect={(questions) => {
-          toast.success(`${questions.length} soal dipilih. Lanjutkan untuk set jadwal.`);
+        questions={questions}
+        subjects={subjects}
+        onSelect={(selected) => {
+          setSelectedQuestionIds(selected.map((question) => question.id));
+          setSelectedPackageId(null);
+          toast.success(`${selected.length} soal dipilih. Lanjutkan untuk set jadwal.`);
           setIsDialogOpen(true);
         }}
       />
 
-      {/* Assignment Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Buat Tugas Baru</DialogTitle>
             <DialogDescription>Tentukan jenis tugas dan isi detail tugas</DialogDescription>
           </DialogHeader>
-          <AssignmentForm onClose={() => setIsDialogOpen(false)} />
+          <AssignmentForm
+            schedules={schedules}
+            onClose={() => {
+              setIsDialogOpen(false);
+              setSelectedPackageId(null);
+              setSelectedQuestionIds([]);
+            }}
+            onSave={handleSaveAssignment}
+          />
         </DialogContent>
       </Dialog>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -224,7 +366,7 @@ function TeacherAssignmentsView() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Tugas</p>
-                <p className="text-xl font-bold">{demoAssignments.length}</p>
+                <p className="text-xl font-bold">{assignments.length}</p>
               </div>
             </div>
           </CardContent>
@@ -237,7 +379,9 @@ function TeacherAssignmentsView() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Aktif</p>
-                <p className="text-xl font-bold">2</p>
+                <p className="text-xl font-bold">
+                  {assignments.filter((assignment) => assignment.status === "ACTIVE").length}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -249,8 +393,8 @@ function TeacherAssignmentsView() {
                 <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Selesai Dinilai</p>
-                <p className="text-xl font-bold">1</p>
+                <p className="text-xs text-muted-foreground">Sudah Dinilai</p>
+                <p className="text-xl font-bold">{totalGraded}</p>
               </div>
             </div>
           </CardContent>
@@ -263,26 +407,25 @@ function TeacherAssignmentsView() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Pengumpulan</p>
-                <p className="text-xl font-bold">71/88</p>
+                <p className="text-xl font-bold">{totalSubmissions}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filter */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
-            <Select value={selectedSchedule} onValueChange={setSelectedSchedule}>
+            <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
               <SelectTrigger className="w-full sm:w-[300px]">
                 <SelectValue placeholder="Filter berdasarkan jadwal..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Jadwal</SelectItem>
-                {demoSchedules.map((schedule) => (
+                {schedules.map((schedule) => (
                   <SelectItem key={schedule.id} value={schedule.id}>
-                    {schedule.className} - {schedule.subject}
+                    {schedule.className} - {schedule.subjectName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -295,45 +438,166 @@ function TeacherAssignmentsView() {
         </CardContent>
       </Card>
 
-      {/* Assignments List */}
       <div className="space-y-4">
-        {filteredAssignments.map((assignment) => (
-          <TeacherAssignmentCard
-            key={assignment.id}
-            assignment={assignment}
-            onView={() => setDetailAssignment(assignment)}
-          />
-        ))}
+        {filteredAssignments.map((assignment) => {
+          const classNames = assignment.classIds
+            .map((classId) => classMap.get(classId)?.name)
+            .filter(Boolean)
+            .join(", ");
+          const totalStudents = assignment.classIds.reduce(
+            (sum, classId) => sum + (classMap.get(classId)?.studentCount ?? 0),
+            0
+          );
+          const submissions = submissionCounts[assignment.id] ?? 0;
+          return (
+            <TeacherAssignmentCard
+              key={assignment.id}
+              assignment={assignment}
+              classNames={classNames || "Semua kelas"}
+              submissions={submissions}
+              totalStudents={totalStudents}
+              onView={() => setDetailAssignment(assignment)}
+              onEdit={() => {}}
+              onDelete={() => handleDelete(assignment.id)}
+            />
+          );
+        })}
       </div>
 
-      {/* Detail Sheet */}
       <Sheet open={!!detailAssignment} onOpenChange={() => setDetailAssignment(null)}>
         <SheetContent className="sm:max-w-xl overflow-y-auto">
           {detailAssignment && (
-            <TeacherAssignmentDetail assignment={detailAssignment} />
+            <TeacherAssignmentDetail assignment={detailAssignment} classMap={classMap} />
           )}
         </SheetContent>
       </Sheet>
+
+      {isLoading && (
+        <p className="text-sm text-muted-foreground">Memuat data tugas...</p>
+      )}
     </div>
   );
 }
 
-function StudentAssignmentsView() {
-  const [activeTab, setActiveTab] = useState("pending");
-  const [workingAssignment, setWorkingAssignment] = useState<typeof demoStudentAssignments[0] | null>(null);
+type StudentAssignmentsViewProps = {
+  title: string;
+  description: string;
+  allowStudentSelect: boolean;
+};
 
-  const filterAssignments = (status: string) => 
-    demoStudentAssignments.filter(a => a.status === status);
+function StudentAssignmentsView({
+  title,
+  description,
+  allowStudentSelect,
+}: StudentAssignmentsViewProps) {
+  const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
+  const [students, setStudents] = useState<UserSummary[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [submissions, setSubmissions] = useState<GradeSummary[]>([]);
+  const [activeTab, setActiveTab] = useState("pending");
+  const [workingAssignment, setWorkingAssignment] = useState<
+    (AssignmentSummary & {
+      status: "pending" | "submitted" | "graded";
+      submittedAt?: Date;
+      grade?: number | null;
+    }) | null
+  >(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBase = async () => {
+      setIsLoading(true);
+      try {
+        const [assignmentData, studentData] = await Promise.all([
+          listAssignments(),
+          listStudents(),
+        ]);
+        setAssignments(assignmentData);
+        setStudents(studentData);
+        if (!selectedStudentId && studentData.length > 0) {
+          setSelectedStudentId(studentData[0].id);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadBase();
+  }, [selectedStudentId]);
+
+  const loadSubmissions = async () => {
+    if (!selectedStudentId) {
+      setSubmissions([]);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const data = await listGrades({ studentId: selectedStudentId });
+      setSubmissions(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSubmissions();
+  }, [selectedStudentId]);
+
+  const selectedStudent = students.find((student) => student.id === selectedStudentId);
+  const studentClassId = selectedStudent?.studentProfile?.classId ?? null;
+
+  const submissionMap = useMemo(
+    () => new Map(submissions.map((entry) => [entry.assignmentId, entry])),
+    [submissions]
+  );
+
+  const assignmentsWithStatus = assignments
+    .filter((assignment) =>
+      studentClassId ? assignment.classIds.includes(studentClassId) : true
+    )
+    .map((assignment) => {
+      const submission = submissionMap.get(assignment.id);
+      let status: "pending" | "submitted" | "graded" = "pending";
+      if (submission) {
+        if (submission.status === "GRADED") status = "graded";
+        else if (submission.status === "SUBMITTED") status = "submitted";
+      }
+      return {
+        ...assignment,
+        status,
+        submittedAt: submission?.submittedAt,
+        grade: submission?.grade ?? null,
+      };
+    });
+
+  const filterAssignments = (status: string) =>
+    assignmentsWithStatus.filter((assignment) => assignment.status === status);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Tugas Saya</h1>
-        <p className="text-muted-foreground">Kerjakan dan kumpulkan tugas Anda</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+          <p className="text-muted-foreground">{description}</p>
+        </div>
+        {allowStudentSelect && (
+          <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Pilih siswa..." />
+            </SelectTrigger>
+            <SelectContent>
+              {students.map((student) => (
+                <SelectItem key={student.id} value={student.id}>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {student.name}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="border-l-4 border-l-warning">
           <CardContent className="p-4">
@@ -370,7 +634,6 @@ function StudentAssignmentsView() {
         </Card>
       </div>
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="pending" className="gap-2">
@@ -408,116 +671,26 @@ function StudentAssignmentsView() {
         ))}
       </Tabs>
 
-      {/* Work Dialog */}
       <Dialog open={!!workingAssignment} onOpenChange={() => setWorkingAssignment(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {workingAssignment && (
-            <SubmissionForm 
-              assignment={workingAssignment} 
-              onClose={() => setWorkingAssignment(null)} 
+            <SubmissionForm
+              assignment={workingAssignment}
+              studentId={selectedStudentId}
+              onSubmitted={loadSubmissions}
+              onClose={() => setWorkingAssignment(null)}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {isLoading && (
+        <p className="text-sm text-muted-foreground">Memuat tugas...</p>
+      )}
     </div>
   );
 }
 
-function ParentAssignmentsView() {
-  const [selectedChild, setSelectedChild] = useState<string>(demoChildren[0]?.id || "");
-
-  const childAssignments = demoStudentAssignments;
-  const pendingCount = childAssignments.filter(a => a.status === "pending").length;
-  const overdueCount = childAssignments.filter(a => a.status === "pending" && isPast(a.dueDate)).length;
-
-  return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tugas Anak</h1>
-          <p className="text-muted-foreground">Pantau status tugas anak Anda</p>
-        </div>
-        <Select value={selectedChild} onValueChange={setSelectedChild}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Pilih anak..." />
-          </SelectTrigger>
-          <SelectContent>
-            {demoChildren.map((child) => (
-              <SelectItem key={child.id} value={child.id}>
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {child.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Tugas</p>
-            <p className="text-2xl font-bold">{childAssignments.length}</p>
-          </CardContent>
-        </Card>
-        <Card className={cn(pendingCount > 0 && "border-warning")}>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Belum Dikerjakan</p>
-            <p className="text-2xl font-bold text-warning">{pendingCount}</p>
-          </CardContent>
-        </Card>
-        <Card className={cn(overdueCount > 0 && "border-destructive")}>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Terlambat</p>
-            <p className="text-2xl font-bold text-destructive">{overdueCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Sudah Dinilai</p>
-            <p className="text-2xl font-bold text-success">
-              {childAssignments.filter(a => a.status === "graded").length}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Assignments List */}
-      <div className="space-y-4">
-        {childAssignments.map((assignment) => (
-          <Card key={assignment.id}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline">{assignment.subject}</Badge>
-                    <Badge variant="secondary">{ASSIGNMENT_TYPES[assignment.type]}</Badge>
-                    <StatusBadge status={assignment.status} dueDate={assignment.dueDate} />
-                  </div>
-                  <h3 className="font-semibold">{assignment.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Deadline: {format(assignment.dueDate, "d MMMM yyyy", { locale: id })}
-                  </p>
-                </div>
-                {assignment.status === "graded" && (
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Nilai</p>
-                    <p className="text-2xl font-bold text-success">{assignment.grade}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Shared Components
 function StatusBadge({ status, dueDate }: { status: string; dueDate: Date }) {
   if (status === "graded") {
     return <Badge className="bg-success text-success-foreground">Dinilai</Badge>;
@@ -535,70 +708,18 @@ function StatusBadge({ status, dueDate }: { status: string; dueDate: Date }) {
   return <Badge variant="outline">Pending</Badge>;
 }
 
-interface TeacherAssignmentCardProps {
-  assignment: typeof demoAssignments[0];
-  onView: () => void;
-}
-
-function TeacherAssignmentCard({ assignment, onView }: TeacherAssignmentCardProps) {
-  const config = typeConfig[assignment.type];
-  const Icon = config.icon;
-  const progress = (assignment.submissions / assignment.totalStudents) * 100;
-
-  return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          <div className={cn("h-12 w-12 rounded-lg flex items-center justify-center shrink-0", config.bgColor)}>
-            <Icon className={cn("h-6 w-6", config.color)} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline">{assignment.className}</Badge>
-              <Badge variant="secondary">{ASSIGNMENT_TYPES[assignment.type]}</Badge>
-            </div>
-            <h3 className="font-semibold truncate">{assignment.title}</h3>
-            <p className="text-sm text-muted-foreground line-clamp-1">{assignment.description}</p>
-            <div className="mt-3 flex items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-muted-foreground">Pengumpulan</span>
-                  <span className="font-medium">{assignment.submissions}/{assignment.totalStudents}</span>
-                </div>
-                <Progress value={progress} className="h-1.5" />
-              </div>
-              <div className="text-right text-xs">
-                <p className="text-muted-foreground">Deadline</p>
-                <p className={cn("font-medium", isPast(assignment.dueDate) && "text-destructive")}>
-                  {format(assignment.dueDate, "d MMM yyyy", { locale: id })}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={onView}>
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-destructive">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 interface StudentAssignmentCardProps {
-  assignment: typeof demoStudentAssignments[0];
+  assignment: AssignmentSummary & {
+    status: "pending" | "submitted" | "graded";
+    submittedAt?: Date;
+    grade?: number | null;
+  };
   onWork: () => void;
 }
 
 function StudentAssignmentCard({ assignment, onWork }: StudentAssignmentCardProps) {
-  const config = typeConfig[assignment.type];
+  const deliveryType = getDeliveryType(assignment);
+  const config = typeConfig[deliveryType];
   const Icon = config.icon;
 
   return (
@@ -610,8 +731,8 @@ function StudentAssignmentCard({ assignment, onWork }: StudentAssignmentCardProp
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline">{assignment.subject}</Badge>
-              <Badge variant="secondary">{ASSIGNMENT_TYPES[assignment.type]}</Badge>
+              <Badge variant="outline">{assignment.subjectName}</Badge>
+              <Badge variant="secondary">{ASSIGNMENT_TYPES[deliveryType]}</Badge>
               <StatusBadge status={assignment.status} dueDate={assignment.dueDate} />
             </div>
             <h3 className="font-semibold">{assignment.title}</h3>
@@ -621,7 +742,7 @@ function StudentAssignmentCard({ assignment, onWork }: StudentAssignmentCardProp
                 <Calendar className="h-3 w-3" />
                 Deadline: {format(assignment.dueDate, "d MMM yyyy", { locale: id })}
               </span>
-              {"submittedAt" in assignment && assignment.submittedAt && (
+              {assignment.submittedAt && (
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Dikumpulkan: {format(assignment.submittedAt, "d MMM yyyy", { locale: id })}
@@ -640,7 +761,9 @@ function StudentAssignmentCard({ assignment, onWork }: StudentAssignmentCardProp
               <Button onClick={onWork}>Kerjakan</Button>
             )}
             {assignment.status === "submitted" && (
-              <Button variant="outline" disabled>Menunggu Nilai</Button>
+              <Button variant="outline" disabled>
+                Menunggu Nilai
+              </Button>
             )}
           </div>
         </div>
@@ -649,29 +772,126 @@ function StudentAssignmentCard({ assignment, onWork }: StudentAssignmentCardProp
   );
 }
 
-function TeacherAssignmentDetail({ assignment }: { assignment: typeof demoAssignments[0] }) {
-  const demoSubmissions = [
-    { id: "1", studentName: "Ahmad Rizki", submittedAt: new Date(2025, 0, 10), grade: 85, status: "graded" },
-    { id: "2", studentName: "Budi Santoso", submittedAt: new Date(2025, 0, 11), grade: null, status: "submitted" },
-    { id: "3", studentName: "Citra Dewi", submittedAt: null, grade: null, status: "pending" },
-  ];
+interface TeacherAssignmentCardProps {
+  assignment: AssignmentSummary;
+  classNames: string;
+  submissions: number;
+  totalStudents: number;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function TeacherAssignmentCard({
+  assignment,
+  classNames,
+  submissions,
+  totalStudents,
+  onView,
+  onEdit,
+  onDelete,
+}: TeacherAssignmentCardProps) {
+  const deliveryType = getDeliveryType(assignment);
+  const config = typeConfig[deliveryType];
+  const Icon = config.icon;
+  const progress = totalStudents > 0 ? (submissions / totalStudents) * 100 : 0;
+
+  return (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-4">
+          <div className={cn("h-12 w-12 rounded-lg flex items-center justify-center shrink-0", config.bgColor)}>
+            <Icon className={cn("h-6 w-6", config.color)} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="outline">{classNames}</Badge>
+              <Badge variant="secondary">{ASSIGNMENT_TYPES[deliveryType]}</Badge>
+            </div>
+            <h3 className="font-semibold truncate">{assignment.title}</h3>
+            <p className="text-sm text-muted-foreground line-clamp-1">{assignment.description}</p>
+            <div className="mt-3 flex items-center gap-4">
+              <div className="flex-1">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">Pengumpulan</span>
+                  <span className="font-medium">
+                    {submissions}/{totalStudents || 0}
+                  </span>
+                </div>
+                <Progress value={progress} className="h-1.5" />
+              </div>
+              <div className="text-right text-xs">
+                <p className="text-muted-foreground">Deadline</p>
+                <p className={cn("font-medium", isPast(assignment.dueDate) && "text-destructive")}>
+                  {format(assignment.dueDate, "d MMM yyyy", { locale: id })}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="icon" onClick={onView}>
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onEdit}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-destructive" onClick={onDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TeacherAssignmentDetail({
+  assignment,
+  classMap,
+}: {
+  assignment: AssignmentSummary;
+  classMap: Map<string, ClassSummary>;
+}) {
+  const [submissions, setSubmissions] = useState<AssignmentSubmissionSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSubmissions = async () => {
+      setIsLoading(true);
+      try {
+        const data = await listAssignmentSubmissions(assignment.id);
+        setSubmissions(data);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadSubmissions();
+  }, [assignment.id]);
+
+  const deliveryType = getDeliveryType(assignment);
+  const kindLabel = assignment.kind ? ASSIGNMENT_KIND_LABELS[assignment.kind] ?? assignment.kind : "-";
+  const classNames = assignment.classIds
+    .map((classId) => classMap.get(classId)?.name)
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <>
       <SheetHeader>
         <SheetTitle>{assignment.title}</SheetTitle>
         <SheetDescription>
-          {assignment.className} • {assignment.subject}
+          {classNames || "Semua kelas"} • {assignment.subjectName}
         </SheetDescription>
       </SheetHeader>
       <div className="mt-6 space-y-6">
         <div className="flex items-center gap-4">
-          <Badge variant="secondary">{ASSIGNMENT_TYPES[assignment.type]}</Badge>
+          <Badge variant="secondary">{ASSIGNMENT_TYPES[deliveryType]}</Badge>
+          <Badge variant="outline">{kindLabel}</Badge>
           <span className="text-sm text-muted-foreground">
             Deadline: {format(assignment.dueDate, "d MMMM yyyy", { locale: id })}
           </span>
         </div>
-        
+
         <div>
           <h4 className="text-sm font-medium text-muted-foreground mb-2">Deskripsi</h4>
           <p className="text-sm">{assignment.description}</p>
@@ -679,10 +899,10 @@ function TeacherAssignmentDetail({ assignment }: { assignment: typeof demoAssign
 
         <div>
           <h4 className="text-sm font-medium text-muted-foreground mb-3">
-            Pengumpulan ({assignment.submissions}/{assignment.totalStudents})
+            Pengumpulan ({submissions.length})
           </h4>
           <div className="space-y-2">
-            {demoSubmissions.map((sub) => (
+            {submissions.map((sub) => (
               <div key={sub.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -691,239 +911,34 @@ function TeacherAssignmentDetail({ assignment }: { assignment: typeof demoAssign
                   <div>
                     <p className="text-sm font-medium">{sub.studentName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {sub.submittedAt 
+                      {sub.submittedAt
                         ? `Dikumpulkan ${format(sub.submittedAt, "d MMM yyyy", { locale: id })}`
-                        : "Belum mengumpulkan"
-                      }
+                        : "Belum mengumpulkan"}
                     </p>
                   </div>
                 </div>
-                {sub.status === "graded" ? (
-                  <Badge className="bg-success text-success-foreground">{sub.grade}</Badge>
-                ) : sub.status === "submitted" ? (
-                  <Button size="sm">Nilai</Button>
+                {sub.status === "GRADED" ? (
+                  <Badge className="bg-success text-success-foreground">
+                    {sub.grade ?? "-"}
+                  </Badge>
+                ) : sub.status === "SUBMITTED" ? (
+                  <Badge variant="secondary">Menunggu</Badge>
                 ) : (
                   <Badge variant="outline">Pending</Badge>
                 )}
               </div>
             ))}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function AssignmentForm({ onClose }: { onClose: () => void }) {
-  const [assignmentType, setAssignmentType] = useState<AssignmentType>("MCQ");
-  const [questions, setQuestions] = useState([
-    { text: "", options: ["", "", "", ""], correctAnswer: 0 }
-  ]);
-
-  const addQuestion = () => {
-    setQuestions([...questions, { text: "", options: ["", "", "", ""], correctAnswer: 0 }]);
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Jadwal</Label>
-          <Select>
-            <SelectTrigger>
-              <SelectValue placeholder="Pilih jadwal..." />
-            </SelectTrigger>
-            <SelectContent>
-              {demoSchedules.map((schedule) => (
-                <SelectItem key={schedule.id} value={schedule.id}>
-                  {schedule.className} - {schedule.subject}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Jenis Tugas</Label>
-          <Select value={assignmentType} onValueChange={(v) => setAssignmentType(v as AssignmentType)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(ASSIGNMENT_TYPES).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Judul Tugas</Label>
-        <Input placeholder="Masukkan judul tugas..." />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Deskripsi</Label>
-        <Textarea placeholder="Jelaskan instruksi tugas..." rows={3} />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Deadline</Label>
-        <Input type="datetime-local" />
-      </div>
-
-      {/* MCQ Questions */}
-      {assignmentType === "MCQ" && (
-        <div className="space-y-4 border-t pt-4">
-          <div className="flex items-center justify-between">
-            <Label>Soal Pilihan Ganda</Label>
-            <Button variant="outline" size="sm" onClick={addQuestion}>
-              <Plus className="h-4 w-4 mr-1" />
-              Tambah Soal
-            </Button>
-          </div>
-          {questions.map((q, i) => (
-            <Card key={i} className="p-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label>Soal {i + 1}</Label>
-                  {questions.length > 1 && (
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6"
-                      onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                <Input placeholder="Tulis pertanyaan..." />
-                <RadioGroup className="space-y-2">
-                  {q.options.map((_, optIdx) => (
-                    <div key={optIdx} className="flex items-center gap-2">
-                      <RadioGroupItem value={String(optIdx)} id={`q${i}-opt${optIdx}`} />
-                      <Input placeholder={`Opsi ${String.fromCharCode(65 + optIdx)}`} className="flex-1" />
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Batal</Button>
-        <Button onClick={onClose}>Buat Tugas</Button>
-      </DialogFooter>
-    </div>
-  );
-}
-
-interface SubmissionFormProps {
-  assignment: typeof demoStudentAssignments[0];
-  onClose: () => void;
-}
-
-function SubmissionForm({ assignment, onClose }: SubmissionFormProps) {
-  const [files, setFiles] = useState<File[]>([]);
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{assignment.title}</DialogTitle>
-        <DialogDescription>
-          {assignment.subject} • Deadline: {format(assignment.dueDate, "d MMMM yyyy", { locale: id })}
-        </DialogDescription>
-      </DialogHeader>
-      
-      <div className="space-y-4 py-4">
-        <p className="text-sm">{assignment.description}</p>
-
-        {/* MCQ Form */}
-        {assignment.type === "MCQ" && assignment.questions && (
-          <div className="space-y-4">
-            {assignment.questions.map((q, i) => (
-              <Card key={q.id} className="p-4">
-                <p className="font-medium mb-3">{i + 1}. {q.text}</p>
-                <RadioGroup>
-                  {q.options.map((opt, optIdx) => (
-                    <div key={optIdx} className="flex items-center space-x-2">
-                      <RadioGroupItem value={String(optIdx)} id={`${q.id}-${optIdx}`} />
-                      <Label htmlFor={`${q.id}-${optIdx}`}>{opt}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* File Upload Form */}
-        {assignment.type === "FILE" && (
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center">
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground mb-3">
-                Drag & drop file atau klik untuk upload
+            {submissions.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Belum ada pengumpulan
               </p>
-              <Input
-                type="file"
-                className="hidden"
-                id="submission-file"
-                onChange={(e) => setFiles(Array.from(e.target.files || []))}
-              />
-              <Button variant="outline" asChild>
-                <label htmlFor="submission-file" className="cursor-pointer">
-                  Pilih File
-                </label>
-              </Button>
-            </div>
-            {files.length > 0 && (
-              <div className="space-y-2">
-                {files.map((file, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-2">
-                      <File className="h-4 w-4" />
-                      <span className="text-sm">{file.name}</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6"
-                      onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
             )}
           </div>
-        )}
-
-        {/* Essay Form */}
-        {assignment.type === "ESSAY" && (
-          <div className="space-y-2">
-            <Label>Jawaban Esai</Label>
-            <Textarea 
-              placeholder="Tuliskan jawaban Anda di sini..." 
-              rows={10}
-              className="resize-none"
-            />
-            <p className="text-xs text-muted-foreground text-right">Min. 500 kata</p>
-          </div>
-        )}
+        </div>
       </div>
-
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Batal</Button>
-        <Button onClick={onClose}>
-          <Send className="h-4 w-4 mr-2" />
-          Kumpulkan
-        </Button>
-      </DialogFooter>
+      {isLoading && (
+        <p className="text-sm text-muted-foreground mt-4">Memuat pengumpulan...</p>
+      )}
     </>
   );
 }

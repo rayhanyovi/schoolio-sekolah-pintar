@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, StickyNote, Pin, Pencil, Trash2 } from "lucide-react";
-import { mockNotes, mockSubjects, Note } from "@/lib/mockData";
+import {
+  createNote,
+  deleteNote,
+  listNotes,
+  toggleNotePin,
+  updateNote,
+} from "@/lib/handlers/notes";
+import { listSubjects } from "@/lib/handlers/subjects";
+import { listStudents, listTeachers } from "@/lib/handlers/users";
+import { NoteSummary, SubjectSummary } from "@/lib/schemas";
 import { NOTE_VISIBILITY, NoteVisibility } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
@@ -30,15 +39,51 @@ const NOTE_COLORS = [
 export default function Notes() {
   const { role } = useRoleContext();
   const { toast } = useToast();
-  const [notes, setNotes] = useState<Note[]>(mockNotes);
+  const [notes, setNotes] = useState<NoteSummary[]>([]);
+  const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("my");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [selectedNote, setSelectedNote] = useState<NoteSummary | null>(null);
   const [formData, setFormData] = useState({ title: "", content: "", subjectId: "", visibility: "PRIVATE" as NoteVisibility, color: NOTE_COLORS[0] });
 
   const isTeacher = role === "TEACHER";
   const canCreateClassNotes = isTeacher || role === "ADMIN";
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [noteData, subjectData, teacherData, studentData] =
+        await Promise.all([
+          listNotes(),
+          listSubjects(),
+          listTeachers(),
+          listStudents(),
+        ]);
+      setNotes(noteData);
+      setSubjects(subjectData);
+      const defaultUser =
+        role === "TEACHER"
+          ? teacherData[0]?.id
+          : role === "STUDENT"
+          ? studentData[0]?.id
+          : teacherData[0]?.id ?? studentData[0]?.id;
+      setCurrentUserId(defaultUser);
+    } catch (error) {
+      toast({
+        title: "Gagal memuat catatan",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const filteredNotes = notes.filter((n) => {
     const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -46,43 +91,73 @@ export default function Notes() {
     return matchesSearch && matchesTab;
   });
 
-  const handleSubmit = () => {
-    const subject = mockSubjects.find(s => s.id === formData.subjectId);
-    if (selectedNote) {
-      setNotes(notes.map(n => n.id === selectedNote.id ? { ...n, ...formData, subjectName: subject?.name, updatedAt: new Date() } as Note : n));
-      toast({ title: "Berhasil", description: "Catatan berhasil diperbarui" });
-    } else {
-      const newNote: Note = {
-        id: Date.now().toString(),
-        ...formData,
-        subjectName: subject?.name,
-        authorId: "current-user",
-        authorName: "Anda",
-        isPinned: false,
-        tags: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setNotes([newNote, ...notes]);
-      toast({ title: "Berhasil", description: "Catatan baru berhasil dibuat" });
+  const handleSubmit = async () => {
+    if (!currentUserId) {
+      toast({
+        title: "Tidak ada pengguna",
+        description: "Tambahkan pengguna terlebih dahulu sebelum membuat catatan.",
+      });
+      return;
     }
-    setFormDialogOpen(false);
-    setSelectedNote(null);
+
+    try {
+      const payload = {
+        title: formData.title,
+        content: formData.content,
+        subjectId: formData.subjectId || null,
+        visibility: formData.visibility,
+        color: formData.color,
+      };
+      if (selectedNote) {
+        await updateNote(selectedNote.id, payload);
+        toast({ title: "Berhasil", description: "Catatan berhasil diperbarui" });
+      } else {
+        await createNote({
+          ...payload,
+          authorId: currentUserId,
+        });
+        toast({ title: "Berhasil", description: "Catatan baru berhasil dibuat" });
+      }
+      setFormDialogOpen(false);
+      setSelectedNote(null);
+      await loadData();
+    } catch (error) {
+      toast({
+        title: "Gagal menyimpan catatan",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   };
 
-  const handleEdit = (note: Note) => {
+  const handleEdit = (note: NoteSummary) => {
     setSelectedNote(note);
     setFormData({ title: note.title, content: note.content, subjectId: note.subjectId || "", visibility: note.visibility, color: note.color });
     setFormDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setNotes(notes.filter(n => n.id !== id));
-    toast({ title: "Berhasil", description: "Catatan berhasil dihapus" });
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteNote(id);
+      toast({ title: "Berhasil", description: "Catatan berhasil dihapus" });
+      await loadData();
+    } catch (error) {
+      toast({
+        title: "Gagal menghapus catatan",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   };
 
-  const handleTogglePin = (id: string) => {
-    setNotes(notes.map(n => n.id === id ? { ...n, isPinned: !n.isPinned } : n));
+  const handleTogglePin = async (id: string) => {
+    try {
+      await toggleNotePin(id);
+      await loadData();
+    } catch (error) {
+      toast({
+        title: "Gagal mengubah pin",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   };
 
   const openNewNote = () => {
@@ -122,39 +197,45 @@ export default function Notes() {
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedNotes.map((note) => (
-              <Card key={note.id} className={`group hover:shadow-lg transition-all ${note.color}`}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      {note.isPinned && <Pin className="h-4 w-4 text-primary" />}
-                      <h3 className="font-semibold">{note.title}</h3>
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">
+              Memuat catatan...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sortedNotes.map((note) => (
+                <Card key={note.id} className={`group hover:shadow-lg transition-all ${note.color}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        {note.isPinned && <Pin className="h-4 w-4 text-primary" />}
+                        <h3 className="font-semibold">{note.title}</h3>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleTogglePin(note.id)}>
+                          <Pin className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(note)}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(note.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleTogglePin(note.id)}>
-                        <Pin className="h-3 w-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(note)}>
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(note.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-4 whitespace-pre-wrap">{note.content}</p>
+                    <div className="flex items-center justify-between mt-4 pt-2 border-t">
+                      {note.subjectName && <Badge variant="outline" className="text-xs">{note.subjectName}</Badge>}
+                      <span className="text-xs text-muted-foreground">{format(note.updatedAt, "d MMM", { locale: id })}</span>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-4 whitespace-pre-wrap">{note.content}</p>
-                  <div className="flex items-center justify-between mt-4 pt-2 border-t">
-                    {note.subjectName && <Badge variant="outline" className="text-xs">{note.subjectName}</Badge>}
-                    <span className="text-xs text-muted-foreground">{format(note.updatedAt, "d MMM", { locale: id })}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          {sortedNotes.length === 0 && (
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {!isLoading && sortedNotes.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <StickyNote className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Belum ada catatan</p>
@@ -179,7 +260,7 @@ export default function Notes() {
                 <Select value={formData.subjectId} onValueChange={(v) => setFormData({ ...formData, subjectId: v })}>
                   <SelectTrigger><SelectValue placeholder="Pilih mapel" /></SelectTrigger>
                   <SelectContent>
-                    {mockSubjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
+                    {subjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>

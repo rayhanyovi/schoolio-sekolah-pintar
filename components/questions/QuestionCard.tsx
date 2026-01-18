@@ -23,7 +23,7 @@ import {
   Package,
   BarChart3,
 } from "lucide-react";
-import { Question } from "@/lib/questionTypes";
+import { QuestionSummary } from "@/lib/schemas";
 import {
   ASSIGNMENT_TYPES,
   DIFFICULTY_LEVELS,
@@ -32,13 +32,13 @@ import {
 import { cn } from "@/lib/utils";
 
 interface QuestionCardProps {
-  question: Question;
+  question: QuestionSummary;
   selected?: boolean;
   onSelect?: (id: string, selected: boolean) => void;
-  onEdit?: (question: Question) => void;
-  onDuplicate?: (question: Question) => void;
-  onDelete?: (question: Question) => void;
-  onAddToPackage?: (question: Question) => void;
+  onEdit?: (question: QuestionSummary) => void;
+  onDuplicate?: (question: QuestionSummary) => void;
+  onDelete?: (question: QuestionSummary) => void;
+  onAddToPackage?: (question: QuestionSummary) => void;
   selectable?: boolean;
 }
 

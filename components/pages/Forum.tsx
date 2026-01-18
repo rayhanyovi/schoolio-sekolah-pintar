@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,22 +9,66 @@ import { Plus, Search, MessageSquare, TrendingUp, Users } from "lucide-react";
 import { ThreadCard } from "@/components/forum/ThreadCard";
 import { ThreadFormDialog } from "@/components/forum/ThreadFormDialog";
 import { ThreadDetailSheet } from "@/components/forum/ThreadDetailSheet";
-import { mockThreads, mockSubjects, ForumThread } from "@/lib/mockData";
+import {
+  createThread,
+  listThreads,
+  toggleThreadLock,
+  toggleThreadPin,
+} from "@/lib/handlers/forum";
+import { listSubjects } from "@/lib/handlers/subjects";
+import { listStudents, listTeachers } from "@/lib/handlers/users";
+import { ForumThreadSummary, SubjectSummary } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 
 export default function Forum() {
   const { role } = useRoleContext();
   const { toast } = useToast();
-  const [threads, setThreads] = useState<ForumThread[]>(mockThreads);
+  const [threads, setThreads] = useState<ForumThreadSummary[]>([]);
+  const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
-  const [selectedThread, setSelectedThread] = useState<ForumThread | null>(null);
+  const [selectedThread, setSelectedThread] = useState<ForumThreadSummary | null>(null);
 
   const canModerate = role === "ADMIN" || role === "TEACHER";
   const canPost = role !== "PARENT";
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      const [threadData, subjectData, teacherData, studentData] =
+        await Promise.all([
+          listThreads(),
+          listSubjects(),
+          listTeachers(),
+          listStudents(),
+        ]);
+      setThreads(threadData);
+      setSubjects(subjectData);
+      const defaultUser =
+        role === "TEACHER"
+          ? teacherData[0]?.id
+          : role === "STUDENT"
+          ? studentData[0]?.id
+          : teacherData[0]?.id ?? studentData[0]?.id;
+      setCurrentUserId(defaultUser);
+    } catch (error) {
+      toast({
+        title: "Gagal memuat forum",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const filteredThreads = threads.filter((t) => {
     const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -34,54 +78,74 @@ export default function Forum() {
   });
 
   // Sort: pinned first, then by updatedAt
-  const sortedThreads = [...filteredThreads].sort((a, b) => {
+  const sortedThreads = useMemo(() => [...filteredThreads].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
     return b.updatedAt.getTime() - a.updatedAt.getTime();
-  });
+  }), [filteredThreads]);
 
   const totalReplies = threads.reduce((acc, t) => acc + t.replyCount, 0);
   const resolvedCount = threads.filter(t => t.status === "RESOLVED").length;
 
-  const handleCreateThread = (data: { title: string; content: string; subjectId: string }) => {
-    const subject = mockSubjects.find(s => s.id === data.subjectId);
-    const newThread: ForumThread = {
-      id: Date.now().toString(),
-      title: data.title,
-      content: data.content,
-      subjectId: data.subjectId,
-      subjectName: subject?.name || "",
-      authorId: "current-user",
-      authorName: "Anda",
-      authorRole: role === "TEACHER" ? "TEACHER" : "STUDENT",
-      status: "OPEN",
-      isPinned: false,
-      replyCount: 0,
-      upvotes: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setThreads([newThread, ...threads]);
-    toast({ title: "Berhasil", description: "Diskusi baru berhasil dibuat" });
+  const handleCreateThread = async (data: {
+    title: string;
+    content: string;
+    subjectId: string;
+  }) => {
+    if (!currentUserId) {
+      toast({
+        title: "Tidak ada pengguna",
+        description: "Tambahkan pengguna terlebih dahulu sebelum membuat diskusi.",
+      });
+      return;
+    }
+    try {
+      const newThread = await createThread({
+        title: data.title,
+        content: data.content,
+        subjectId: data.subjectId,
+        authorId: currentUserId,
+        authorRole: role === "TEACHER" || role === "ADMIN" ? "TEACHER" : "STUDENT",
+      });
+      setThreads((prev) => [newThread, ...prev]);
+      toast({ title: "Berhasil", description: "Diskusi baru berhasil dibuat" });
+    } catch (error) {
+      toast({
+        title: "Gagal membuat diskusi",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   };
 
-  const handleThreadClick = (thread: ForumThread) => {
+  const handleThreadClick = (thread: ForumThreadSummary) => {
     setSelectedThread(thread);
     setDetailSheetOpen(true);
   };
 
-  const handleTogglePin = (id: string) => {
-    setThreads(threads.map(t => t.id === id ? { ...t, isPinned: !t.isPinned } : t));
-    toast({ title: "Berhasil", description: "Status pin berhasil diubah" });
+  const handleTogglePin = async (id: string) => {
+    try {
+      await toggleThreadPin(id);
+      await loadData();
+      toast({ title: "Berhasil", description: "Status pin berhasil diubah" });
+    } catch (error) {
+      toast({
+        title: "Gagal mengubah pin",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   };
 
-  const handleToggleLock = (id: string) => {
-    setThreads(threads.map(t => t.id === id ? { 
-      ...t, 
-      status: t.status === "LOCKED" ? "OPEN" : "LOCKED" 
-    } : t));
-    setSelectedThread(prev => prev ? { ...prev, status: prev.status === "LOCKED" ? "OPEN" : "LOCKED" } : null);
-    toast({ title: "Berhasil", description: "Status diskusi berhasil diubah" });
+  const handleToggleLock = async (id: string) => {
+    try {
+      await toggleThreadLock(id);
+      await loadData();
+      toast({ title: "Berhasil", description: "Status diskusi berhasil diubah" });
+    } catch (error) {
+      toast({
+        title: "Gagal mengubah status",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+      });
+    }
   };
 
   if (role === "PARENT") {
@@ -163,22 +227,28 @@ export default function Forum() {
       <Tabs defaultValue="all" onValueChange={setSelectedSubject}>
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="all">Semua</TabsTrigger>
-          {mockSubjects.slice(0, 6).map((subject) => (
+          {subjects.slice(0, 6).map((subject) => (
             <TabsTrigger key={subject.id} value={subject.id}>{subject.name}</TabsTrigger>
           ))}
         </TabsList>
 
         <TabsContent value={selectedSubject} className="mt-6">
           <div className="space-y-3">
-            {sortedThreads.map((thread) => (
-              <ThreadCard
-                key={thread.id}
-                thread={thread}
-                onClick={() => handleThreadClick(thread)}
-              />
-            ))}
+            {isLoading ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Memuat diskusi...
+              </div>
+            ) : (
+              sortedThreads.map((thread) => (
+                <ThreadCard
+                  key={thread.id}
+                  thread={thread}
+                  onClick={() => handleThreadClick(thread)}
+                />
+              ))
+            )}
           </div>
-          {sortedThreads.length === 0 && (
+          {!isLoading && sortedThreads.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               Tidak ada diskusi ditemukan
             </div>
@@ -191,6 +261,7 @@ export default function Forum() {
         open={formDialogOpen}
         onOpenChange={setFormDialogOpen}
         onSubmit={handleCreateThread}
+        subjects={subjects}
       />
       <ThreadDetailSheet
         open={detailSheetOpen}
@@ -199,6 +270,8 @@ export default function Forum() {
         canModerate={canModerate}
         onTogglePin={handleTogglePin}
         onToggleLock={handleToggleLock}
+        currentUserId={currentUserId}
+        currentUserRole={role === "ADMIN" ? "TEACHER" : role}
       />
     </div>
   );

@@ -1,62 +1,68 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ROLES, ATTENDANCE_STATUS, AttendanceStatus } from "@/lib/constants";
 import { useRoleContext } from "@/hooks/useRoleContext";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
   Clock,
-  Users,
-  Calendar,
   TrendingUp,
   ChevronLeft,
   ChevronRight,
   Check,
   X,
   Thermometer,
-  FileText
+  FileText,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isSameDay } from "date-fns";
+import {
+  endOfMonth,
+  eachDayOfInterval,
+  format,
+  isSameMonth,
+  isToday,
+  isSameDay,
+  startOfMonth,
+} from "date-fns";
 import { id } from "date-fns/locale";
+import {
+  listAttendanceRecords,
+  listAttendanceSessions,
+  upsertAttendanceRecords,
+} from "@/lib/handlers/attendance";
+import { listClassStudents } from "@/lib/handlers/classes";
+import { listStudents } from "@/lib/handlers/users";
+import {
+  AttendanceRecordSummary,
+  AttendanceSessionSummary,
+  StudentSummary,
+  UserSummary,
+} from "@/lib/schemas";
 
-
-// Demo data for teacher view
-const demoSessions = [
-  { id: "1", className: "X-A", subject: "Matematika", time: "07:30 - 09:00", date: new Date() },
-  { id: "2", className: "X-B", subject: "Matematika", time: "09:15 - 10:45", date: new Date() },
-  { id: "3", className: "XI-A", subject: "Fisika", time: "11:00 - 12:30", date: new Date() },
-];
-
-const demoStudents = [
-  { id: "1", name: "Ahmad Rizki", status: "PRESENT" as AttendanceStatus },
-  { id: "2", name: "Budi Santoso", status: "PRESENT" as AttendanceStatus },
-  { id: "3", name: "Citra Dewi", status: "ABSENT" as AttendanceStatus },
-  { id: "4", name: "Dian Purnama", status: "SICK" as AttendanceStatus },
-  { id: "5", name: "Eka Wijaya", status: "PRESENT" as AttendanceStatus },
-  { id: "6", name: "Fitri Handayani", status: "PERMIT" as AttendanceStatus },
-  { id: "7", name: "Galih Pratama", status: "PRESENT" as AttendanceStatus },
-  { id: "8", name: "Hana Safitri", status: "PRESENT" as AttendanceStatus },
-];
-
-// Demo data for student view
-const demoStudentAttendance = [
-  { date: new Date(2025, 0, 2), status: "PRESENT" as AttendanceStatus, subject: "Matematika" },
-  { date: new Date(2025, 0, 3), status: "PRESENT" as AttendanceStatus, subject: "Bahasa Indonesia" },
-  { date: new Date(2025, 0, 4), status: "SICK" as AttendanceStatus, subject: "Fisika" },
-  { date: new Date(2025, 0, 5), status: "PRESENT" as AttendanceStatus, subject: "Kimia" },
-  { date: new Date(2025, 0, 6), status: "PERMIT" as AttendanceStatus, subject: "Biologi" },
-];
-
-const statusConfig: Record<AttendanceStatus, { icon: typeof CheckCircle2; color: string; bgColor: string }> = {
+const statusConfig: Record<
+  AttendanceStatus,
+  { icon: typeof CheckCircle2; color: string; bgColor: string }
+> = {
   PRESENT: { icon: CheckCircle2, color: "text-success", bgColor: "bg-success/10" },
   ABSENT: { icon: XCircle, color: "text-destructive", bgColor: "bg-destructive/10" },
   SICK: { icon: Thermometer, color: "text-warning", bgColor: "bg-warning/10" },
@@ -68,41 +74,130 @@ export default function Attendance() {
   if (role === ROLES.TEACHER || role === ROLES.ADMIN) {
     return <TeacherAttendanceView />;
   }
-  
+
   if (role === ROLES.PARENT) {
-    return <ParentAttendanceView />;
+    return (
+      <StudentAttendanceView
+        title="Kehadiran Anak"
+        description="Pantau kehadiran anak Anda di sekolah"
+        allowStudentSelect
+      />
+    );
   }
-  
-  return <StudentAttendanceView />;
+
+  return (
+    <StudentAttendanceView
+      title="Kehadiran Saya"
+      description="Lihat ringkasan dan riwayat kehadiran Anda"
+      allowStudentSelect={false}
+    />
+  );
 }
 
 function TeacherAttendanceView() {
-  const [selectedSession, setSelectedSession] = useState<string>("");
-  const [students, setStudents] = useState(demoStudents);
+  const [sessions, setSessions] = useState<AttendanceSessionSummary[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const [students, setStudents] = useState<
+    Array<{ id: string; name: string; status: AttendanceStatus }>
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  useEffect(() => {
+    const loadSessions = async () => {
+      setIsLoading(true);
+      try {
+        const data = await listAttendanceSessions({ date: today });
+        setSessions(data);
+        if (!selectedSessionId && data.length > 0) {
+          setSelectedSessionId(data[0].id);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadSessions();
+  }, [today, selectedSessionId]);
+
+  useEffect(() => {
+    const loadStudents = async () => {
+      if (!selectedSessionId) {
+        setStudents([]);
+        return;
+      }
+      const session = sessions.find((item) => item.id === selectedSessionId);
+      if (!session) return;
+
+      setIsLoading(true);
+      try {
+        const [classStudents, records] = await Promise.all([
+          listClassStudents(session.classId),
+          listAttendanceRecords({
+            dateFrom: today,
+            dateTo: today,
+            subjectId: session.subjectId,
+          }),
+        ]);
+        const recordMap = new Map(
+          records
+            .filter((record) => record.sessionId === session.id)
+            .map((record) => [record.studentId, record.status as AttendanceStatus])
+        );
+        const rows = classStudents.map((student) => ({
+          id: student.id,
+          name: student.name,
+          status: recordMap.get(student.id) ?? "PRESENT",
+        }));
+        setStudents(rows);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStudents();
+  }, [selectedSessionId, sessions, today]);
 
   const handleStatusChange = (studentId: string, newStatus: AttendanceStatus) => {
-    setStudents(prev => 
-      prev.map(s => s.id === studentId ? { ...s, status: newStatus } : s)
+    setStudents((prev) =>
+      prev.map((student) =>
+        student.id === studentId ? { ...student, status: newStatus } : student
+      )
     );
   };
 
   const handleBulkAction = (status: AttendanceStatus) => {
-    setStudents(prev => prev.map(s => ({ ...s, status })));
+    setStudents((prev) => prev.map((student) => ({ ...student, status })));
   };
 
-  const counts = {
-    PRESENT: students.filter(s => s.status === "PRESENT").length,
-    ABSENT: students.filter(s => s.status === "ABSENT").length,
-    SICK: students.filter(s => s.status === "SICK").length,
-    PERMIT: students.filter(s => s.status === "PERMIT").length,
+  const handleSaveAttendance = async () => {
+    if (!selectedSessionId) return;
+    await upsertAttendanceRecords(
+      selectedSessionId,
+      students.map((student) => ({
+        studentId: student.id,
+        status: student.status,
+      }))
+    );
   };
+
+  const counts = useMemo(() => {
+    return {
+      PRESENT: students.filter((s) => s.status === "PRESENT").length,
+      ABSENT: students.filter((s) => s.status === "ABSENT").length,
+      SICK: students.filter((s) => s.status === "SICK").length,
+      PERMIT: students.filter((s) => s.status === "PERMIT").length,
+    };
+  }, [students]);
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Absensi Kelas</h1>
-        <p className="text-muted-foreground">Rekam kehadiran siswa untuk setiap sesi pelajaran</p>
+        <p className="text-muted-foreground">
+          Rekam kehadiran siswa untuk setiap sesi pelajaran
+        </p>
       </div>
 
       {/* Session Picker */}
@@ -112,48 +207,77 @@ function TeacherAttendanceView() {
           <CardDescription>Pilih kelas dan mata pelajaran untuk hari ini</CardDescription>
         </CardHeader>
         <CardContent>
-          <Select value={selectedSession} onValueChange={setSelectedSession}>
+          <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
             <SelectTrigger className="w-full md:w-[400px]">
-              <SelectValue placeholder="Pilih sesi pelajaran..." />
+              <SelectValue
+                placeholder={isLoading ? "Memuat sesi..." : "Pilih sesi pelajaran..."}
+              />
             </SelectTrigger>
             <SelectContent>
-              {demoSessions.map((session) => (
+              {sessions.map((session) => (
                 <SelectItem key={session.id} value={session.id}>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{session.className}</span>
                     <span className="text-muted-foreground">•</span>
-                    <span>{session.subject}</span>
+                    <span>{session.subjectName}</span>
                     <span className="text-muted-foreground">•</span>
-                    <span className="text-sm text-muted-foreground">{session.time}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {session.startTime && session.endTime
+                        ? `${session.startTime} - ${session.endTime}`
+                        : "Waktu belum diisi"}
+                    </span>
                   </div>
                 </SelectItem>
               ))}
+              {sessions.length === 0 && (
+                <SelectItem value="none" disabled>
+                  Tidak ada sesi hari ini
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
 
-      {selectedSession && (
+      {selectedSessionId && (
         <>
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {(Object.entries(counts) as [AttendanceStatus, number][]).map(([status, count]) => {
-              const config = statusConfig[status];
-              const Icon = config.icon;
-              return (
-                <Card key={status} className={cn("border-l-4", config.bgColor)} style={{ borderLeftColor: `hsl(var(--${status === 'PRESENT' ? 'success' : status === 'ABSENT' ? 'destructive' : status === 'SICK' ? 'warning' : 'info'}))` }}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">{ATTENDANCE_STATUS[status]}</p>
-                        <p className="text-2xl font-bold">{count}</p>
+            {(Object.entries(counts) as [AttendanceStatus, number][]).map(
+              ([status, count]) => {
+                const config = statusConfig[status];
+                const Icon = config.icon;
+                return (
+                  <Card
+                    key={status}
+                    className={cn("border-l-4", config.bgColor)}
+                    style={{
+                      borderLeftColor: `hsl(var(--${
+                        status === "PRESENT"
+                          ? "success"
+                          : status === "ABSENT"
+                          ? "destructive"
+                          : status === "SICK"
+                          ? "warning"
+                          : "info"
+                      }))`,
+                    }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {ATTENDANCE_STATUS[status]}
+                          </p>
+                          <p className="text-2xl font-bold">{count}</p>
+                        </div>
+                        <Icon className={cn("h-8 w-8", config.color)} />
                       </div>
-                      <Icon className={cn("h-8 w-8", config.color)} />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              }
+            )}
           </div>
 
           {/* Bulk Actions */}
@@ -162,11 +286,19 @@ function TeacherAttendanceView() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Daftar Siswa</CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleBulkAction("PRESENT")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkAction("PRESENT")}
+                  >
                     <Check className="h-4 w-4 mr-1" />
                     Semua Hadir
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleBulkAction("ABSENT")}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkAction("ABSENT")}
+                  >
                     <X className="h-4 w-4 mr-1" />
                     Semua Tidak Hadir
                   </Button>
@@ -181,38 +313,49 @@ function TeacherAttendanceView() {
                     className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
+                      <span className="text-sm text-muted-foreground w-6">
+                        {index + 1}.
+                      </span>
                       <span className="font-medium">{student.name}</span>
                     </div>
                     <div className="flex gap-1">
-                      {(Object.keys(statusConfig) as AttendanceStatus[]).map((status) => {
-                        const config = statusConfig[status];
-                        const Icon = config.icon;
-                        const isActive = student.status === status;
-                        return (
-                          <Button
-                            key={status}
-                            variant={isActive ? "default" : "ghost"}
-                            size="sm"
-                            className={cn(
-                              "h-8 w-8 p-0",
-                              isActive && config.bgColor,
-                              isActive && config.color
-                            )}
-                            onClick={() => handleStatusChange(student.id, status)}
-                            title={ATTENDANCE_STATUS[status]}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </Button>
-                        );
-                      })}
+                      {(Object.keys(statusConfig) as AttendanceStatus[]).map(
+                        (status) => {
+                          const config = statusConfig[status];
+                          const Icon = config.icon;
+                          const isActive = student.status === status;
+                          return (
+                            <Button
+                              key={status}
+                              variant={isActive ? "default" : "ghost"}
+                              size="sm"
+                              className={cn(
+                                "h-8 w-8 p-0",
+                                isActive && config.bgColor,
+                                isActive && config.color
+                              )}
+                              onClick={() =>
+                                handleStatusChange(student.id, status)
+                              }
+                              title={ATTENDANCE_STATUS[status]}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </Button>
+                          );
+                        }
+                      )}
                     </div>
                   </div>
                 ))}
+                {students.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Belum ada siswa untuk kelas ini
+                  </p>
+                )}
               </div>
-              
+
               <div className="mt-4 pt-4 border-t flex justify-end">
-                <Button>
+                <Button onClick={handleSaveAttendance}>
                   <Check className="h-4 w-4 mr-2" />
                   Simpan Absensi
                 </Button>
@@ -225,36 +368,109 @@ function TeacherAttendanceView() {
   );
 }
 
-function StudentAttendanceView() {
+type StudentAttendanceViewProps = {
+  title: string;
+  description: string;
+  allowStudentSelect: boolean;
+};
+
+function StudentAttendanceView({
+  title,
+  description,
+  allowStudentSelect,
+}: StudentAttendanceViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [students, setStudents] = useState<UserSummary[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [records, setRecords] = useState<AttendanceRecordSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Calculate stats
-  const stats = {
-    total: 20,
-    present: 16,
-    absent: 1,
-    sick: 2,
-    permit: 1,
-  };
+  useEffect(() => {
+    const loadStudents = async () => {
+      setIsLoading(true);
+      try {
+        const data = await listStudents();
+        setStudents(data);
+        if (!selectedStudentId && data.length > 0) {
+          setSelectedStudentId(data[0].id);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadStudents();
+  }, [selectedStudentId]);
 
-  const attendanceRate = Math.round((stats.present / stats.total) * 100);
+  useEffect(() => {
+    const loadRecords = async () => {
+      if (!selectedStudentId) {
+        setRecords([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const data = await listAttendanceRecords({
+          studentId: selectedStudentId,
+          dateFrom: format(monthStart, "yyyy-MM-dd"),
+          dateTo: format(monthEnd, "yyyy-MM-dd"),
+        });
+        setRecords(data);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadRecords();
+  }, [selectedStudentId, monthStart, monthEnd]);
+
+  const stats = useMemo(() => {
+    return {
+      total: records.length,
+      present: records.filter((r) => r.status === "PRESENT").length,
+      absent: records.filter((r) => r.status === "ABSENT").length,
+      sick: records.filter((r) => r.status === "SICK").length,
+      permit: records.filter((r) => r.status === "PERMIT").length,
+    };
+  }, [records]);
+
+  const attendanceRate = stats.total
+    ? Math.round((stats.present / stats.total) * 100)
+    : 0;
 
   const getStatusForDate = (date: Date): AttendanceStatus | null => {
-    const record = demoStudentAttendance.find(a => isSameDay(a.date, date));
-    return record?.status || null;
+    const record = records.find((item) => isSameDay(item.date, date));
+    return (record?.status as AttendanceStatus) ?? null;
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Kehadiran Saya</h1>
-        <p className="text-muted-foreground">Lihat ringkasan dan riwayat kehadiran Anda</p>
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+        <p className="text-muted-foreground">{description}</p>
       </div>
+
+      {allowStudentSelect && (
+        <Card>
+          <CardContent className="p-4">
+            <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+              <SelectTrigger className="w-full md:w-[300px]">
+                <SelectValue placeholder="Pilih siswa..." />
+              </SelectTrigger>
+              <SelectContent>
+                {students.map((student) => (
+                  <SelectItem key={student.id} value={student.id}>
+                    {student.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -271,19 +487,31 @@ function StudentAttendanceView() {
             </div>
           </CardContent>
         </Card>
-        
-        {(Object.entries({ PRESENT: stats.present, ABSENT: stats.absent, SICK: stats.sick, PERMIT: stats.permit }) as [AttendanceStatus, number][]).map(([status, count]) => {
+
+        {(Object.entries({
+          PRESENT: stats.present,
+          ABSENT: stats.absent,
+          SICK: stats.sick,
+          PERMIT: stats.permit,
+        }) as [AttendanceStatus, number][]).map(([status, count]) => {
           const config = statusConfig[status];
           const Icon = config.icon;
           return (
             <Card key={status}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className={cn("h-10 w-10 rounded-full flex items-center justify-center", config.bgColor)}>
+                  <div
+                    className={cn(
+                      "h-10 w-10 rounded-full flex items-center justify-center",
+                      config.bgColor
+                    )}
+                  >
                     <Icon className={cn("h-5 w-5", config.color)} />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{ATTENDANCE_STATUS[status]}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {ATTENDANCE_STATUS[status]}
+                    </p>
                     <p className="text-xl font-bold">{count}</p>
                   </div>
                 </div>
@@ -303,7 +531,11 @@ function StudentAttendanceView() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1))}
+                  onClick={() =>
+                    setCurrentMonth(
+                      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1)
+                    )
+                  }
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -313,7 +545,11 @@ function StudentAttendanceView() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1))}
+                  onClick={() =>
+                    setCurrentMonth(
+                      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1)
+                    )
+                  }
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -321,26 +557,26 @@ function StudentAttendanceView() {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Day headers */}
             <div className="grid grid-cols-7 mb-2">
               {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((day) => (
-                <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
+                <div
+                  key={day}
+                  className="text-center text-xs font-medium text-muted-foreground py-2"
+                >
                   {day}
                 </div>
               ))}
             </div>
-            
-            {/* Calendar grid */}
+
             <div className="grid grid-cols-7 gap-1">
-              {/* Empty cells for days before month start */}
               {Array.from({ length: monthStart.getDay() }).map((_, i) => (
                 <div key={`empty-${i}`} className="aspect-square" />
               ))}
-              
+
               {days.map((day) => {
                 const status = getStatusForDate(day);
                 const config = status ? statusConfig[status] : null;
-                
+
                 return (
                   <div
                     key={day.toISOString()}
@@ -351,16 +587,21 @@ function StudentAttendanceView() {
                       !status && "hover:bg-muted/50"
                     )}
                   >
-                    <span className={cn(
-                      "font-medium",
-                      config?.color,
-                      !isSameMonth(day, currentMonth) && "text-muted-foreground/50"
-                    )}>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        config?.color,
+                        !isSameMonth(day, currentMonth) &&
+                          "text-muted-foreground/50"
+                      )}
+                    >
                       {format(day, "d")}
                     </span>
                     {status && (
                       <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
-                        {config && <config.icon className={cn("h-3 w-3", config.color)} />}
+                        {config && (
+                          <config.icon className={cn("h-3 w-3", config.color)} />
+                        )}
                       </div>
                     )}
                   </div>
@@ -368,14 +609,18 @@ function StudentAttendanceView() {
               })}
             </div>
 
-            {/* Legend */}
             <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t">
-              {(Object.entries(statusConfig) as [AttendanceStatus, typeof statusConfig[AttendanceStatus]][]).map(([status, config]) => (
+              {(Object.entries(statusConfig) as [
+                AttendanceStatus,
+                typeof statusConfig[AttendanceStatus]
+              ][]).map(([status, config]) => (
                 <div key={status} className="flex items-center gap-2">
                   <div className={cn("h-4 w-4 rounded", config.bgColor)}>
                     <config.icon className={cn("h-4 w-4", config.color)} />
                   </div>
-                  <span className="text-xs text-muted-foreground">{ATTENDANCE_STATUS[status]}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {ATTENDANCE_STATUS[status]}
+                  </span>
                 </div>
               ))}
             </div>
@@ -390,29 +635,39 @@ function StudentAttendanceView() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {demoStudentAttendance
-                .filter(a => a.status !== "PRESENT")
-                .map((record, i) => {
-                  const config = statusConfig[record.status];
+              {records
+                .filter((record) => record.status !== "PRESENT")
+                .map((record) => {
+                  const config = statusConfig[record.status as AttendanceStatus];
                   return (
-                    <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
-                      <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", config.bgColor)}>
+                    <div
+                      key={record.id}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                    >
+                      <div
+                        className={cn(
+                          "h-8 w-8 rounded-full flex items-center justify-center",
+                          config.bgColor
+                        )}
+                      >
                         <config.icon className={cn("h-4 w-4", config.color)} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{record.subject}</p>
+                        <p className="text-sm font-medium truncate">
+                          {record.subjectName}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {format(record.date, "EEEE, d MMMM", { locale: id })}
                         </p>
                       </div>
                       <Badge variant="secondary" className="text-xs">
-                        {ATTENDANCE_STATUS[record.status]}
+                        {ATTENDANCE_STATUS[record.status as AttendanceStatus]}
                       </Badge>
                     </div>
                   );
                 })}
-              
-              {demoStudentAttendance.filter(a => a.status !== "PRESENT").length === 0 && (
+
+              {records.filter((record) => record.status !== "PRESENT").length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Tidak ada ketidakhadiran bulan ini 🎉
                 </p>
@@ -421,36 +676,12 @@ function StudentAttendanceView() {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
-
-function ParentAttendanceView() {
-  // Parent sees the same as student but for their children
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Kehadiran Anak</h1>
-        <p className="text-muted-foreground">Pantau kehadiran anak Anda di sekolah</p>
-      </div>
-
-      {/* Child Selector */}
-      <Card>
-        <CardContent className="p-4">
-          <Select defaultValue="1">
-            <SelectTrigger className="w-full md:w-[300px]">
-              <SelectValue placeholder="Pilih anak..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1">Ahmad Rizki - Kelas X-A</SelectItem>
-              <SelectItem value="2">Siti Aisyah - Kelas VII-B</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {/* Reuse StudentAttendanceView content */}
-      <StudentAttendanceView />
+      {isLoading && (
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Memuat data absensi...
+        </p>
+      )}
     </div>
   );
 }

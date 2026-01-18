@@ -34,16 +34,13 @@ import {
   FileText,
   Upload,
   Calendar,
-  BarChart3,
 } from "lucide-react";
-import { SUBJECTS, ASSIGNMENT_TYPES } from "@/lib/constants";
+import { ASSIGNMENT_TYPES } from "@/lib/constants";
 import {
-  QuestionPackage,
-  Question,
-  mockPackages,
-  mockQuestions,
-  getPackageQuestions,
-} from "@/lib/questionTypes";
+  QuestionPackageSummary,
+  QuestionSummary,
+  SubjectSummary,
+} from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -51,21 +48,30 @@ import { id } from "date-fns/locale";
 interface SelectPackageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelect: (pkg: QuestionPackage) => void;
-  packages?: QuestionPackage[];
+  onSelect: (pkg: QuestionPackageSummary) => void;
+  packages?: QuestionPackageSummary[];
+  questions?: QuestionSummary[];
+  subjects?: SubjectSummary[];
 }
 
 export function SelectPackageDialog({
   open,
   onOpenChange,
   onSelect,
-  packages = mockPackages,
+  packages = [],
+  questions = [],
+  subjects,
 }: SelectPackageDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
-  const [selectedPackage, setSelectedPackage] = useState<QuestionPackage | null>(
+  const [selectedPackage, setSelectedPackage] = useState<QuestionPackageSummary | null>(
     null
   );
+
+  const subjectOptions =
+    subjects?.length
+      ? subjects.map((subject) => subject.name)
+      : Array.from(new Set(packages.map((pkg) => pkg.subject))).filter(Boolean);
 
   const filteredPackages = packages.filter((pkg) => {
     const matchesSearch =
@@ -89,11 +95,18 @@ export function SelectPackageDialog({
     FILE: Upload,
   };
 
-  const getPackageStats = (pkg: QuestionPackage) => {
-    const questions = getPackageQuestions(pkg);
-    const totalPoints = questions.reduce((sum, q) => sum + q.points, 0);
-    const types = new Set(questions.map((q) => q.type));
-    return { totalPoints, questionCount: questions.length, types: Array.from(types) };
+  const getPackageStats = (pkg: QuestionPackageSummary) => {
+    const pkgQuestions = questions.filter((q) =>
+      pkg.questionIds.includes(q.id)
+    );
+    const totalPoints = pkgQuestions.reduce((sum, q) => sum + q.points, 0);
+    const types = new Set(pkgQuestions.map((q) => q.type));
+    return {
+      totalPoints,
+      questionCount: pkg.questionIds.length,
+      types: Array.from(types),
+      pkgQuestions,
+    };
   };
 
   return (
@@ -122,7 +135,7 @@ export function SelectPackageDialog({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua</SelectItem>
-              {SUBJECTS.map((subject) => (
+              {subjectOptions.map((subject) => (
                 <SelectItem key={subject} value={subject}>
                   {subject}
                 </SelectItem>
@@ -135,7 +148,7 @@ export function SelectPackageDialog({
           <Accordion type="single" collapsible className="space-y-2">
             {filteredPackages.map((pkg) => {
               const stats = getPackageStats(pkg);
-              const questions = getPackageQuestions(pkg);
+              const pkgQuestions = stats.pkgQuestions;
               const isSelected = selectedPackage?.id === pkg.id;
 
               return (
@@ -215,7 +228,7 @@ export function SelectPackageDialog({
                       <p className="text-xs font-medium text-muted-foreground">
                         Soal dalam paket:
                       </p>
-                      {questions.map((q, idx) => {
+                      {pkgQuestions.map((q, idx) => {
                         const Icon = typeIcons[q.type];
                         return (
                           <Card key={q.id} className="p-2 flex items-center gap-2">
