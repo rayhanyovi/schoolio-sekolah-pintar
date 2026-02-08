@@ -7,13 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { 
-  Plus, 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
   CalendarDays,
   Clock,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import { EventCard } from "@/components/calendar/EventCard";
 import { EventFormDialog } from "@/components/calendar/EventFormDialog";
@@ -50,7 +50,8 @@ export default function AcademicCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedType, setSelectedType] = useState<string>("all");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEventSummary | null>(null);
+  const [selectedEvent, setSelectedEvent] =
+    useState<CalendarEventSummary | null>(null);
 
   const canEdit = role === "ADMIN" || role === "TEACHER";
 
@@ -76,8 +77,8 @@ export default function AcademicCalendar() {
   }, [currentMonth]);
 
   // Filter events by type
-  const filteredEvents = events.filter(e => 
-    selectedType === "all" || e.type === selectedType
+  const filteredEvents = events.filter(
+    (e) => selectedType === "all" || e.type === selectedType,
   );
 
   // Events for selected date
@@ -91,14 +92,25 @@ export default function AcademicCalendar() {
     const today = new Date();
     const nextWeek = addDays(today, 7);
     return filteredEvents
-      .filter(e => isAfter(e.date, today) && isBefore(e.date, nextWeek))
+      .filter((e) => isAfter(e.date, today) && isBefore(e.date, nextWeek))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [filteredEvents]);
 
-  // Get dates with events for calendar highlighting
-  const datesWithEvents = useMemo(() => {
-    return filteredEvents.map(e => e.date);
+  const eventTypeMap = useMemo(() => {
+    const map = new Map<string, Set<EventType>>();
+    filteredEvents.forEach((event) => {
+      const key = format(event.date, "yyyy-MM-dd");
+      const entry = map.get(key) ?? new Set<EventType>();
+      entry.add(event.type as EventType);
+      map.set(key, entry);
+    });
+    return map;
   }, [filteredEvents]);
+
+  const orderedEventTypes = useMemo(
+    () => Object.keys(EVENT_TYPES) as EventType[],
+    [],
+  );
 
   const handleSubmit = async (data: Partial<CalendarEventSummary>) => {
     try {
@@ -145,6 +157,30 @@ export default function AcademicCalendar() {
     setFormDialogOpen(true);
   };
 
+  const DayContent = ({ date }: { date: Date }) => {
+    const key = format(date, "yyyy-MM-dd");
+    const types = eventTypeMap.get(key);
+    const dots = types
+      ? orderedEventTypes.filter((type) => types.has(type)).slice(0, 4)
+      : [];
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-1">
+        <span className="text-sm font-medium">{format(date, "d")}</span>
+        <div className="flex h-2 items-center gap-1">
+          {dots.map((type) => {
+            const color = EVENT_COLORS[type].split(" ")[0];
+            return (
+              <span
+                key={type}
+                className={`${color} h-1.5 w-1.5 rounded-full`}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -163,10 +199,21 @@ export default function AcademicCalendar() {
 
       {/* Filter Tabs */}
       <Tabs defaultValue="all" onValueChange={setSelectedType}>
-        <TabsList>
-          <TabsTrigger value="all">Semua</TabsTrigger>
+        <TabsList className="h-10 w-full flex-nowrap overflow-x-auto rounded-full bg-muted/40 p-1">
+          <TabsTrigger
+            value="all"
+            className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            Semua
+          </TabsTrigger>
           {Object.entries(EVENT_TYPES).map(([key, label]) => (
-            <TabsTrigger key={key} value={key}>{label}</TabsTrigger>
+            <TabsTrigger
+              key={key}
+              value={key}
+              className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              {label}
+            </TabsTrigger>
           ))}
         </TabsList>
       </Tabs>
@@ -180,10 +227,18 @@ export default function AcademicCalendar() {
               {format(currentMonth, "MMMM yyyy", { locale: id })}
             </CardTitle>
             <div className="flex gap-1">
-              <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -195,12 +250,24 @@ export default function AcademicCalendar() {
               onSelect={setSelectedDate}
               month={currentMonth}
               onMonthChange={setCurrentMonth}
-              className="rounded-md border p-3"
-              modifiers={{
-                hasEvent: datesWithEvents,
-              }}
-              modifiersClassNames={{
-                hasEvent: "bg-primary/20 font-semibold",
+              className="rounded-md p-3"
+              components={{ DayContent }}
+              classNames={{
+                months: "flex flex-col space-y-4",
+                month: "space-y-3",
+                head_row: "flex w-full justify-between",
+                head_cell:
+                  "text-muted-foreground rounded-md w-12 font-medium text-[0.75rem] uppercase tracking-wide",
+                row: "flex w-full justify-between mt-2",
+                cell:
+                  "h-12 w-12 text-center text-sm p-0 relative focus-within:z-20",
+                day: "h-12 w-12 p-0 rounded-lg hover:bg-muted/50 transition-colors",
+                day_selected:
+                  "bg-primary text-primary-foreground hover:bg-primary focus:bg-primary",
+                day_today:
+                  "border border-primary/60 text-primary font-semibold",
+                day_outside: "text-muted-foreground/40",
+                day_disabled: "text-muted-foreground opacity-30",
               }}
             />
 
@@ -211,9 +278,9 @@ export default function AcademicCalendar() {
                   Event pada {format(selectedDate, "d MMMM yyyy", { locale: id })}
                 </h4>
                 {isLoading ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
+                  <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
                     Memuat event...
-                  </p>
+                  </div>
                 ) : eventsOnSelectedDate.length > 0 ? (
                   <div className="space-y-2">
                     {eventsOnSelectedDate.map((event) => (
@@ -227,9 +294,9 @@ export default function AcademicCalendar() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
+                  <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
                     Tidak ada event pada tanggal ini
-                  </p>
+                  </div>
                 )}
               </div>
             )}
@@ -260,17 +327,22 @@ export default function AcademicCalendar() {
                     {upcomingEvents.map((event) => (
                       <div
                         key={event.id}
-                        className="p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+                        className="p-3 rounded-lg border hover:bg-muted/40 cursor-pointer transition-colors"
                         onClick={() => setSelectedDate(event.date)}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1">
+                        <div className="flex items-start gap-3">
+                          <span
+                            className={`${EVENT_COLORS[event.type as EventType].split(" ")[0]} mt-1 h-2 w-2 rounded-full`}
+                          />
+                          <div className="flex-1 space-y-1">
                             <p className="font-medium text-sm">{event.title}</p>
                             <p className="text-xs text-muted-foreground">
                               {format(event.date, "d MMM yyyy", { locale: id })}
                             </p>
                           </div>
-                          <Badge className={`${EVENT_COLORS[event.type as EventType]} text-xs`}>
+                          <Badge
+                            className={`${EVENT_COLORS[event.type as EventType]} text-xs`}
+                          >
                             {EVENT_TYPES[event.type as EventType]}
                           </Badge>
                         </div>

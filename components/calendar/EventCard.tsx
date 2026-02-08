@@ -18,9 +18,12 @@ interface EventCardProps {
 
 export function EventCard({ event, onEdit, onDelete, canEdit }: EventCardProps) {
   const eventColor = EVENT_COLORS[event.type as EventType];
+  const accent = eventColor.split(" ")[0].replace("bg-", "border-");
 
   return (
-    <Card className="group hover:shadow-md transition-all duration-300">
+    <Card
+      className={`group hover:shadow-md transition-all duration-300 border-l-4 ${accent}`}
+    >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2 flex-1">
