@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -20,10 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Role, ROLES, ROLE_LABELS, GRADES, Grade } from "@/lib/constants";
-import { ClassSummary } from "@/lib/schemas";
-import { User, GraduationCap, Mail, Phone, Calendar, Building2 } from "lucide-react";
+import { ClassSummary, UserSummary } from "@/lib/schemas";
+import { User, GraduationCap, Mail, Phone, Calendar, Building2, Search } from "lucide-react";
 
-interface UserFormData {
+export interface UserFormData {
   id?: string;
   name: string;
   email: string;
@@ -31,6 +33,7 @@ interface UserFormData {
   role: Role;
   grade?: Grade;
   classId?: string;
+  childIds?: string[];
 }
 
 interface UserFormDialogProps {
@@ -40,6 +43,7 @@ interface UserFormDialogProps {
   initialData?: UserFormData;
   allowedRoles?: Role[];
   classes?: ClassSummary[];
+  students?: UserSummary[];
   title?: string;
   description?: string;
 }
@@ -49,6 +53,7 @@ const defaultFormData: UserFormData = {
   email: "",
   phone: "",
   role: "STUDENT",
+  childIds: [],
 };
 
 export function UserFormDialog({
@@ -58,17 +63,24 @@ export function UserFormDialog({
   initialData,
   allowedRoles = [ROLES.STUDENT, ROLES.TEACHER, ROLES.PARENT],
   classes = [],
+  students = [],
   title = "Tambah Pengguna",
   description = "Isi data pengguna baru di bawah ini.",
 }: UserFormDialogProps) {
   const [formData, setFormData] = useState<UserFormData>(defaultFormData);
+  const [studentSearch, setStudentSearch] = useState("");
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        ...defaultFormData,
+        ...initialData,
+        childIds: initialData.childIds ?? [],
+      });
     } else {
       setFormData({ ...defaultFormData, role: allowedRoles[0] });
     }
+    setStudentSearch("");
   }, [initialData, open, allowedRoles]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -81,6 +93,25 @@ export function UserFormDialog({
   const filteredClasses = formData.grade
     ? classes.filter((c) => c.grade === formData.grade)
     : classes;
+  const filteredStudents = students.filter((student) => {
+    if (!studentSearch.trim()) return true;
+    const q = studentSearch.toLowerCase();
+    return (
+      student.name.toLowerCase().includes(q) ||
+      (student.email ?? "").toLowerCase().includes(q)
+    );
+  });
+  const selectedChildIds = formData.childIds ?? [];
+
+  const toggleChild = (studentId: string) => {
+    setFormData((prev) => {
+      const current = prev.childIds ?? [];
+      const next = current.includes(studentId)
+        ? current.filter((id) => id !== studentId)
+        : [...current, studentId];
+      return { ...prev, childIds: next };
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,7 +132,13 @@ export function UserFormDialog({
               <Select
                 value={formData.role}
                 onValueChange={(value: Role) =>
-                  setFormData({ ...formData, role: value, grade: undefined, classId: undefined })
+                  setFormData({
+                    ...formData,
+                    role: value,
+                    grade: undefined,
+                    classId: undefined,
+                    childIds: value === ROLES.PARENT ? formData.childIds ?? [] : [],
+                  })
                 }
               >
                 <SelectTrigger>
@@ -206,9 +243,63 @@ export function UserFormDialog({
                         {cls.name}
                       </SelectItem>
                     ))}
+                    {filteredClasses.length === 0 && (
+                      <SelectItem value="none" disabled>
+                        Belum ada kelas untuk tingkat ini
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          )}
+
+          {/* Parent-specific: Link Children */}
+          {formData.role === "PARENT" && (
+            <div className="space-y-2">
+              <Label>Hubungkan ke Anak (Opsional)</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari siswa..."
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <ScrollArea className="h-[200px] rounded-md border p-2">
+                {filteredStudents.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                    Tidak ada siswa ditemukan
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredStudents.map((student) => (
+                      <div
+                        key={student.id}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                        onClick={() => toggleChild(student.id)}
+                      >
+                        <Checkbox
+                          checked={selectedChildIds.includes(student.id)}
+                          onCheckedChange={() => toggleChild(student.id)}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{student.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {student.email ?? "-"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+              {selectedChildIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedChildIds.length} siswa dipilih
+                </p>
+              )}
             </div>
           )}
 

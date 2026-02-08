@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { UserCard } from "@/components/admin/UserCard";
-import { UserFormDialog } from "@/components/admin/UserFormDialog";
+import { UserFormDialog, type UserFormData } from "@/components/admin/UserFormDialog";
 import { LinkUserDialog } from "@/components/admin/LinkUserDialog";
 import { UserStatsCard } from "@/components/admin/UserStatsCard";
 import { Role, ROLES, GRADES } from "@/lib/constants";
@@ -54,7 +54,7 @@ import { toast } from "sonner";
 
 type UserRow = UserSummary & {
   studentProfile?: { classId?: string | null };
-  parentLinks?: { studentId: string }[];
+  parentLinks?: { parentId: string; studentId: string }[];
 };
 
 export default function Users() {
@@ -74,8 +74,8 @@ export default function Users() {
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
-  const [linkingUser, setLinkingUser] = useState<any>(null);
+  const [editingUser, setEditingUser] = useState<UserFormData | null>(null);
+  const [linkingUser, setLinkingUser] = useState<UserRow | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const classById = useMemo(
@@ -110,9 +110,9 @@ export default function Users() {
           listParents(),
           listClasses(),
         ]);
-      setStudents(studentsData as UserRow[]);
+      setStudents(studentsData);
       setTeachers(teachersData);
-      setParents(parentsData as UserRow[]);
+      setParents(parentsData);
       setClasses(classData);
     } catch (error) {
       toast.error("Gagal memuat data pengguna");
@@ -180,19 +180,41 @@ export default function Users() {
     return names.join(", ");
   };
 
-  const buildFormData = (user: UserRow | UserSummary) => {
+  const buildFormData = (user: UserRow | UserSummary): UserFormData => {
     const classId =
       "studentProfile" in user ? user.studentProfile?.classId ?? undefined : undefined;
     const grade = classId ? classById.get(classId)?.grade : undefined;
+    const childIds =
+      user.role === ROLES.PARENT
+        ? (("parentLinks" in user ? user.parentLinks : []) ?? []).map(
+            (link) => link.studentId
+          )
+        : [];
     return {
       id: user.id,
       name: user.name,
       email: user.email ?? "",
-      phone: "",
+      phone: user.phone ?? "",
       role: user.role as Role,
       grade,
       classId,
+      childIds,
     };
+  };
+
+  const getParentChildIds = (parentId: string) =>
+    (parents.find((parent) => parent.id === parentId)?.parentLinks ?? []).map(
+      (link) => link.studentId
+    );
+
+  const syncParentLinks = async (parentId: string, targetUserIds: string[]) => {
+    const currentIds = getParentChildIds(parentId);
+    const toAdd = targetUserIds.filter((id) => !currentIds.includes(id));
+    const toRemove = currentIds.filter((id) => !targetUserIds.includes(id));
+    await Promise.all([
+      ...toAdd.map((studentId) => linkParentStudent(parentId, studentId)),
+      ...toRemove.map((studentId) => unlinkParentStudent(parentId, studentId)),
+    ]);
   };
 
   const handleAddUser = () => {
@@ -203,7 +225,7 @@ export default function Users() {
   const handleEditUser = (id: string) => {
     const user = [...students, ...teachers, ...parents].find((u) => u.id === id);
     if (user) {
-      setEditingUser(buildFormData(user as UserRow));
+      setEditingUser(buildFormData(user));
       setFormDialogOpen(true);
     }
   };
@@ -235,29 +257,37 @@ export default function Users() {
     }
   };
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: UserFormData) => {
     try {
+      const payload = {
+        name: data.name,
+        email: data.email.trim() || null,
+        role: data.role,
+        phone: data.phone.trim() || null,
+      };
       if (editingUser?.id) {
-        await updateUser(editingUser.id, {
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          phone: data.phone,
-        });
+        await updateUser(editingUser.id, payload);
         if (data.role === ROLES.STUDENT) {
           await updateUserProfile(editingUser.id, {
             studentProfile: { classId: data.classId ?? null },
           });
         }
+        if (data.role === ROLES.PARENT && data.childIds) {
+          await syncParentLinks(editingUser.id, data.childIds);
+        }
         toast.success("Data pengguna berhasil diperbarui");
       } else {
-        await createUser({
-          name: data.name,
-          email: data.email,
-          role: data.role,
-          phone: data.phone,
+        const created = await createUser({
+          ...payload,
           classId: data.classId ?? null,
         });
+        if (data.role === ROLES.PARENT && data.childIds?.length) {
+          await Promise.all(
+            data.childIds.map((studentId) =>
+              linkParentStudent(created.id, studentId)
+            )
+          );
+        }
         toast.success("Pengguna baru berhasil ditambahkan");
       }
       await reloadData();
@@ -273,17 +303,7 @@ export default function Users() {
     if (!linkingUser) return;
     try {
       if (linkingUser.role === ROLES.PARENT) {
-        const currentIds =
-          linkingUser.parentLinks?.map((link: { studentId: string }) => link.studentId) ??
-          [];
-        const toAdd = targetUserIds.filter((id) => !currentIds.includes(id));
-        const toRemove = currentIds.filter((id) => !targetUserIds.includes(id));
-        await Promise.all([
-          ...toAdd.map((studentId) => linkParentStudent(sourceUserId, studentId)),
-          ...toRemove.map((studentId) =>
-            unlinkParentStudent(sourceUserId, studentId)
-          ),
-        ]);
+        await syncParentLinks(sourceUserId, targetUserIds);
       } else {
         const currentParentIds = parents
           .filter((parent) =>
@@ -600,6 +620,7 @@ export default function Users() {
         allowedRoles={getAllowedRoles()}
         title={getFormTitle()}
         classes={classes}
+        students={students}
       />
 
       <LinkUserDialog

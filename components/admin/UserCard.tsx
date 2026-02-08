@@ -46,6 +46,7 @@ export function UserCard({
   onDelete,
   onLink,
 }: UserCardProps) {
+  const hasActions = Boolean(onEdit || onDelete || onLink);
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -70,37 +71,41 @@ export function UserCard({
                 <h4 className="font-semibold text-foreground truncate">{name}</h4>
                 <p className="text-sm text-muted-foreground truncate">{email}</p>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onEdit?.(id)}>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  {(role === "STUDENT" || role === "PARENT") && (
-                    <DropdownMenuItem onClick={() => onLink?.(id)}>
-                      <Link2 className="h-4 w-4 mr-2" />
-                      {role === "STUDENT" ? "Hubungkan ke Ortu" : "Hubungkan ke Anak"}
+              {hasActions && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onEdit?.(id)}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => onDelete?.(id)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Hapus
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    {(role === "STUDENT" || role === "PARENT") && (
+                      <DropdownMenuItem onClick={() => onLink?.(id)}>
+                        <Link2 className="h-4 w-4 mr-2" />
+                        {role === "STUDENT"
+                          ? "Hubungkan ke Ortu"
+                          : "Hubungkan ke Anak"}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => onDelete?.(id)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Hapus
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
 
             <div className="flex items-center gap-2 mt-2">

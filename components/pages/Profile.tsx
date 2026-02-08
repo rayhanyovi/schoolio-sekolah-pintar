@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 import { ROLE_LABELS } from "@/lib/constants";
+import { getUserProfile, listUsers, updateUserProfile } from "@/lib/handlers/users";
+import { UserProfileSummary } from "@/lib/schemas";
+import { format } from "date-fns";
 
 interface ProfileData {
   firstName: string;
@@ -37,19 +40,37 @@ interface ProfileData {
   avatar?: string;
 }
 
+const splitName = (fullName: string) => {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return { firstName: "", lastName: "" };
+  return {
+    firstName: parts[0] ?? "",
+    lastName: parts.slice(1).join(" "),
+  };
+};
+
+const toProfileData = (user: UserProfileSummary): ProfileData => {
+  const fallback = splitName(user.name ?? "");
+  return {
+    firstName: user.firstName || fallback.firstName,
+    lastName: user.lastName || fallback.lastName,
+    email: user.email ?? "",
+    phone: user.phone ?? "",
+    address: user.address ?? "",
+    bio: user.bio ?? "",
+    birthDate: user.birthDate ? format(user.birthDate, "yyyy-MM-dd") : "",
+    avatar: user.avatarUrl ?? undefined,
+  };
+};
+
 export default function Profile() {
   const { role } = useRoleContext();
   const { toast } = useToast();
   
-  const [profile, setProfile] = useState<ProfileData>({
-    firstName: "Ahmad",
-    lastName: "Hidayat",
-    email: "ahmad.hidayat@schoolio.id",
-    phone: "081234567890",
-    address: "Jl. Pendidikan No. 45, Jakarta Selatan",
-    bio: "Guru Matematika dengan pengalaman 10 tahun mengajar di berbagai sekolah.",
-    birthDate: "1985-03-15",
-  });
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [passwords, setPasswords] = useState({
     current: "",
@@ -65,27 +86,115 @@ export default function Profile() {
 
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleSaveProfile = () => {
-    setIsEditing(false);
-    toast({ title: "Berhasil", description: "Profil berhasil diperbarui" });
+  useEffect(() => {
+    let isActive = true;
+    const loadProfile = async () => {
+      setIsLoading(true);
+      try {
+        const byRole = await listUsers({ role });
+        const fallback = byRole.length ? byRole : await listUsers();
+        const selected = fallback[0];
+        if (!selected) {
+          if (isActive) {
+            setProfile(null);
+            setUserId(null);
+          }
+          return;
+        }
+        if (!isActive) return;
+        setUserId(selected.id);
+        const data = await getUserProfile(selected.id);
+        if (!isActive) return;
+        setProfile(toProfileData(data));
+      } catch (error) {
+        if (!isActive) return;
+        toast({
+          title: "Gagal memuat profil",
+          description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        });
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    };
+    loadProfile();
+    return () => {
+      isActive = false;
+    };
+  }, [role, toast]);
+
+  const handleSaveProfile = async () => {
+    if (!userId || !profile) return;
+    const firstName = profile.firstName.trim();
+    const lastName = profile.lastName.trim();
+    const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+    const payload = {
+      firstName,
+      lastName,
+      email: profile.email.trim() || null,
+      phone: profile.phone.trim(),
+      address: profile.address.trim(),
+      bio: profile.bio.trim(),
+      avatarUrl: profile.avatar ?? null,
+      birthDate: profile.birthDate ? profile.birthDate : null,
+      name: fullName || undefined,
+    };
+
+    try {
+      setIsSaving(true);
+      const updated = await updateUserProfile(userId, payload);
+      setProfile(toProfileData(updated));
+      setIsEditing(false);
+      toast({ title: "Berhasil", description: "Profil berhasil diperbarui" });
+    } catch (error) {
+      toast({
+        title: "Gagal menyimpan",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChangePassword = () => {
-    if (passwords.new !== passwords.confirm) {
-      toast({ title: "Error", description: "Password baru tidak cocok", variant: "destructive" });
-      return;
-    }
-    if (passwords.new.length < 8) {
-      toast({ title: "Error", description: "Password minimal 8 karakter", variant: "destructive" });
-      return;
-    }
-    setPasswords({ current: "", new: "", confirm: "" });
-    toast({ title: "Berhasil", description: "Password berhasil diubah" });
+    toast({
+      title: "Belum tersedia",
+      description: "Fitur ganti password belum terhubung ke backend.",
+    });
   };
 
   const getInitials = () => {
+    if (!profile) return "??";
     return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-semibold text-muted-foreground">
+            Memuat profil...
+          </h2>
+          <p className="text-sm text-muted-foreground">Mohon tunggu sebentar</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-semibold text-muted-foreground">
+            Profil belum tersedia
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Tambahkan pengguna terlebih dahulu untuk mengisi profil.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
@@ -123,13 +232,13 @@ export default function Profile() {
               <Badge className="mt-2">{ROLE_LABELS[role]}</Badge>
             </div>
 
-            {/* Edit Button */}
-            <Button 
-              variant={isEditing ? "secondary" : "default"}
-              onClick={() => setIsEditing(!isEditing)}
-            >
-              {isEditing ? "Batal" : "Edit Profil"}
-            </Button>
+          {/* Edit Button */}
+          <Button 
+            variant={isEditing ? "secondary" : "default"}
+            onClick={() => setIsEditing(!isEditing)}
+          >
+            {isEditing ? "Batal" : "Edit Profil"}
+          </Button>
           </div>
         </CardContent>
       </Card>
@@ -171,11 +280,11 @@ export default function Profile() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Nama Belakang</Label>
-                  <Input
-                    id="lastName"
-                    value={profile.lastName}
-                    onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                    disabled={!isEditing}
+                    <Input
+                      id="lastName"
+                      value={profile.lastName}
+                      onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                      disabled={!isEditing}
                   />
                 </div>
               </div>
@@ -216,12 +325,12 @@ export default function Profile() {
                 <Label htmlFor="birthDate">Tanggal Lahir</Label>
                 <div className="relative max-w-xs">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="birthDate"
-                    type="date"
-                    value={profile.birthDate}
-                    onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })}
-                    disabled={!isEditing}
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      value={profile.birthDate}
+                      onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })}
+                      disabled={!isEditing}
                     className="pl-10"
                   />
                 </div>
@@ -245,21 +354,21 @@ export default function Profile() {
               {/* Bio */}
               <div className="space-y-2">
                 <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  value={profile.bio}
-                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                  disabled={!isEditing}
-                  placeholder="Ceritakan sedikit tentang diri Anda..."
+                  <Textarea
+                    id="bio"
+                    value={profile.bio}
+                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="Ceritakan sedikit tentang diri Anda..."
                   rows={4}
                 />
               </div>
 
               {isEditing && (
                 <div className="flex justify-end">
-                  <Button onClick={handleSaveProfile}>
+                  <Button onClick={handleSaveProfile} disabled={isSaving}>
                     <Save className="h-4 w-4 mr-2" />
-                    Simpan Perubahan
+                    {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
                   </Button>
                 </div>
               )}
