@@ -9,14 +9,19 @@ export async function GET(request: NextRequest) {
   const q = searchParams.get("q")?.toLowerCase() ?? "";
 
   if (isMockEnabled()) {
-    const data = mockClasses.filter((item) => {
+    const data = mockClasses
+      .filter((item) => {
       const gradeMatch = grade ? item.grade === grade : true;
       const queryMatch = q
         ? item.name.toLowerCase().includes(q) ||
           item.homeroomTeacher.toLowerCase().includes(q)
         : true;
       return gradeMatch && queryMatch;
-    });
+      })
+      .map((item) => ({
+        ...item,
+        major: item.major ?? "",
+      }));
     return jsonOk(data);
   }
 
@@ -39,6 +44,7 @@ export async function GET(request: NextRequest) {
     id: row.id,
     name: row.name,
     grade: row.grade,
+    major: row.major ?? "",
     section: row.section,
     homeroomTeacher: row.homeroomTeacher?.name ?? "",
     homeroomTeacherId: row.homeroomTeacherId ?? "",
@@ -70,6 +76,7 @@ export async function POST(request: NextRequest) {
     data: {
       name: body.name,
       grade: body.grade,
+      major: body.major ?? null,
       section: body.section,
       academicYearId,
       homeroomTeacherId: body.homeroomTeacherId ?? null,
@@ -84,6 +91,7 @@ export async function POST(request: NextRequest) {
     id: row.id,
     name: row.name,
     grade: row.grade,
+    major: row.major ?? "",
     section: row.section,
     homeroomTeacher: row.homeroomTeacher?.name ?? "",
     homeroomTeacherId: row.homeroomTeacherId ?? "",

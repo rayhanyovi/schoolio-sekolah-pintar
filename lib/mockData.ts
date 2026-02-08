@@ -11,6 +11,7 @@ export interface ClassData {
   id: string;
   name: string;
   grade: 10 | 11 | 12;
+  major?: string;
   section: string;
   homeroomTeacher: string;
   homeroomTeacherId: string;
@@ -107,6 +108,25 @@ export const mockClasses: ClassData[] = [
   },
 ];
 
+export interface MajorData {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+}
+
+export const mockMajors: MajorData[] = [
+  { id: "m1", code: "RPL", name: "Rekayasa Perangkat Lunak" },
+  { id: "m2", code: "IPA", name: "Ilmu Pengetahuan Alam" },
+  { id: "m3", code: "IPS", name: "Ilmu Pengetahuan Sosial" },
+];
+
+export const mockMajorTeachers: Record<string, string[]> = {
+  m1: ["t1", "t4", "t6"],
+  m2: ["t2", "t3", "t5"],
+  m3: ["t7", "t8", "t9"],
+};
+
 // Subject types and mock data
 export interface SubjectData {
   id: string;
@@ -116,6 +136,7 @@ export interface SubjectData {
   description: string;
   teachers: { id: string; name: string }[];
   classIds: string[];
+  color: string;
   hoursPerWeek: number;
 }
 
@@ -128,6 +149,7 @@ export const mockSubjects: SubjectData[] = [
     description: "Pelajaran matematika dasar dan lanjutan",
     teachers: [{ id: "t1", name: "Ibu Sri Wahyuni" }],
     classIds: ["1", "2", "3", "4", "5", "6", "7"],
+    color: "bg-primary",
     hoursPerWeek: 4,
   },
   {
@@ -138,6 +160,7 @@ export const mockSubjects: SubjectData[] = [
     description: "Ilmu tentang alam dan fenomena fisik",
     teachers: [{ id: "t2", name: "Bapak Ahmad Hidayat" }],
     classIds: ["4", "5", "6", "7"],
+    color: "bg-secondary",
     hoursPerWeek: 3,
   },
   {
@@ -148,6 +171,7 @@ export const mockSubjects: SubjectData[] = [
     description: "Ilmu tentang zat dan reaksinya",
     teachers: [{ id: "t3", name: "Ibu Dewi Lestari" }],
     classIds: ["4", "5", "6", "7"],
+    color: "bg-info",
     hoursPerWeek: 3,
   },
   {
@@ -158,6 +182,7 @@ export const mockSubjects: SubjectData[] = [
     description: "Ilmu tentang makhluk hidup",
     teachers: [{ id: "t4", name: "Bapak Budi Santoso" }],
     classIds: ["4", "5", "6", "7"],
+    color: "bg-success",
     hoursPerWeek: 3,
   },
   {
@@ -168,6 +193,7 @@ export const mockSubjects: SubjectData[] = [
     description: "Bahasa dan sastra Indonesia",
     teachers: [{ id: "t5", name: "Ibu Ratna Sari" }],
     classIds: ["1", "2", "3", "4", "5", "6", "7"],
+    color: "bg-warning",
     hoursPerWeek: 4,
   },
   {
@@ -178,6 +204,7 @@ export const mockSubjects: SubjectData[] = [
     description: "English language learning",
     teachers: [{ id: "t6", name: "Bapak Hendra Wijaya" }],
     classIds: ["1", "2", "3", "4", "5", "6", "7"],
+    color: "bg-primary",
     hoursPerWeek: 4,
   },
   {
@@ -188,6 +215,7 @@ export const mockSubjects: SubjectData[] = [
     description: "Sejarah Indonesia dan dunia",
     teachers: [{ id: "t7", name: "Ibu Maya Putri" }],
     classIds: ["1", "2", "3", "4", "5", "6", "7"],
+    color: "bg-secondary",
     hoursPerWeek: 2,
   },
   {
@@ -198,6 +226,7 @@ export const mockSubjects: SubjectData[] = [
     description: "Pendidikan jasmani olahraga dan kesehatan",
     teachers: [{ id: "t8", name: "Bapak Rudi Hartono" }],
     classIds: ["1", "2", "3", "4", "5", "6", "7"],
+    color: "bg-success",
     hoursPerWeek: 2,
   },
   {
@@ -208,6 +237,7 @@ export const mockSubjects: SubjectData[] = [
     description: "Seni rupa, musik, dan tari",
     teachers: [{ id: "t9", name: "Ibu Linda Kusuma" }],
     classIds: ["1", "2", "3", "4", "5", "6", "7"],
+    color: "bg-info",
     hoursPerWeek: 2,
   },
 ];

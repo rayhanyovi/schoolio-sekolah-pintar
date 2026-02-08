@@ -22,16 +22,17 @@ export async function GET(request: NextRequest) {
   const data = rows.map((row) => ({
     id: row.id,
     classId: row.classId,
-    className: row.class.name,
+    className: row.class?.name ?? "",
     subjectId: row.subjectId,
-    subjectName: row.subject.name,
+    subjectName: row.subject?.name ?? "",
+    subjectCode: row.subject?.code ?? "",
     teacherId: row.teacherId ?? undefined,
     teacherName: row.teacher?.name ?? "",
     dayOfWeek: row.dayOfWeek,
     startTime: row.startTime,
     endTime: row.endTime,
     room: row.room ?? "",
-    color: row.color ?? "",
+    color: row.color ?? row.subject?.color ?? "",
   }));
 
   return jsonOk(data);
@@ -43,6 +44,11 @@ export async function POST(request: NextRequest) {
     return jsonError("VALIDATION_ERROR", "classId, subjectId, dayOfWeek are required");
   }
 
+  const subject = await prisma.subject.findUnique({
+    where: { id: body.subjectId },
+    select: { color: true },
+  });
+
   const row = await prisma.classSchedule.create({
     data: {
       classId: body.classId,
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest) {
       startTime: body.startTime,
       endTime: body.endTime,
       room: body.room ?? null,
-      color: body.color ?? null,
+      color: subject?.color ?? "bg-primary",
     },
   });
 

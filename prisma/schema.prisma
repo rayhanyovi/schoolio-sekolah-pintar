@@ -124,6 +124,7 @@ model User {
   materials          Material[]
   assignments        Assignment[]        @relation("AssignmentTeacher")
   attendanceSessions AttendanceSession[] @relation("SessionTeacher")
+  takenSessions      AttendanceSession[] @relation("SessionTakenBy")
   classSchedules     ClassSchedule[]
   homeroomClasses    Class[]             @relation("HomeroomTeacher")
   subjectTeaching    SubjectTeacher[]
@@ -131,6 +132,8 @@ model User {
   childLinks         ParentStudent[]     @relation("ChildLinks")
   assignmentSubmits  AssignmentSubmission[]
   attendanceRecords  AttendanceRecord[]
+  teacherAttendance  TeacherAttendance[]
+  majorTeaching      MajorTeacher[]
 }
 
 model StudentProfile {
@@ -174,6 +177,7 @@ model Class {
   id                String   @id @default(cuid())
   name              String
   grade             Int
+  major             String?
   section           String
   academicYearId    String?
   academicYear      AcademicYear? @relation(fields: [academicYearId], references: [id])
@@ -215,6 +219,7 @@ model Subject {
   code         String
   category     SubjectCategory
   description  String?
+  color        String?
   hoursPerWeek Int
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -273,6 +278,7 @@ model AttendanceSession {
   classId    String
   subjectId  String
   teacherId  String?
+  takenByTeacherId String?
   scheduleId String?
   date       DateTime
   startTime  String?
@@ -283,8 +289,10 @@ model AttendanceSession {
   class    Class          @relation(fields: [classId], references: [id])
   subject  Subject        @relation(fields: [subjectId], references: [id])
   teacher  User?          @relation("SessionTeacher", fields: [teacherId], references: [id])
+  takenBy  User?          @relation("SessionTakenBy", fields: [takenByTeacherId], references: [id])
   schedule ClassSchedule? @relation(fields: [scheduleId], references: [id])
   records  AttendanceRecord[]
+  teacherAttendance TeacherAttendance[]
 }
 
 model AttendanceRecord {
@@ -299,6 +307,21 @@ model AttendanceRecord {
   student User              @relation(fields: [studentId], references: [id])
 
   @@unique([sessionId, studentId])
+}
+
+model TeacherAttendance {
+  id         String           @id @default(cuid())
+  teacherId  String
+  sessionId  String?
+  date       DateTime
+  status     AttendanceStatus
+  note       String?
+  isAllDay   Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  teacher User              @relation(fields: [teacherId], references: [id])
+  session AttendanceSession? @relation(fields: [sessionId], references: [id])
 }
 
 model Assignment {
@@ -540,4 +563,24 @@ model ScheduleTemplate {
   position  Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Major {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  teachers    MajorTeacher[]
+}
+
+model MajorTeacher {
+  majorId   String
+  teacherId String
+  major     Major @relation(fields: [majorId], references: [id])
+  teacher   User  @relation(fields: [teacherId], references: [id])
+
+  @@id([majorId, teacherId])
+  @@index([teacherId])
 }

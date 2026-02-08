@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
     code: row.code,
     category: row.category,
     description: row.description ?? "",
+    color: row.color ?? "bg-primary",
     teachers: row.teachers.map((link) => ({
       id: link.teacherId,
       name: link.teacher.name,
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
       code: body.code,
       category: body.category,
       description: body.description ?? "",
+      color: body.color ?? "bg-primary",
       hoursPerWeek: body.hoursPerWeek ?? 0,
     },
   });
@@ -100,6 +102,7 @@ export async function POST(request: NextRequest) {
     code: row.code,
     category: row.category,
     description: row.description ?? "",
+    color: row.color ?? "bg-primary",
     teachers: [],
     classIds,
     hoursPerWeek: row.hoursPerWeek,

@@ -13,20 +13,21 @@ export const listSchedules = async (params?: ListSchedulesParams) =>
   scheduleListSchema.parse(await apiGet("/api/schedules", params));
 
 const normalizeSchedule = (value: Record<string, any>) => {
-  if (value && typeof value === "object" && value.class) {
+  if (value && typeof value === "object") {
     return {
       id: value.id,
       classId: value.classId,
-      className: value.class?.name ?? "",
+      className: value.class?.name ?? value.className ?? "",
       subjectId: value.subjectId,
-      subjectName: value.subject?.name ?? "",
+      subjectName: value.subject?.name ?? value.subjectName ?? "",
+      subjectCode: value.subject?.code ?? value.subjectCode ?? "",
       teacherId: value.teacherId ?? undefined,
-      teacherName: value.teacher?.name ?? "",
+      teacherName: value.teacher?.name ?? value.teacherName ?? "",
       dayOfWeek: value.dayOfWeek,
       startTime: value.startTime,
       endTime: value.endTime,
       room: value.room ?? "",
-      color: value.color ?? "",
+      color: value.color ?? value.subject?.color ?? "",
     };
   }
   return value;

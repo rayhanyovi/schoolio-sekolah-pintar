@@ -13,3 +13,4 @@ export * from "./materials";
 export * from "./grades";
 export * from "./analytics";
 export * from "./settings";
+export * from "./majors";

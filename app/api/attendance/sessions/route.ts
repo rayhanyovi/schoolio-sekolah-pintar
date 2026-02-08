@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   const rows = await prisma.attendanceSession.findMany({
     where,
-    include: { class: true, subject: true, teacher: true },
+    include: { class: true, subject: true, teacher: true, takenBy: true },
     orderBy: { date: "desc" },
   });
 
@@ -35,6 +35,8 @@ export async function GET(request: NextRequest) {
     subjectName: row.subject.name,
     teacherId: row.teacherId ?? undefined,
     teacherName: row.teacher?.name ?? "",
+    takenByTeacherId: row.takenByTeacherId ?? undefined,
+    takenByTeacherName: row.takenBy?.name ?? "",
     scheduleId: row.scheduleId ?? undefined,
     date: row.date,
     startTime: row.startTime ?? "",
@@ -55,6 +57,7 @@ export async function POST(request: NextRequest) {
       classId: body.classId,
       subjectId: body.subjectId,
       teacherId: body.teacherId ?? null,
+      takenByTeacherId: body.takenByTeacherId ?? null,
       scheduleId: body.scheduleId ?? null,
       date: new Date(body.date),
       startTime: body.startTime ?? null,

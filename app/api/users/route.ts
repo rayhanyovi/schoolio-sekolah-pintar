@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   const classId = searchParams.get("classId");
   const q = searchParams.get("q")?.toLowerCase() ?? "";
 
-  const where: any = {};
+  const where: Prisma.UserWhereInput = {};
   if (role) where.role = role;
   if (q) {
     where.OR = [

@@ -3,17 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
 import { mockClasses } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: NextRequest, { params }: Params) {
+  const { id } = await params;
+  if (!id) {
+    return jsonError("VALIDATION_ERROR", "id is required");
+  }
   if (isMockEnabled()) {
-    const item = mockClasses.find((row) => row.id === params.id);
+    const item = mockClasses.find((row) => row.id === id);
     if (!item) return jsonError("NOT_FOUND", "Class not found", 404);
-    return jsonOk(item);
+    return jsonOk({ ...item, major: item.major ?? "" });
   }
 
   const row = await prisma.class.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { homeroomTeacher: true, academicYear: true },
   });
   if (!row) return jsonError("NOT_FOUND", "Class not found", 404);
@@ -22,6 +26,7 @@ export async function GET(_: NextRequest, { params }: Params) {
     id: row.id,
     name: row.name,
     grade: row.grade,
+    major: row.major ?? "",
     section: row.section,
     homeroomTeacher: row.homeroomTeacher?.name ?? "",
     homeroomTeacherId: row.homeroomTeacherId ?? "",
@@ -35,6 +40,10 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const { id } = await params;
+  if (!id) {
+    return jsonError("VALIDATION_ERROR", "id is required");
+  }
   const body = await request.json();
   let academicYearId: string | null = body.academicYearId ?? null;
   if (!academicYearId && body.academicYear) {
@@ -46,10 +55,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const row = await prisma.class.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       name: body.name,
       grade: body.grade,
+      major: body.major ?? null,
       section: body.section,
       academicYearId,
       homeroomTeacherId: body.homeroomTeacherId,
@@ -64,6 +74,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     id: row.id,
     name: row.name,
     grade: row.grade,
+    major: row.major ?? "",
     section: row.section,
     homeroomTeacher: row.homeroomTeacher?.name ?? "",
     homeroomTeacherId: row.homeroomTeacherId ?? "",
@@ -77,6 +88,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_: NextRequest, { params }: Params) {
-  await prisma.class.delete({ where: { id: params.id } });
-  return jsonOk({ id: params.id });
+  const { id } = await params;
+  if (!id) {
+    return jsonError("VALIDATION_ERROR", "id is required");
+  }
+  await prisma.class.delete({ where: { id } });
+  return jsonOk({ id });
 }

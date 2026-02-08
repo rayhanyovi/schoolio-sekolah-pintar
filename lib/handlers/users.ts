@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
-import { userListSchema, userSchema } from "@/lib/schemas";
+import { userListSchema, userProfileSchema, userSchema } from "@/lib/schemas";
 
 export type ListUsersParams = {
   role?: string;
@@ -15,20 +15,57 @@ export const listUsers = async (params?: ListUsersParams) =>
 export const getUser = async (id: string) =>
   userSchema.parse(await apiGet(`/api/users/${id}`));
 
-export const createUser = async (payload: Record<string, unknown>) =>
+export type CreateUserPayload = {
+  name: string;
+  email?: string | null;
+  role: string;
+  phone?: string | null;
+  address?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  birthDate?: string | Date | null;
+  classId?: string | null;
+  gender?: string | null;
+};
+
+export type UpdateUserPayload = Partial<CreateUserPayload>;
+
+export const createUser = async (payload: CreateUserPayload) =>
   userSchema.parse(await apiPost("/api/users", payload));
 
-export const updateUser = async (id: string, payload: Record<string, unknown>) =>
+export const updateUser = async (id: string, payload: UpdateUserPayload) =>
   userSchema.parse(await apiPatch(`/api/users/${id}`, payload));
 
 export const deleteUser = (id: string) =>
   apiDelete<{ id: string }>(`/api/users/${id}`);
 
-export const getUserProfile = (id: string) =>
-  apiGet<Record<string, unknown>>(`/api/users/${id}/profile`);
+export type UserProfilePayload = {
+  name?: string;
+  email?: string | null;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  bio?: string;
+  avatarUrl?: string | null;
+  birthDate?: string | Date | null;
+  studentProfile?: {
+    classId?: string | null;
+    gender?: string | null;
+  };
+  teacherProfile?: {
+    title?: string | null;
+  };
+  parentProfile?: {
+    enabled?: boolean;
+  };
+};
 
-export const updateUserProfile = (id: string, payload: Record<string, unknown>) =>
-  apiPatch<Record<string, unknown>>(`/api/users/${id}/profile`, payload);
+export const getUserProfile = async (id: string) =>
+  userProfileSchema.parse(await apiGet(`/api/users/${id}/profile`));
+
+export const updateUserProfile = async (id: string, payload: UserProfilePayload) =>
+  userProfileSchema.parse(await apiPatch(`/api/users/${id}/profile`, payload));
 
 export const linkParentStudent = (parentId: string, studentId: string) =>
   apiPost<Record<string, unknown>>("/api/parent-links", {

@@ -1,21 +1,29 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonOk } from "@/lib/api";
+import { jsonError, jsonOk } from "@/lib/api";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: NextRequest, { params }: Params) {
+  const { id } = await params;
+  if (!id) {
+    return jsonError("VALIDATION_ERROR", "id is required");
+  }
   const row = await prisma.classSchedule.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { class: true, subject: true, teacher: true },
   });
   return jsonOk(row);
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const { id } = await params;
+  if (!id) {
+    return jsonError("VALIDATION_ERROR", "id is required");
+  }
   const body = await request.json();
   const row = await prisma.classSchedule.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       classId: body.classId,
       subjectId: body.subjectId,
@@ -31,6 +39,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_: NextRequest, { params }: Params) {
-  await prisma.classSchedule.delete({ where: { id: params.id } });
-  return jsonOk({ id: params.id });
+  const { id } = await params;
+  if (!id) {
+    return jsonError("VALIDATION_ERROR", "id is required");
+  }
+  await prisma.classSchedule.delete({ where: { id } });
+  return jsonOk({ id });
 }

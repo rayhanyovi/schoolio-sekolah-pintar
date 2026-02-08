@@ -2,16 +2,20 @@ import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonOk } from "@/lib/api";
 import { mockStudents } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: Request, { params }: Params) {
+  const { id } = await params;
+  if (!id) {
+    return jsonOk([]);
+  }
   if (isMockEnabled()) {
-    const data = mockStudents.filter((student) => student.classId === params.id);
+    const data = mockStudents.filter((student) => student.classId === id);
     return jsonOk(data);
   }
 
   const rows = await prisma.studentProfile.findMany({
-    where: { classId: params.id },
+    where: { classId: id },
     include: { user: true, class: true },
     orderBy: { user: { name: "asc" } },
   });

@@ -1,533 +1,559 @@
 import { PrismaClient, Role } from "@prisma/client";
-import {
-  mockClasses,
-  mockSubjects,
-  mockEvents,
-  mockThreads,
-  mockReplies,
-  mockNotes,
-  mockSchoolProfile,
-  mockAcademicYears,
-  mockScheduleTemplate,
-  mockTeachers,
-  mockStudents,
-  mockAssignments,
-} from "../lib/mockData";
-import { mockQuestions, mockPackages } from "../lib/questionTypes";
 
 const prisma = new PrismaClient();
 
-const ensureRole = (value: string): Role => {
-  if (value === "ADMIN") return Role.ADMIN;
-  if (value === "TEACHER") return Role.TEACHER;
-  if (value === "PARENT") return Role.PARENT;
-  return Role.STUDENT;
+const FIRST_NAMES_ID = [
+  "Aditya",
+  "Bima",
+  "Dimas",
+  "Fajar",
+  "Gilang",
+  "Hendra",
+  "Iqbal",
+  "Joko",
+  "Kevin",
+  "Naufal",
+  "Raka",
+  "Rizky",
+  "Taufik",
+  "Wahyu",
+  "Yusuf",
+  "Agus",
+  "Andi",
+  "Bagas",
+  "Bayu",
+  "Dewi",
+  "Dinda",
+  "Eka",
+  "Farhan",
+  "Intan",
+  "Kartika",
+  "Nadia",
+  "Putra",
+  "Salsa",
+  "Siti",
+  "Tri",
+];
+
+const LAST_NAMES_ID = [
+  "Pratama",
+  "Saputra",
+  "Wijaya",
+  "Santoso",
+  "Nugroho",
+  "Hidayat",
+  "Putri",
+  "Siregar",
+  "Hasan",
+  "Wibowo",
+  "Ramadhan",
+  "Maulana",
+  "Kurniawan",
+  "Mahendra",
+  "Permata",
+  "Setiawan",
+  "Gunawan",
+  "Purnama",
+  "Utama",
+  "Fauzan",
+  "Syahputra",
+  "Anggraini",
+  "Lestari",
+  "Handayani",
+  "Iskandar",
+  "Firmansyah",
+  "Yulianto",
+  "Suryadi",
+  "Anwar",
+  "Harahap",
+];
+
+type SubjectSeed = {
+  name: string;
+  code: string;
+  category: "SCIENCE" | "SOCIAL" | "LANGUAGE";
+  color: string;
+  major: "MIPA" | "IPS";
 };
 
-const inferRoleFromId = (id: string): Role => {
-  if (id === "admin") return Role.ADMIN;
-  if (id.startsWith("t")) return Role.TEACHER;
-  if (id.startsWith("st")) return Role.STUDENT;
-  if (id.startsWith("p")) return Role.PARENT;
-  return Role.TEACHER;
-};
+const SUBJECTS: SubjectSeed[] = [
+  { name: "Bahasa Inggris", code: "BING", category: "LANGUAGE", color: "bg-primary", major: "MIPA" },
+  { name: "Matematika", code: "MTK", category: "SCIENCE", color: "bg-secondary", major: "MIPA" },
+  { name: "Fisika", code: "FIS", category: "SCIENCE", color: "bg-info", major: "MIPA" },
+  { name: "Bahasa Inggris", code: "BING", category: "LANGUAGE", color: "bg-primary", major: "IPS" },
+  { name: "Matematika", code: "MTK", category: "SCIENCE", color: "bg-secondary", major: "IPS" },
+  { name: "Sejarah", code: "SEJ", category: "SOCIAL", color: "bg-warning", major: "IPS" },
+];
 
-const defaultEmail = (id: string, role: Role) => {
-  return `${id}@${role.toLowerCase()}.local`;
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+const LESSON_SLOTS = [
+  { name: "Jam 1", start: "07:00", end: "08:00" },
+  { name: "Jam 2", start: "08:00", end: "09:00" },
+  { name: "Jam 3", start: "10:00", end: "11:00" },
+  { name: "Jam 4", start: "11:00", end: "12:00" },
+  { name: "Jam 5", start: "13:00", end: "14:00" },
+  { name: "Jam 6", start: "14:00", end: "15:00" },
+];
+
+const BREAK_SLOTS = [
+  { name: "Istirahat 1", start: "09:00", end: "10:00" },
+  { name: "Istirahat 2", start: "12:00", end: "13:00" },
+];
+
+const randPick = <T,>(arr: T[], index: number) => arr[index % arr.length];
+const buildName = (index: number) => {
+  const first = FIRST_NAMES_ID[index % FIRST_NAMES_ID.length];
+  const last = LAST_NAMES_ID[Math.floor(index / FIRST_NAMES_ID.length) % LAST_NAMES_ID.length];
+  return `${first} ${last}`;
 };
 
 async function main() {
-  const subjectByName = new Map(mockSubjects.map((s) => [s.name, s.id]));
-  const academicYearByYear = new Map<string, string>();
+  await prisma.$transaction([
+    prisma.attendanceRecord.deleteMany(),
+    prisma.attendanceSession.deleteMany(),
+    prisma.assignmentSubmission.deleteMany(),
+    prisma.assignmentQuestion.deleteMany(),
+    prisma.assignmentClass.deleteMany(),
+    prisma.assignment.deleteMany(),
+    prisma.materialAttachment.deleteMany(),
+    prisma.material.deleteMany(),
+    prisma.forumReply.deleteMany(),
+    prisma.forumThread.deleteMany(),
+    prisma.note.deleteMany(),
+    prisma.calendarEventClass.deleteMany(),
+    prisma.calendarEvent.deleteMany(),
+    prisma.classSchedule.deleteMany(),
+    prisma.subjectTeacher.deleteMany(),
+    prisma.subjectClass.deleteMany(),
+    prisma.subject.deleteMany(),
+    prisma.studentProfile.deleteMany(),
+    prisma.teacherProfile.deleteMany(),
+    prisma.parentProfile.deleteMany(),
+    prisma.parentStudent.deleteMany(),
+    prisma.class.deleteMany(),
+    prisma.academicYear.deleteMany(),
+    prisma.majorTeacher.deleteMany(),
+    prisma.major.deleteMany(),
+    prisma.scheduleTemplate.deleteMany(),
+    prisma.schoolProfile.deleteMany(),
+    prisma.questionPackageItem.deleteMany(),
+    prisma.questionPackage.deleteMany(),
+    prisma.question.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
 
-  for (const year of mockAcademicYears) {
-    academicYearByYear.set(year.year, year.id);
-    await prisma.academicYear.upsert({
-      where: { id: year.id },
-      update: {
-        year: year.year,
-        semester: year.semester,
-        startDate: year.startDate,
-        endDate: year.endDate,
-        isActive: year.isActive,
-      },
-      create: {
-        id: year.id,
-        year: year.year,
-        semester: year.semester,
-        startDate: year.startDate,
-        endDate: year.endDate,
-        isActive: year.isActive,
-      },
-    });
-  }
-
-  await prisma.schoolProfile.upsert({
-    where: { id: "school_profile" },
-    update: {
-      name: mockSchoolProfile.name,
-      address: mockSchoolProfile.address,
-      phone: mockSchoolProfile.phone,
-      email: mockSchoolProfile.email,
-      website: mockSchoolProfile.website,
-      principalName: mockSchoolProfile.principalName,
-      logoUrl: mockSchoolProfile.logo,
-    },
-    create: {
-      id: "school_profile",
-      name: mockSchoolProfile.name,
-      address: mockSchoolProfile.address,
-      phone: mockSchoolProfile.phone,
-      email: mockSchoolProfile.email,
-      website: mockSchoolProfile.website,
-      principalName: mockSchoolProfile.principalName,
-      logoUrl: mockSchoolProfile.logo,
+  const academicYear = await prisma.academicYear.create({
+    data: {
+      year: "2024/2025",
+      semester: "ODD",
+      startDate: new Date(2024, 6, 15),
+      endDate: new Date(2024, 11, 20),
+      isActive: true,
     },
   });
 
-  for (const [index, slot] of mockScheduleTemplate.entries()) {
-    await prisma.scheduleTemplate.upsert({
-      where: { id: slot.id },
-      update: {
+  await prisma.schoolProfile.create({
+    data: {
+      name: "SMA Negeri 1 Sekolah Pintar",
+      address: "Jl. Pendidikan No. 123",
+      phone: "021-123456",
+      email: "info@sekolah-pintar.id",
+      website: "sekolah-pintar.id",
+      principalName: "Drs. Budi Santoso",
+    },
+  });
+
+  const [majorMipa, majorIps] = await Promise.all([
+    prisma.major.create({ data: { code: "MIPA", name: "MIPA", description: "Matematika & IPA" } }),
+    prisma.major.create({ data: { code: "IPS", name: "IPS", description: "Ilmu Pengetahuan Sosial" } }),
+  ]);
+
+  for (const slot of LESSON_SLOTS) {
+    await prisma.scheduleTemplate.create({
+      data: {
         name: slot.name,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        duration: slot.duration,
-        isBreak: slot.isBreak,
-        position: index + 1,
+        startTime: slot.start,
+        endTime: slot.end,
+        duration: 60,
+        isBreak: false,
       },
-      create: {
-        id: slot.id,
+    });
+  }
+  for (const slot of BREAK_SLOTS) {
+    await prisma.scheduleTemplate.create({
+      data: {
         name: slot.name,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        duration: slot.duration,
-        isBreak: slot.isBreak,
-        position: index + 1,
+        startTime: slot.start,
+        endTime: slot.end,
+        duration: 60,
+        isBreak: true,
       },
     });
   }
 
-  const userSeeds = new Map<string, { name: string; role: Role }>();
-  userSeeds.set("admin", { name: "Admin", role: Role.ADMIN });
+  const admin = await prisma.user.create({
+    data: {
+      name: buildName(0),
+      role: Role.ADMIN,
+      email: "admin@school.local",
+    },
+  });
 
-  for (const teacher of mockTeachers) {
-    userSeeds.set(teacher.id, { name: teacher.name, role: Role.TEACHER });
-  }
+  const subjectsByMajor: Record<"MIPA" | "IPS", typeof SUBJECTS> = {
+    MIPA: SUBJECTS.filter((s) => s.major === "MIPA"),
+    IPS: SUBJECTS.filter((s) => s.major === "IPS"),
+  };
 
-  for (const student of mockStudents) {
-    userSeeds.set(student.id, { name: student.name, role: Role.STUDENT });
-  }
+  const subjectMap = new Map<string, { id: string; color: string; name: string }>();
+  const subjectTeachers = new Map<string, string[]>();
+  const teachers: { id: string; name: string }[] = [];
 
-  for (const thread of mockThreads) {
-    userSeeds.set(thread.authorId, {
-      name: thread.authorName,
-      role: ensureRole(thread.authorRole),
-    });
-  }
-
-  for (const reply of mockReplies) {
-    userSeeds.set(reply.authorId, {
-      name: reply.authorName,
-      role: ensureRole(reply.authorRole),
-    });
-  }
-
-  for (const note of mockNotes) {
-    if (!userSeeds.has(note.authorId)) {
-      userSeeds.set(note.authorId, {
-        name: note.authorName,
-        role: inferRoleFromId(note.authorId),
-      });
-    }
-  }
-
-  for (const event of mockEvents) {
-    if (!userSeeds.has(event.createdBy)) {
-      userSeeds.set(event.createdBy, {
-        name: event.createdBy === "admin" ? "Admin" : event.createdBy,
-        role: inferRoleFromId(event.createdBy),
-      });
-    }
-  }
-
-  for (const assignment of mockAssignments) {
-    if (!userSeeds.has(assignment.teacherId)) {
-      userSeeds.set(assignment.teacherId, {
-        name: assignment.teacherName,
-        role: Role.TEACHER,
-      });
-    }
-  }
-
-  for (const classData of mockClasses) {
-    if (!userSeeds.has(classData.homeroomTeacherId)) {
-      userSeeds.set(classData.homeroomTeacherId, {
-        name: classData.homeroomTeacher,
-        role: Role.TEACHER,
-      });
-    }
-  }
-
-  for (const [id, data] of userSeeds.entries()) {
-    await prisma.user.upsert({
-      where: { id },
-      update: {
-        name: data.name,
-        role: data.role,
-        email: defaultEmail(id, data.role),
-      },
-      create: {
-        id,
-        name: data.name,
-        role: data.role,
-        email: defaultEmail(id, data.role),
-      },
-    });
-  }
-
-  for (const classData of mockClasses) {
-    const academicYearId = academicYearByYear.get(classData.academicYear) ?? null;
-    await prisma.class.upsert({
-      where: { id: classData.id },
-      update: {
-        name: classData.name,
-        grade: classData.grade,
-        section: classData.section,
-        academicYearId,
-        homeroomTeacherId: classData.homeroomTeacherId,
-        studentCount: classData.studentCount,
-        maleCount: classData.maleCount,
-        femaleCount: classData.femaleCount,
-      },
-      create: {
-        id: classData.id,
-        name: classData.name,
-        grade: classData.grade,
-        section: classData.section,
-        academicYearId,
-        homeroomTeacherId: classData.homeroomTeacherId,
-        studentCount: classData.studentCount,
-        maleCount: classData.maleCount,
-        femaleCount: classData.femaleCount,
-      },
-    });
-  }
-
-  for (const [id, data] of userSeeds.entries()) {
-    if (data.role === Role.STUDENT) {
-      const student = mockStudents.find((s) => s.id === id);
-      await prisma.studentProfile.upsert({
-        where: { userId: id },
-        update: {
-          classId: student?.classId ?? null,
-          gender: student?.gender === "L" ? "MALE" : student?.gender === "P" ? "FEMALE" : null,
-        },
-        create: {
-          userId: id,
-          classId: student?.classId ?? null,
-          gender: student?.gender === "L" ? "MALE" : student?.gender === "P" ? "FEMALE" : null,
-        },
-      });
-    }
-
-    if (data.role === Role.TEACHER) {
-      await prisma.teacherProfile.upsert({
-        where: { userId: id },
-        update: {},
-        create: { userId: id },
-      });
-    }
-
-    if (data.role === Role.PARENT) {
-      await prisma.parentProfile.upsert({
-        where: { userId: id },
-        update: {},
-        create: { userId: id },
-      });
-    }
-  }
-
-  for (const subject of mockSubjects) {
-    await prisma.subject.upsert({
-      where: { id: subject.id },
-      update: {
+  for (const subject of SUBJECTS) {
+    const key = `${subject.name}-${subject.major}`;
+    if (subjectMap.has(key)) continue;
+    const created = await prisma.subject.create({
+      data: {
         name: subject.name,
         code: subject.code,
         category: subject.category,
-        description: subject.description,
-        hoursPerWeek: subject.hoursPerWeek,
-      },
-      create: {
-        id: subject.id,
-        name: subject.name,
-        code: subject.code,
-        category: subject.category,
-        description: subject.description,
-        hoursPerWeek: subject.hoursPerWeek,
+        description: `${subject.name} untuk jurusan ${subject.major}`,
+        color: subject.color,
+        hoursPerWeek: 12,
       },
     });
+    subjectMap.set(key, { id: created.id, color: created.color ?? subject.color, name: created.name });
+
+    const teacherA = await prisma.user.create({
+      data: {
+        name: `${buildName(teachers.length + 1)} (${subject.major})`,
+        role: Role.TEACHER,
+        email: `teacher_${subject.code.toLowerCase()}_a_${subject.major.toLowerCase()}@school.local`,
+      },
+    });
+    const teacherB = await prisma.user.create({
+      data: {
+        name: `${buildName(teachers.length + 2)} (${subject.major})`,
+        role: Role.TEACHER,
+        email: `teacher_${subject.code.toLowerCase()}_b_${subject.major.toLowerCase()}@school.local`,
+      },
+    });
+    teachers.push({ id: teacherA.id, name: teacherA.name });
+    teachers.push({ id: teacherB.id, name: teacherB.name });
+
+    await prisma.teacherProfile.createMany({
+      data: [{ userId: teacherA.id }, { userId: teacherB.id }],
+      skipDuplicates: true,
+    });
+
+    await prisma.subjectTeacher.createMany({
+      data: [
+        { subjectId: created.id, teacherId: teacherA.id },
+        { subjectId: created.id, teacherId: teacherB.id },
+      ],
+      skipDuplicates: true,
+    });
+
+    subjectTeachers.set(created.id, [teacherA.id, teacherB.id]);
   }
 
-  await prisma.subjectTeacher.createMany({
-    data: mockSubjects.flatMap((subject) =>
-      subject.teachers.map((teacher) => ({
-        subjectId: subject.id,
-        teacherId: teacher.id,
-      }))
-    ),
+  await prisma.majorTeacher.createMany({
+    data: teachers.map((teacher) => ({
+      majorId: teacher.name.includes("(MIPA)") ? majorMipa.id : majorIps.id,
+      teacherId: teacher.id,
+    })),
     skipDuplicates: true,
   });
 
-  await prisma.subjectClass.createMany({
-    data: mockSubjects.flatMap((subject) =>
-      subject.classIds.map((classId) => ({
-        subjectId: subject.id,
-        classId,
-      }))
-    ),
-    skipDuplicates: true,
-  });
+  const classes: { id: string; name: string; grade: number; major: "MIPA" | "IPS"; section: string }[] = [];
 
-  for (const event of mockEvents) {
-    await prisma.calendarEvent.upsert({
-      where: { id: event.id },
-      update: {
-        title: event.title,
-        description: event.description,
-        date: event.date,
-        endDate: event.endDate,
-        type: event.type,
-        isRecurring: event.isRecurring,
-        createdById: event.createdBy,
-      },
-      create: {
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        date: event.date,
-        endDate: event.endDate,
-        type: event.type,
-        isRecurring: event.isRecurring,
-        createdById: event.createdBy,
-      },
+  for (const grade of [10, 11, 12]) {
+    for (const major of ["MIPA", "IPS"] as const) {
+      for (const section of ["1", "2"]) {
+        const roman =
+          grade === 10 ? "X" : grade === 11 ? "XI" : grade === 12 ? "XII" : grade.toString();
+        const className = `${roman} ${major} ${section}`;
+        const homeroomTeacher = randPick(teachers, classes.length).id;
+        const created = await prisma.class.create({
+          data: {
+            name: className,
+            grade,
+            major,
+            section,
+            academicYearId: academicYear.id,
+            homeroomTeacherId: homeroomTeacher,
+            studentCount: 5,
+            maleCount: 3,
+            femaleCount: 2,
+          },
+        });
+        classes.push({ id: created.id, name: created.name, grade, major, section });
+      }
+    }
+  }
+
+  const parents: { id: string; name: string }[] = [];
+  const students: { id: string; name: string; classId: string }[] = [];
+
+  let studentIndex = 1;
+  for (const cls of classes) {
+    for (let i = 0; i < 5; i += 1) {
+      const student = await prisma.user.create({
+        data: {
+          name: buildName(100 + studentIndex),
+          role: Role.STUDENT,
+          email: `student_${studentIndex}@school.local`,
+        },
+      });
+      await prisma.studentProfile.create({
+        data: {
+          userId: student.id,
+          classId: cls.id,
+          gender: i % 2 === 0 ? "MALE" : "FEMALE",
+        },
+      });
+      students.push({ id: student.id, name: student.name, classId: cls.id });
+
+      const parent = await prisma.user.create({
+        data: {
+          name: buildName(1000 + studentIndex),
+          role: Role.PARENT,
+          email: `parent_${studentIndex}@school.local`,
+        },
+      });
+      await prisma.parentProfile.create({ data: { userId: parent.id } });
+      await prisma.parentStudent.create({
+        data: { parentId: parent.id, studentId: student.id },
+      });
+      parents.push({ id: parent.id, name: parent.name });
+      studentIndex += 1;
+    }
+  }
+
+  for (const cls of classes) {
+    const subjectSeeds = subjectsByMajor[cls.major];
+    const subjectIds = subjectSeeds.map((s) => subjectMap.get(`${s.name}-${s.major}`)!.id);
+    await prisma.subjectClass.createMany({
+      data: subjectIds.map((subjectId) => ({
+        subjectId,
+        classId: cls.id,
+      })),
+      skipDuplicates: true,
     });
   }
 
+  let scheduleIndex = 0;
+  for (const cls of classes) {
+    const subjectSeeds = subjectsByMajor[cls.major];
+    const subjectIds = subjectSeeds.map((s) => subjectMap.get(`${s.name}-${s.major}`)!.id);
+    const subjectsCycle = Array.from({ length: 36 }).map((_, idx) =>
+      subjectIds[idx % subjectIds.length]
+    );
+
+    for (const day of DAYS) {
+      for (const slot of LESSON_SLOTS) {
+        const subjectId = subjectsCycle[scheduleIndex % subjectsCycle.length];
+        const teacherIds = subjectTeachers.get(subjectId) ?? [];
+        const teacherId = teacherIds[scheduleIndex % teacherIds.length];
+        const subjectMeta = Array.from(subjectMap.values()).find((s) => s.id === subjectId);
+        await prisma.classSchedule.create({
+          data: {
+            classId: cls.id,
+            subjectId,
+            teacherId: teacherId ?? null,
+            dayOfWeek: day,
+            startTime: slot.start,
+            endTime: slot.end,
+            room: `R-${cls.section}`,
+            color: subjectMeta?.color ?? "bg-primary",
+          },
+        });
+        scheduleIndex += 1;
+      }
+    }
+  }
+
+  // Assignments, questions, packages
+  const questionIds: string[] = [];
+  for (const [key, subject] of subjectMap.entries()) {
+    const q1 = await prisma.question.create({
+      data: {
+        type: "ESSAY",
+        subjectId: subject.id,
+        topic: `Materi ${subject.name} 1`,
+        difficulty: "MEDIUM",
+        text: `Jelaskan konsep dasar ${subject.name}.`,
+        points: 10,
+      },
+    });
+    const q2 = await prisma.question.create({
+      data: {
+        type: "MCQ",
+        subjectId: subject.id,
+        topic: `Materi ${subject.name} 2`,
+        difficulty: "EASY",
+        text: `Pertanyaan pilihan ganda tentang ${subject.name}.`,
+        options: ["A", "B", "C", "D"],
+        correctAnswers: [0],
+        points: 5,
+      },
+    });
+    questionIds.push(q1.id, q2.id);
+
+    const pkg = await prisma.questionPackage.create({
+      data: {
+        name: `Paket Soal ${subject.name}`,
+        description: `Paket soal untuk ${subject.name}`,
+        subjectId: subject.id,
+      },
+    });
+    await prisma.questionPackageItem.createMany({
+      data: [
+        { packageId: pkg.id, questionId: q1.id, position: 1 },
+        { packageId: pkg.id, questionId: q2.id, position: 2 },
+      ],
+    });
+  }
+
+  for (const cls of classes) {
+    const subjectSeeds = subjectsByMajor[cls.major];
+    for (const subjectSeed of subjectSeeds) {
+      const subjectId = subjectMap.get(`${subjectSeed.name}-${subjectSeed.major}`)!.id;
+      const teacherId = (subjectTeachers.get(subjectId) ?? [])[0] ?? null;
+      const assignment = await prisma.assignment.create({
+        data: {
+          title: `Tugas ${subjectSeed.name} ${cls.name}`,
+          description: `Tugas untuk ${subjectSeed.name} kelas ${cls.name}`,
+          subjectId,
+          teacherId: teacherId!,
+          dueDate: new Date(2025, 0, 20),
+          kind: "HOMEWORK",
+          status: "ACTIVE",
+        },
+      });
+      await prisma.assignmentClass.create({
+        data: { assignmentId: assignment.id, classId: cls.id },
+      });
+      const classStudents = students.filter((s) => s.classId === cls.id);
+      for (const student of classStudents) {
+        await prisma.assignmentSubmission.create({
+          data: {
+            assignmentId: assignment.id,
+            studentId: student.id,
+            status: "PENDING",
+          },
+        });
+      }
+    }
+  }
+
+  for (const cls of classes) {
+    const subjectSeeds = subjectsByMajor[cls.major];
+    for (const subjectSeed of subjectSeeds) {
+      const subjectId = subjectMap.get(`${subjectSeed.name}-${subjectSeed.major}`)!.id;
+      const teacherId = (subjectTeachers.get(subjectId) ?? [])[0] ?? null;
+      const material = await prisma.material.create({
+        data: {
+          title: `Materi ${subjectSeed.name} ${cls.name}`,
+          description: `Ringkasan materi ${subjectSeed.name}`,
+          subjectId,
+          classId: cls.id,
+          teacherId: teacherId!,
+        },
+      });
+      await prisma.materialAttachment.create({
+        data: {
+          materialId: material.id,
+          fileName: "materi.pdf",
+          fileType: "application/pdf",
+          sizeLabel: "1MB",
+          url: "https://example.com/materi.pdf",
+        },
+      });
+    }
+  }
+
+  const event = await prisma.calendarEvent.create({
+    data: {
+      title: "Kegiatan Awal Semester",
+      description: "Orientasi awal semester",
+      date: new Date(2025, 0, 10),
+      type: "ACADEMIC",
+      createdById: admin.id,
+    },
+  });
   await prisma.calendarEventClass.createMany({
-    data: mockEvents.flatMap((event) =>
-      (event.classIds ?? []).map((classId) => ({
-        eventId: event.id,
-        classId,
-      }))
-    ),
+    data: classes.map((cls) => ({ eventId: event.id, classId: cls.id })),
     skipDuplicates: true,
   });
 
-  for (const thread of mockThreads) {
-    await prisma.forumThread.upsert({
-      where: { id: thread.id },
-      update: {
-        title: thread.title,
-        content: thread.content,
-        subjectId: thread.subjectId,
-        classId: thread.classId ?? null,
-        authorId: thread.authorId,
-        authorRole: ensureRole(thread.authorRole),
-        status: thread.status,
-        isPinned: thread.isPinned,
-        replyCount: thread.replyCount,
-        upvotes: thread.upvotes,
-        createdAt: thread.createdAt,
-        updatedAt: thread.updatedAt,
-      },
-      create: {
-        id: thread.id,
-        title: thread.title,
-        content: thread.content,
-        subjectId: thread.subjectId,
-        classId: thread.classId ?? null,
-        authorId: thread.authorId,
-        authorRole: ensureRole(thread.authorRole),
-        status: thread.status,
-        isPinned: thread.isPinned,
-        replyCount: thread.replyCount,
-        upvotes: thread.upvotes,
-        createdAt: thread.createdAt,
-        updatedAt: thread.updatedAt,
-      },
-    });
-  }
-
-  for (const reply of mockReplies) {
-    await prisma.forumReply.upsert({
-      where: { id: reply.id },
-      update: {
-        threadId: reply.threadId,
-        content: reply.content,
-        authorId: reply.authorId,
-        authorRole: ensureRole(reply.authorRole),
-        isAcceptedAnswer: reply.isAcceptedAnswer,
-        upvotes: reply.upvotes,
-        createdAt: reply.createdAt,
-      },
-      create: {
-        id: reply.id,
-        threadId: reply.threadId,
-        content: reply.content,
-        authorId: reply.authorId,
-        authorRole: ensureRole(reply.authorRole),
-        isAcceptedAnswer: reply.isAcceptedAnswer,
-        upvotes: reply.upvotes,
-        createdAt: reply.createdAt,
-      },
-    });
-  }
-
-  for (const note of mockNotes) {
-    await prisma.note.upsert({
-      where: { id: note.id },
-      update: {
-        title: note.title,
-        content: note.content,
-        subjectId: note.subjectId ?? null,
-        classId: note.classId ?? null,
-        authorId: note.authorId,
-        visibility: note.visibility,
-        isPinned: note.isPinned,
-        color: note.color,
-        tags: note.tags,
-        createdAt: note.createdAt,
-        updatedAt: note.updatedAt,
-      },
-      create: {
-        id: note.id,
-        title: note.title,
-        content: note.content,
-        subjectId: note.subjectId ?? null,
-        classId: note.classId ?? null,
-        authorId: note.authorId,
-        visibility: note.visibility,
-        isPinned: note.isPinned,
-        color: note.color,
-        tags: note.tags,
-        createdAt: note.createdAt,
-        updatedAt: note.updatedAt,
-      },
-    });
-  }
-
-  for (const assignment of mockAssignments) {
-    await prisma.assignment.upsert({
-      where: { id: assignment.id },
-      update: {
-        title: assignment.title,
-        description: assignment.description,
-        subjectId: assignment.subjectId,
-        teacherId: assignment.teacherId,
-        dueDate: assignment.dueDate,
-        kind: assignment.type,
-        status: assignment.status,
-        createdAt: assignment.createdAt,
-      },
-      create: {
-        id: assignment.id,
-        title: assignment.title,
-        description: assignment.description,
-        subjectId: assignment.subjectId,
-        teacherId: assignment.teacherId,
-        dueDate: assignment.dueDate,
-        kind: assignment.type,
-        status: assignment.status,
-        createdAt: assignment.createdAt,
-      },
-    });
-  }
-
-  await prisma.assignmentClass.createMany({
-    data: mockAssignments.flatMap((assignment) =>
-      assignment.classIds.map((classId) => ({
-        assignmentId: assignment.id,
-        classId,
-      }))
-    ),
-    skipDuplicates: true,
-  });
-
-  for (const question of mockQuestions) {
-    const subjectId = subjectByName.get(question.subject) ?? null;
-    await prisma.question.upsert({
-      where: { id: question.id },
-      update: {
-        type: question.type,
+  for (const cls of classes.slice(0, 4)) {
+    const subjectSeed = subjectsByMajor[cls.major][0];
+    const subjectId = subjectMap.get(`${subjectSeed.name}-${subjectSeed.major}`)!.id;
+    const teacherId = (subjectTeachers.get(subjectId) ?? [])[0] ?? null;
+    const thread = await prisma.forumThread.create({
+      data: {
+        title: `Diskusi ${subjectSeed.name} ${cls.name}`,
+        content: "Silakan diskusikan materi minggu ini.",
         subjectId,
-        subjectText: subjectId ? null : question.subject,
-        topic: question.topic,
-        difficulty: question.difficulty,
-        text: question.text,
-        options: question.options ?? [],
-        correctAnswers: question.correctAnswers ?? [],
-        rubric: question.rubric ?? null,
-        allowedFormats: question.allowedFormats ?? [],
-        points: question.points,
-        usageCount: question.usageCount,
-        createdAt: question.createdAt,
+        classId: cls.id,
+        authorId: teacherId!,
+        authorRole: Role.TEACHER,
+        status: "OPEN",
       },
-      create: {
-        id: question.id,
-        type: question.type,
-        subjectId,
-        subjectText: subjectId ? null : question.subject,
-        topic: question.topic,
-        difficulty: question.difficulty,
-        text: question.text,
-        options: question.options ?? [],
-        correctAnswers: question.correctAnswers ?? [],
-        rubric: question.rubric ?? null,
-        allowedFormats: question.allowedFormats ?? [],
-        points: question.points,
-        usageCount: question.usageCount,
-        createdAt: question.createdAt,
+    });
+    await prisma.forumReply.create({
+      data: {
+        threadId: thread.id,
+        content: "Silakan tanya jika ada yang belum jelas.",
+        authorId: students.find((s) => s.classId === cls.id)!.id,
+        authorRole: Role.STUDENT,
       },
     });
   }
 
-  for (const pkg of mockPackages) {
-    const subjectId = subjectByName.get(pkg.subject) ?? null;
-    await prisma.questionPackage.upsert({
-      where: { id: pkg.id },
-      update: {
-        name: pkg.name,
-        description: pkg.description,
+  for (const cls of classes.slice(0, 4)) {
+    const subjectSeed = subjectsByMajor[cls.major][1];
+    const subjectId = subjectMap.get(`${subjectSeed.name}-${subjectSeed.major}`)!.id;
+    const authorId = students.find((s) => s.classId === cls.id)!.id;
+    await prisma.note.create({
+      data: {
+        title: `Catatan ${subjectSeed.name}`,
+        content: `Ringkasan materi ${subjectSeed.name} untuk ${cls.name}`,
         subjectId,
-        subjectText: subjectId ? null : pkg.subject,
-        lastUsedAt: pkg.lastUsedAt ?? null,
-        usageCount: pkg.usageCount,
-        createdAt: pkg.createdAt,
-      },
-      create: {
-        id: pkg.id,
-        name: pkg.name,
-        description: pkg.description,
-        subjectId,
-        subjectText: subjectId ? null : pkg.subject,
-        lastUsedAt: pkg.lastUsedAt ?? null,
-        usageCount: pkg.usageCount,
-        createdAt: pkg.createdAt,
+        classId: cls.id,
+        authorId,
+        visibility: "CLASS",
+        isPinned: false,
+        color: "bg-info",
+        tags: ["ringkasan"],
       },
     });
   }
 
-  await prisma.questionPackageItem.createMany({
-    data: mockPackages.flatMap((pkg) =>
-      pkg.questionIds.map((questionId, index) => ({
-        packageId: pkg.id,
-        questionId,
-        position: index + 1,
-      }))
-    ),
-    skipDuplicates: true,
-  });
+  for (const cls of classes.slice(0, 6)) {
+    const subjectSeed = subjectsByMajor[cls.major][0];
+    const subjectId = subjectMap.get(`${subjectSeed.name}-${subjectSeed.major}`)!.id;
+    const teacherId = (subjectTeachers.get(subjectId) ?? [])[0] ?? null;
+    const session = await prisma.attendanceSession.create({
+      data: {
+        classId: cls.id,
+        subjectId,
+        teacherId: teacherId!,
+        date: new Date(2025, 0, 15),
+        startTime: "07:00",
+        endTime: "08:00",
+      },
+    });
+    const classStudents = students.filter((s) => s.classId === cls.id);
+    await prisma.attendanceRecord.createMany({
+      data: classStudents.map((student, index) => ({
+        sessionId: session.id,
+        studentId: student.id,
+        status: index % 5 === 0 ? "ABSENT" : "PRESENT",
+        note: index % 5 === 0 ? "Izin" : null,
+      })),
+    });
+  }
 }
 
 main()

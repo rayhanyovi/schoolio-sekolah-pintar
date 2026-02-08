@@ -20,16 +20,30 @@ export async function GET(_: NextRequest, { params }: Params) {
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   const body = await request.json();
+  const derivedName =
+    typeof body.name === "string" && body.name.trim().length
+      ? body.name.trim()
+      : [body.firstName, body.lastName].filter(Boolean).join(" ").trim();
+  const emailValue =
+    body.email === "" || body.email === null ? null : body.email ?? undefined;
+  const birthDateValue =
+    body.birthDate === "" || body.birthDate === null
+      ? null
+      : body.birthDate
+      ? new Date(body.birthDate)
+      : undefined;
   const row = await prisma.user.update({
     where: { id: params.id },
     data: {
+      name: derivedName ? derivedName : undefined,
+      email: emailValue,
       firstName: body.firstName,
       lastName: body.lastName,
       phone: body.phone,
       address: body.address,
       bio: body.bio,
       avatarUrl: body.avatarUrl,
-      birthDate: body.birthDate ? new Date(body.birthDate) : undefined,
+      birthDate: birthDateValue,
     },
   });
 

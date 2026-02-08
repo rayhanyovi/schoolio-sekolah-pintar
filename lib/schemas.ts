@@ -21,6 +21,7 @@ const toDate = (value: unknown) => {
 };
 const dateSchema = z.preprocess(toDate, z.date());
 const dateOptionalSchema = z.preprocess(toDate, z.date().optional());
+const dateNullableSchema = z.preprocess(toDate, z.date().nullable().optional());
 
 export const teacherOptionSchema = z.object({
   id: z.string(),
@@ -34,6 +35,13 @@ export const userSchema = z
     name: z.string(),
     email: z.string().nullish(),
     role: z.string().nullish(),
+    firstName: z.string().nullish(),
+    lastName: z.string().nullish(),
+    phone: z.string().nullish(),
+    address: z.string().nullish(),
+    bio: z.string().nullish(),
+    avatarUrl: z.string().nullish(),
+    birthDate: dateNullableSchema,
     studentProfile: z
       .object({
         classId: z.string().nullish(),
@@ -64,10 +72,43 @@ export const userSchema = z
 export const userListSchema = z.array(userSchema);
 export type UserSummary = z.infer<typeof userSchema>;
 
+export const userProfileSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string().nullish(),
+    role: z.string().nullish(),
+    firstName: emptyString,
+    lastName: emptyString,
+    phone: emptyString,
+    address: emptyString,
+    bio: emptyString,
+    avatarUrl: z.string().nullish(),
+    birthDate: dateNullableSchema,
+    studentProfile: z
+      .object({
+        classId: z.string().nullish(),
+        gender: z.string().nullish(),
+      })
+      .nullish(),
+    teacherProfile: z
+      .object({
+        title: z.string().nullish(),
+      })
+      .nullish(),
+    parentProfile: z
+      .object({})
+      .passthrough()
+      .nullish(),
+  })
+  .passthrough();
+export type UserProfileSummary = z.infer<typeof userProfileSchema>;
+
 export const classSchema = z.object({
   id: z.string(),
   name: z.string(),
   grade: z.number(),
+  major: emptyString,
   section: z.string(),
   homeroomTeacher: emptyString,
   homeroomTeacherId: emptyString,
@@ -82,11 +123,21 @@ export type ClassSummary = z.infer<typeof classSchema>;
 export const classFormSchema = z.object({
   name: z.string(),
   grade: z.number(),
+  major: emptyString,
   section: z.string(),
   homeroomTeacherId: emptyString,
   academicYear: emptyString,
 });
 export type ClassFormValues = z.infer<typeof classFormSchema>;
+
+export const majorSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  name: emptyString,
+  description: emptyString,
+});
+export const majorListSchema = z.array(majorSchema);
+export type MajorSummary = z.infer<typeof majorSchema>;
 
 export const subjectSchema = z.object({
   id: z.string(),
@@ -94,6 +145,7 @@ export const subjectSchema = z.object({
   code: z.string(),
   category: z.string(),
   description: emptyString,
+  color: emptyString,
   teachers: z
     .array(teacherOptionSchema)
     .nullish()
@@ -109,6 +161,7 @@ export const subjectFormSchema = z.object({
   code: z.string(),
   category: z.string(),
   description: emptyString,
+  color: emptyString,
   hoursPerWeek: z.number(),
 });
 export type SubjectFormValues = z.infer<typeof subjectFormSchema>;
@@ -229,6 +282,7 @@ export const scheduleSchema = z.object({
   className: z.string(),
   subjectId: z.string(),
   subjectName: z.string(),
+  subjectCode: emptyString,
   teacherId: z.string().nullish(),
   teacherName: emptyString,
   dayOfWeek: z.string(),
@@ -248,6 +302,8 @@ export const attendanceSessionSchema = z.object({
   subjectName: z.string(),
   teacherId: z.string().nullish(),
   teacherName: emptyString,
+  takenByTeacherId: z.string().nullish(),
+  takenByTeacherName: emptyString,
   scheduleId: z.string().nullish(),
   date: dateSchema,
   startTime: emptyString,
@@ -272,6 +328,19 @@ export const attendanceRecordSchema = z.object({
 });
 export const attendanceRecordListSchema = z.array(attendanceRecordSchema);
 export type AttendanceRecordSummary = z.infer<typeof attendanceRecordSchema>;
+
+export const teacherAttendanceSchema = z.object({
+  id: z.string(),
+  teacherId: z.string(),
+  teacherName: emptyString,
+  sessionId: z.string().nullish(),
+  date: dateSchema,
+  status: z.string(),
+  note: emptyString,
+  isAllDay: z.boolean().default(false),
+});
+export const teacherAttendanceListSchema = z.array(teacherAttendanceSchema);
+export type TeacherAttendanceSummary = z.infer<typeof teacherAttendanceSchema>;
 
 export const gradeSchema = z.object({
   id: z.string(),
