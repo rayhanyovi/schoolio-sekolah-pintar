@@ -274,6 +274,7 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
   const [grades, setGrades] = useState<GradeSummary[]>([]);
   const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const showNoStudents = allowStudentSelect && !isLoading && students.length === 0;
 
   useEffect(() => {
     const loadBase = async () => {
@@ -391,10 +392,25 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
                   </div>
                 </SelectItem>
               ))}
+              {students.length === 0 && (
+                <SelectItem value="none" disabled>
+                  Belum ada siswa
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         )}
       </div>
+
+      {showNoStudents && (
+        <Card className="p-8">
+          <div className="text-center text-muted-foreground">
+            <User className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p>Belum ada siswa terdaftar</p>
+            <p className="text-sm">Tambahkan siswa terlebih dahulu untuk melihat nilai.</p>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">

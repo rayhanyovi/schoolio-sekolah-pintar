@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,9 @@ import { id } from "date-fns/locale";
 import { toast } from "sonner";
 
 export default function QuestionBank() {
-  const [activeTab, setActiveTab] = useState<"questions" | "packages">("questions");
+  const [activeTab, setActiveTab] = useState<"questions" | "packages">(
+    "questions",
+  );
   const [questions, setQuestions] = useState<QuestionSummary[]>([]);
   const [packages, setPackages] = useState<QuestionPackageSummary[]>([]);
   const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
@@ -98,9 +100,14 @@ export default function QuestionBank() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Selected items
-  const [selectedQuestion, setSelectedQuestion] = useState<QuestionSummary | null>(null);
-  const [selectedPackage, setSelectedPackage] = useState<QuestionPackageSummary | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<{ type: "question" | "package"; id: string } | null>(null);
+  const [selectedQuestion, setSelectedQuestion] =
+    useState<QuestionSummary | null>(null);
+  const [selectedPackage, setSelectedPackage] =
+    useState<QuestionPackageSummary | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{
+    type: "question" | "package";
+    id: string;
+  } | null>(null);
 
   const loadData = async () => {
     try {
@@ -139,9 +146,11 @@ export default function QuestionBank() {
     const matchesSearch =
       q.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
       q.topic.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = subjectFilter === "all" || q.subject === subjectFilter;
+    const matchesSubject =
+      subjectFilter === "all" || q.subject === subjectFilter;
     const matchesType = typeFilter === "all" || q.type === typeFilter;
-    const matchesDifficulty = difficultyFilter === "all" || q.difficulty === difficultyFilter;
+    const matchesDifficulty =
+      difficultyFilter === "all" || q.difficulty === difficultyFilter;
     return matchesSearch && matchesSubject && matchesType && matchesDifficulty;
   });
 
@@ -149,7 +158,8 @@ export default function QuestionBank() {
     const matchesSearch =
       pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pkg.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = subjectFilter === "all" || pkg.subject === subjectFilter;
+    const matchesSubject =
+      subjectFilter === "all" || pkg.subject === subjectFilter;
     return matchesSearch && matchesSubject;
   });
 
@@ -196,7 +206,7 @@ export default function QuestionBank() {
   };
 
   const handleSavePackage = async (
-    packageData: Partial<QuestionPackageSummary>
+    packageData: Partial<QuestionPackageSummary>,
   ) => {
     try {
       const subjectId = packageData.subject
@@ -244,7 +254,9 @@ export default function QuestionBank() {
 
   const handleDuplicateQuestion = async (question: QuestionSummary) => {
     try {
-      const subjectId = subjects.find((subject) => subject.name === question.subject)?.id;
+      const subjectId = subjects.find(
+        (subject) => subject.name === question.subject,
+      )?.id;
       await createQuestion({
         type: question.type,
         subjectId,
@@ -364,7 +376,10 @@ export default function QuestionBank() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "questions" | "packages")}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as "questions" | "packages")}
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <TabsList>
             <TabsTrigger value="questions" className="gap-2">
@@ -394,8 +409,8 @@ export default function QuestionBank() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Mapel</SelectItem>
-                {subjectOptions.map((subject) => (
-                  <SelectItem key={subject} value={subject}>
+                {subjectOptions.map((subject, index) => (
+                  <SelectItem key={index} value={subject}>
                     {subject}
                   </SelectItem>
                 ))}
@@ -409,24 +424,31 @@ export default function QuestionBank() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Tipe</SelectItem>
-                    {(Object.keys(ASSIGNMENT_TYPES) as AssignmentType[]).map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {ASSIGNMENT_TYPES[type]}
-                      </SelectItem>
-                    ))}
+                    {(Object.keys(ASSIGNMENT_TYPES) as AssignmentType[]).map(
+                      (type) => (
+                        <SelectItem key={type} value={type}>
+                          {ASSIGNMENT_TYPES[type]}
+                        </SelectItem>
+                      ),
+                    )}
                   </SelectContent>
                 </Select>
-                <Select value={difficultyFilter} onValueChange={setDifficultyFilter}>
+                <Select
+                  value={difficultyFilter}
+                  onValueChange={setDifficultyFilter}
+                >
                   <SelectTrigger className="w-[120px]">
                     <SelectValue placeholder="Level" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua</SelectItem>
-                    {(Object.keys(DIFFICULTY_LEVELS) as DifficultyLevel[]).map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {DIFFICULTY_LEVELS[level]}
-                      </SelectItem>
-                    ))}
+                    {(Object.keys(DIFFICULTY_LEVELS) as DifficultyLevel[]).map(
+                      (level) => (
+                        <SelectItem key={level} value={level}>
+                          {DIFFICULTY_LEVELS[level]}
+                        </SelectItem>
+                      ),
+                    )}
                   </SelectContent>
                 </Select>
               </>
@@ -459,11 +481,13 @@ export default function QuestionBank() {
               Memuat soal...
             </div>
           ) : (
-            <div className={cn(
-              viewMode === "grid" 
-                ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
-                : "space-y-3"
-            )}>
+            <div
+              className={cn(
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                  : "space-y-3",
+              )}
+            >
               {filteredQuestions.map((question) => (
                 <QuestionCard
                   key={question.id}
@@ -485,7 +509,9 @@ export default function QuestionBank() {
           {!isLoading && filteredQuestions.length === 0 && (
             <div className="text-center py-16">
               <Library className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Tidak ada soal ditemukan</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Tidak ada soal ditemukan
+              </h3>
               <p className="text-muted-foreground mb-4">
                 {searchQuery
                   ? "Coba ubah kata kunci pencarian atau filter"
@@ -511,18 +537,26 @@ export default function QuestionBank() {
               Memuat paket soal...
             </div>
           ) : (
-            <div className={cn(
-              viewMode === "grid" 
-                ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
-                : "space-y-3"
-            )}>
+            <div
+              className={cn(
+                viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                  : "space-y-3",
+              )}
+            >
               {filteredPackages.map((pkg) => {
                 const pkgQuestions = getPackageQuestions(pkg);
-                const totalPoints = pkgQuestions.reduce((sum, q) => sum + q.points, 0);
+                const totalPoints = pkgQuestions.reduce(
+                  (sum, q) => sum + q.points,
+                  0,
+                );
                 const types = new Set(pkgQuestions.map((q) => q.type));
 
                 return (
-                  <Card key={pkg.id} className="p-4 hover:shadow-md transition-all group">
+                  <Card
+                    key={pkg.id}
+                    className="p-4 hover:shadow-md transition-all group"
+                  >
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                         <Package className="h-6 w-6 text-primary" />
@@ -530,7 +564,9 @@ export default function QuestionBank() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h4 className="font-semibold text-foreground">{pkg.name}</h4>
+                            <h4 className="font-semibold text-foreground">
+                              {pkg.name}
+                            </h4>
                             <p className="text-sm text-muted-foreground line-clamp-1">
                               {pkg.description}
                             </p>
@@ -559,17 +595,21 @@ export default function QuestionBank() {
                                 onClick={async () => {
                                   try {
                                     const subjectId = subjects.find(
-                                      (subject) => subject.name === pkg.subject
+                                      (subject) => subject.name === pkg.subject,
                                     )?.id;
                                     await createQuestionPackage({
                                       name: `${pkg.name} (Salinan)`,
                                       description: pkg.description,
                                       subjectId,
-                                      subject: subjectId ? undefined : pkg.subject,
+                                      subject: subjectId
+                                        ? undefined
+                                        : pkg.subject,
                                       questionIds: pkg.questionIds,
                                     });
                                     await loadData();
-                                    toast.success("Paket soal berhasil diduplikasi");
+                                    toast.success(
+                                      "Paket soal berhasil diduplikasi",
+                                    );
                                   } catch (error) {
                                     toast.error("Gagal menduplikasi paket");
                                   }
@@ -581,7 +621,10 @@ export default function QuestionBank() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => {
-                                  setItemToDelete({ type: "package", id: pkg.id });
+                                  setItemToDelete({
+                                    type: "package",
+                                    id: pkg.id,
+                                  });
                                   setDeleteDialogOpen(true);
                                 }}
                                 className="text-destructive focus:text-destructive"
@@ -598,7 +641,9 @@ export default function QuestionBank() {
                           <span className="text-xs text-muted-foreground">
                             {pkgQuestions.length} soal
                           </span>
-                          <span className="text-xs text-muted-foreground">•</span>
+                          <span className="text-xs text-muted-foreground">
+                            •
+                          </span>
                           <span className="text-xs text-muted-foreground">
                             {totalPoints} poin
                           </span>
@@ -608,7 +653,11 @@ export default function QuestionBank() {
                           {Array.from(types).map((type) => {
                             const Icon = typeIcons[type];
                             return (
-                              <Badge key={type} variant="secondary" className="text-xs gap-1">
+                              <Badge
+                                key={type}
+                                variant="secondary"
+                                className="text-xs gap-1"
+                              >
                                 <Icon className="h-3 w-3" />
                                 {ASSIGNMENT_TYPES[type]}
                               </Badge>
@@ -619,7 +668,9 @@ export default function QuestionBank() {
                         <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {format(pkg.createdAt, "d MMM yyyy", { locale: id })}
+                            {format(pkg.createdAt, "d MMM yyyy", {
+                              locale: id,
+                            })}
                           </span>
                           <span className="flex items-center gap-1">
                             <BarChart3 className="h-3 w-3" />
@@ -637,7 +688,9 @@ export default function QuestionBank() {
           {!isLoading && filteredPackages.length === 0 && (
             <div className="text-center py-16">
               <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Tidak ada paket soal</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Tidak ada paket soal
+              </h3>
               <p className="text-muted-foreground mb-4">
                 Buat paket soal untuk mengelompokkan soal-soal Anda
               </p>

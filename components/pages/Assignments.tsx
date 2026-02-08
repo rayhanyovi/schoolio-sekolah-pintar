@@ -76,7 +76,7 @@ import { listClasses } from "@/lib/handlers/classes";
 import { listGrades } from "@/lib/handlers/grades";
 import { listQuestions, listQuestionPackages } from "@/lib/handlers/questions";
 import { listSubjects } from "@/lib/handlers/subjects";
-import { listStudents } from "@/lib/handlers/users";
+import { listStudents, listTeachers } from "@/lib/handlers/users";
 import {
   AssignmentSubmissionSummary,
   AssignmentSummary,
@@ -126,6 +126,7 @@ export default function Assignments() {
         title="Tugas Anak"
         description="Pantau status tugas anak Anda"
         allowStudentSelect
+        allowWork={false}
       />
     );
   }
@@ -135,6 +136,7 @@ export default function Assignments() {
       title="Tugas Saya"
       description="Kerjakan dan kumpulkan tugas Anda"
       allowStudentSelect={false}
+      allowWork
     />
   );
 }
@@ -222,6 +224,10 @@ function TeacherAssignmentsView() {
             assignment.subjectId === selectedSchedule.subjectId
         )
       : assignments;
+  const emptyAssignmentsMessage =
+    selectedScheduleId === "all"
+      ? "Belum ada tugas untuk ditampilkan"
+      : "Tidak ada tugas untuk jadwal ini";
 
   const totalSubmissions = Object.values(submissionCounts).reduce(
     (sum, value) => sum + value,
@@ -428,6 +434,11 @@ function TeacherAssignmentsView() {
                     {schedule.className} - {schedule.subjectName}
                   </SelectItem>
                 ))}
+                {schedules.length === 0 && (
+                  <SelectItem value="none" disabled>
+                    Belum ada jadwal
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
             <div className="relative flex-1">
@@ -462,6 +473,14 @@ function TeacherAssignmentsView() {
             />
           );
         })}
+        {!isLoading && filteredAssignments.length === 0 && (
+          <Card className="p-8">
+            <div className="text-center text-muted-foreground">
+              <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p>{emptyAssignmentsMessage}</p>
+            </div>
+          </Card>
+        )}
       </div>
 
       <Sheet open={!!detailAssignment} onOpenChange={() => setDetailAssignment(null)}>
@@ -483,12 +502,14 @@ type StudentAssignmentsViewProps = {
   title: string;
   description: string;
   allowStudentSelect: boolean;
+  allowWork: boolean;
 };
 
 function StudentAssignmentsView({
   title,
   description,
   allowStudentSelect,
+  allowWork,
 }: StudentAssignmentsViewProps) {
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
   const [students, setStudents] = useState<UserSummary[]>([]);
@@ -544,30 +565,33 @@ function StudentAssignmentsView({
 
   const selectedStudent = students.find((student) => student.id === selectedStudentId);
   const studentClassId = selectedStudent?.studentProfile?.classId ?? null;
+  const showNoStudents = allowStudentSelect && !isLoading && students.length === 0;
 
   const submissionMap = useMemo(
     () => new Map(submissions.map((entry) => [entry.assignmentId, entry])),
     [submissions]
   );
 
-  const assignmentsWithStatus = assignments
-    .filter((assignment) =>
-      studentClassId ? assignment.classIds.includes(studentClassId) : true
-    )
-    .map((assignment) => {
-      const submission = submissionMap.get(assignment.id);
-      let status: "pending" | "submitted" | "graded" = "pending";
-      if (submission) {
-        if (submission.status === "GRADED") status = "graded";
-        else if (submission.status === "SUBMITTED") status = "submitted";
-      }
-      return {
-        ...assignment,
-        status,
-        submittedAt: submission?.submittedAt,
-        grade: submission?.grade ?? null,
-      };
-    });
+  const assignmentsWithStatus = selectedStudentId
+    ? assignments
+        .filter((assignment) =>
+          studentClassId ? assignment.classIds.includes(studentClassId) : true
+        )
+        .map((assignment) => {
+          const submission = submissionMap.get(assignment.id);
+          let status: "pending" | "submitted" | "graded" = "pending";
+          if (submission) {
+            if (submission.status === "GRADED") status = "graded";
+            else if (submission.status === "SUBMITTED") status = "submitted";
+          }
+          return {
+            ...assignment,
+            status,
+            submittedAt: submission?.submittedAt,
+            grade: submission?.grade ?? null,
+          };
+        })
+    : [];
 
   const filterAssignments = (status: string) =>
     assignmentsWithStatus.filter((assignment) => assignment.status === status);
@@ -593,10 +617,25 @@ function StudentAssignmentsView({
                   </div>
                 </SelectItem>
               ))}
+              {students.length === 0 && (
+                <SelectItem value="none" disabled>
+                  Belum ada siswa
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         )}
       </div>
+
+      {showNoStudents && (
+        <Card className="p-8">
+          <div className="text-center text-muted-foreground">
+            <User className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p>Belum ada siswa terdaftar</p>
+            <p className="text-sm">Tambahkan siswa terlebih dahulu untuk melihat tugas.</p>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-3 gap-4">
         <Card className="border-l-4 border-l-warning">
@@ -656,7 +695,11 @@ function StudentAssignmentsView({
               <StudentAssignmentCard
                 key={assignment.id}
                 assignment={assignment}
-                onWork={() => setWorkingAssignment(assignment)}
+                onWork={() => {
+                  if (!allowWork) return;
+                  setWorkingAssignment(assignment);
+                }}
+                allowWork={allowWork}
               />
             ))}
             {filterAssignments(status).length === 0 && (
@@ -671,18 +714,20 @@ function StudentAssignmentsView({
         ))}
       </Tabs>
 
-      <Dialog open={!!workingAssignment} onOpenChange={() => setWorkingAssignment(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {workingAssignment && (
-            <SubmissionForm
-              assignment={workingAssignment}
-              studentId={selectedStudentId}
-              onSubmitted={loadSubmissions}
-              onClose={() => setWorkingAssignment(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {allowWork && (
+        <Dialog open={!!workingAssignment} onOpenChange={() => setWorkingAssignment(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            {workingAssignment && (
+              <SubmissionForm
+                assignment={workingAssignment}
+                studentId={selectedStudentId}
+                onSubmitted={loadSubmissions}
+                onClose={() => setWorkingAssignment(null)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
 
       {isLoading && (
         <p className="text-sm text-muted-foreground">Memuat tugas...</p>
@@ -715,9 +760,14 @@ interface StudentAssignmentCardProps {
     grade?: number | null;
   };
   onWork: () => void;
+  allowWork: boolean;
 }
 
-function StudentAssignmentCard({ assignment, onWork }: StudentAssignmentCardProps) {
+function StudentAssignmentCard({
+  assignment,
+  onWork,
+  allowWork,
+}: StudentAssignmentCardProps) {
   const deliveryType = getDeliveryType(assignment);
   const config = typeConfig[deliveryType];
   const Icon = config.icon;
@@ -757,7 +807,7 @@ function StudentAssignmentCard({ assignment, onWork }: StudentAssignmentCardProp
                 <p className="text-2xl font-bold text-success">{assignment.grade}</p>
               </div>
             )}
-            {assignment.status === "pending" && (
+            {assignment.status === "pending" && allowWork && (
               <Button onClick={onWork}>Kerjakan</Button>
             )}
             {assignment.status === "submitted" && (
@@ -940,5 +990,332 @@ function TeacherAssignmentDetail({
         <p className="text-sm text-muted-foreground mt-4">Memuat pengumpulan...</p>
       )}
     </>
+  );
+}
+
+type SubmissionFormProps = {
+  assignment: AssignmentSummary & {
+    status: "pending" | "submitted" | "graded";
+    submittedAt?: Date;
+    grade?: number | null;
+  };
+  studentId: string;
+  onSubmitted: () => Promise<void> | void;
+  onClose: () => void;
+};
+
+function SubmissionForm({
+  assignment,
+  studentId,
+  onSubmitted,
+  onClose,
+}: SubmissionFormProps) {
+  const [answer, setAnswer] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const deliveryType = getDeliveryType(assignment);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!studentId) {
+      toast.error("Siswa belum dipilih.");
+      return;
+    }
+    if (deliveryType !== "FILE" && !answer.trim()) {
+      toast.error("Jawaban wajib diisi.");
+      return;
+    }
+    if (deliveryType === "FILE" && !selectedFile) {
+      toast.error("Pilih file terlebih dahulu.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const response =
+        deliveryType === "FILE"
+          ? {
+              fileName: selectedFile?.name ?? "",
+              size: selectedFile?.size ?? 0,
+              type: selectedFile?.type ?? "",
+            }
+          : { text: answer.trim() };
+
+      await createAssignmentSubmission(assignment.id, {
+        studentId,
+        status: "SUBMITTED",
+        submittedAt: new Date().toISOString(),
+        response,
+      });
+      toast.success("Tugas berhasil dikumpulkan");
+      await onSubmitted();
+      onClose();
+    } catch (error) {
+      toast.error("Gagal mengumpulkan tugas");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <DialogHeader>
+        <DialogTitle>Kerjakan Tugas</DialogTitle>
+        <DialogDescription>{assignment.title}</DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-2">
+        <Label>Mata Pelajaran</Label>
+        <div className="text-sm text-muted-foreground">
+          {assignment.subjectName}
+        </div>
+      </div>
+
+      {deliveryType === "FILE" ? (
+        <div className="space-y-2">
+          <Label>Upload File</Label>
+          <Input
+            type="file"
+            onChange={(event) =>
+              setSelectedFile(event.target.files?.[0] ?? null)
+            }
+          />
+          {selectedFile && (
+            <p className="text-xs text-muted-foreground">
+              {selectedFile.name}
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label>Jawaban</Label>
+          <Textarea
+            value={answer}
+            onChange={(event) => setAnswer(event.target.value)}
+            rows={5}
+            placeholder="Tulis jawaban di sini..."
+          />
+        </div>
+      )}
+
+      <DialogFooter className="pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Batal
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Mengirim..." : "Kumpulkan"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+type AssignmentFormProps = {
+  schedules: ScheduleSummary[];
+  onClose: () => void;
+  onSave: (payload: {
+    id?: string;
+    title: string;
+    description: string;
+    classIds: string[];
+    subjectId: string;
+    teacherId: string;
+    dueDate: string;
+    deliveryType: AssignmentType;
+    kind: string;
+  }) => void;
+};
+
+function AssignmentForm({ schedules, onClose, onSave }: AssignmentFormProps) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [scheduleId, setScheduleId] = useState("");
+  const [teacherId, setTeacherId] = useState("");
+  const [dueDate, setDueDate] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 7);
+    return format(date, "yyyy-MM-dd");
+  });
+  const [deliveryType, setDeliveryType] = useState<AssignmentType>("FILE");
+  const [kind, setKind] = useState("HOMEWORK");
+  const [teachers, setTeachers] = useState<UserSummary[]>([]);
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
+
+  const selectedSchedule = schedules.find((s) => s.id === scheduleId);
+
+  useEffect(() => {
+    setIsLoadingTeachers(true);
+    listTeachers()
+      .then((data) => setTeachers(data))
+      .finally(() => setIsLoadingTeachers(false));
+  }, []);
+
+  useEffect(() => {
+    if (selectedSchedule?.teacherId) {
+      setTeacherId(selectedSchedule.teacherId);
+    }
+  }, [selectedSchedule?.teacherId]);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedSchedule) {
+      toast.error("Pilih jadwal terlebih dahulu.");
+      return;
+    }
+    if (!title.trim()) {
+      toast.error("Judul tugas wajib diisi.");
+      return;
+    }
+    if (!teacherId) {
+      toast.error("Guru pengampu wajib dipilih.");
+      return;
+    }
+    if (!dueDate) {
+      toast.error("Deadline wajib diisi.");
+      return;
+    }
+
+    onSave({
+      title: title.trim(),
+      description: description.trim(),
+      classIds: [selectedSchedule.classId],
+      subjectId: selectedSchedule.subjectId,
+      teacherId,
+      dueDate,
+      deliveryType,
+      kind,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label>Jadwal</Label>
+        <Select value={scheduleId} onValueChange={setScheduleId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih jadwal pelajaran..." />
+          </SelectTrigger>
+          <SelectContent>
+            {schedules.map((schedule) => (
+              <SelectItem key={schedule.id} value={schedule.id}>
+                {schedule.className} • {schedule.subjectName}
+              </SelectItem>
+            ))}
+            {schedules.length === 0 && (
+              <SelectItem value="none" disabled>
+                Belum ada jadwal
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+        {selectedSchedule && (
+          <p className="text-xs text-muted-foreground">
+            {selectedSchedule.dayOfWeek} • {selectedSchedule.startTime} - {selectedSchedule.endTime}
+          </p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="assignment-title">Judul</Label>
+          <Input
+            id="assignment-title"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Masukkan judul tugas"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="assignment-deadline">Deadline</Label>
+          <Input
+            id="assignment-deadline"
+            type="date"
+            value={dueDate}
+            onChange={(event) => setDueDate(event.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="assignment-description">Deskripsi</Label>
+        <Textarea
+          id="assignment-description"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          rows={3}
+          placeholder="Tambahkan detail tugas"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Jenis Tugas</Label>
+          <Select value={kind} onValueChange={setKind}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih jenis tugas..." />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(ASSIGNMENT_KIND_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Metode Pengumpulan</Label>
+          <Select
+            value={deliveryType}
+            onValueChange={(value) => setDeliveryType(value as AssignmentType)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih metode..." />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(ASSIGNMENT_TYPES).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Guru Pengampu</Label>
+        <Select
+          value={teacherId}
+          onValueChange={setTeacherId}
+          disabled={isLoadingTeachers}
+        >
+          <SelectTrigger>
+            <SelectValue
+              placeholder={isLoadingTeachers ? "Memuat guru..." : "Pilih guru"}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {teachers.map((teacher) => (
+              <SelectItem key={teacher.id} value={teacher.id}>
+                {teacher.name}
+              </SelectItem>
+            ))}
+            {teachers.length === 0 && (
+              <SelectItem value="none" disabled>
+                Belum ada guru
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <DialogFooter className="pt-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Batal
+        </Button>
+        <Button type="submit">Simpan Tugas</Button>
+      </DialogFooter>
+    </form>
   );
 }

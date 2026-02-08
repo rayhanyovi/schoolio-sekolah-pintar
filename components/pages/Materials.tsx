@@ -375,8 +375,10 @@ function StudentMaterialsView({
 
   const selectedStudent = students.find((student) => student.id === selectedStudentId);
   const studentClassId = selectedStudent?.studentProfile?.classId ?? null;
+  const showNoStudents = allowStudentSelect && !isLoading && students.length === 0;
 
   const filteredMaterials = useMemo(() => {
+    if (allowStudentSelect && !selectedStudentId) return [];
     return materials.filter((material) => {
       const matchSubject =
         selectedSubjectId === "all" ||
@@ -389,7 +391,7 @@ function StudentMaterialsView({
         !studentClassId || !material.classId || material.classId === studentClassId;
       return matchSubject && matchSearch && matchClass;
     });
-  }, [materials, selectedSubjectId, searchQuery, studentClassId]);
+  }, [materials, selectedSubjectId, searchQuery, studentClassId, allowStudentSelect, selectedStudentId]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -412,10 +414,25 @@ function StudentMaterialsView({
                   </div>
                 </SelectItem>
               ))}
+              {students.length === 0 && (
+                <SelectItem value="none" disabled>
+                  Belum ada siswa
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         )}
       </div>
+
+      {showNoStudents && (
+        <Card className="p-10">
+          <div className="text-center text-muted-foreground">
+            <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="text-lg font-medium">Belum ada siswa terhubung</p>
+            <p className="text-sm">Tambahkan siswa terlebih dahulu untuk melihat materi.</p>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -481,18 +498,23 @@ function StudentMaterialsView({
               <SelectTrigger className="w-full sm:w-[250px]">
                 <SelectValue placeholder="Pilih mata pelajaran..." />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Mata Pelajaran</SelectItem>
-                {subjects.map((subject) => (
-                  <SelectItem key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+            <SelectContent>
+              <SelectItem value="all">Semua Mata Pelajaran</SelectItem>
+              {subjects.map((subject) => (
+                <SelectItem key={subject.id} value={subject.id}>
+                  {subject.name}
+                </SelectItem>
+              ))}
+              {subjects.length === 0 && (
+                <SelectItem value="none" disabled>
+                  Belum ada mata pelajaran
+                </SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
                 placeholder="Cari materi..."
                 className="pl-10"
                 value={searchQuery}
@@ -512,6 +534,24 @@ function StudentMaterialsView({
           />
         ))}
       </div>
+
+      {!isLoading && !showNoStudents && filteredMaterials.length === 0 && (
+        <Card className="p-10">
+          <div className="text-center text-muted-foreground">
+            <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="text-lg font-medium">
+              {searchQuery || selectedSubjectId !== "all"
+                ? "Tidak ada materi sesuai filter"
+                : "Belum ada materi"}
+            </p>
+            <p className="text-sm">
+              {searchQuery || selectedSubjectId !== "all"
+                ? "Coba ubah filter atau kata kunci pencarian."
+                : "Materi akan muncul setelah guru menambahkan."}
+            </p>
+          </div>
+        </Card>
+      )}
 
       <Sheet open={!!detailMaterial} onOpenChange={() => setDetailMaterial(null)}>
         <SheetContent className="sm:max-w-lg overflow-y-auto">

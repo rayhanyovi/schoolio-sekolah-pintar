@@ -182,6 +182,11 @@ export function PackageFormDialog({
                       {subject.name}
                     </SelectItem>
                   ))}
+                  {subjects.length === 0 && (
+                    <SelectItem value="none" disabled>
+                      Belum ada mata pelajaran
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -261,57 +266,69 @@ export function PackageFormDialog({
                       {subject.name}
                     </SelectItem>
                   ))}
+                  {subjects.length === 0 && (
+                    <SelectItem value="none" disabled>
+                      Belum ada mata pelajaran
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               </div>
             </div>
             <ScrollArea className="flex-1 p-2">
-              <div className="space-y-2">
-                {filteredQuestions.map((q) => {
-                  const Icon = typeIcons[q.type];
-                  const isSelected = formData.questionIds?.includes(q.id);
-                  return (
-                    <Card
-                      key={q.id}
-                      className={cn(
-                        "p-3 cursor-pointer transition-all hover:border-primary",
-                        isSelected && "border-primary bg-primary/5"
-                      )}
-                      onClick={() => toggleQuestion(q.id)}
-                    >
-                      <div className="flex items-start gap-2">
-                        <Checkbox
-                          checked={isSelected}
-                          className="mt-0.5"
-                          onClick={(e) => e.stopPropagation()}
-                          onCheckedChange={() => toggleQuestion(q.id)}
-                        />
-                        <div
-                          className={cn(
-                            "shrink-0 w-7 h-7 rounded flex items-center justify-center",
-                            q.type === "MCQ" && "bg-primary/10 text-primary",
-                            q.type === "ESSAY" && "bg-secondary/10 text-secondary",
-                            q.type === "FILE" && "bg-accent/10 text-accent"
-                          )}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm line-clamp-2">{q.text}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {q.subject}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {q.points}p
-                            </span>
+              {filteredQuestions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center py-10 text-muted-foreground">
+                  <p className="text-sm">Belum ada soal tersedia</p>
+                  <p className="text-xs">Coba ubah filter atau buat soal baru.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredQuestions.map((q) => {
+                    const Icon = typeIcons[q.type];
+                    const isSelected = formData.questionIds?.includes(q.id);
+                    return (
+                      <Card
+                        key={q.id}
+                        className={cn(
+                          "p-3 cursor-pointer transition-all hover:border-primary",
+                          isSelected && "border-primary bg-primary/5"
+                        )}
+                        onClick={() => toggleQuestion(q.id)}
+                      >
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            checked={isSelected}
+                            className="mt-0.5"
+                            onClick={(e) => e.stopPropagation()}
+                            onCheckedChange={() => toggleQuestion(q.id)}
+                          />
+                          <div
+                            className={cn(
+                              "shrink-0 w-7 h-7 rounded flex items-center justify-center",
+                              q.type === "MCQ" && "bg-primary/10 text-primary",
+                              q.type === "ESSAY" && "bg-secondary/10 text-secondary",
+                              q.type === "FILE" && "bg-accent/10 text-accent"
+                            )}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm line-clamp-2">{q.text}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                {q.subject}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {q.points}p
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </ScrollArea>
           </div>
         </div>

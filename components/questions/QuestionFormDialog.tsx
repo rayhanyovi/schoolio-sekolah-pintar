@@ -224,6 +224,11 @@ export function QuestionFormDialog({
                       {subject.name}
                     </SelectItem>
                   ))}
+                  {subjects.length === 0 && (
+                    <SelectItem value="none" disabled>
+                      Belum ada mata pelajaran
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
