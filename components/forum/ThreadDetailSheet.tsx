@@ -48,12 +48,6 @@ export function ThreadDetailSheet({
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const [newReply, setNewReply] = useState("");
 
-  if (!thread) return null;
-
-  const threadReplies = replies.filter((r) => r.threadId === thread.id);
-  const statusColor = THREAD_STATUS_COLORS[thread.status as ThreadStatus];
-  const isLocked = thread.status === "LOCKED";
-
   const loadReplies = async () => {
     try {
       setIsLoadingReplies(true);
@@ -101,6 +95,12 @@ export function ThreadDetailSheet({
       });
     }
   };
+
+  if (!thread) return null;
+
+  const threadReplies = replies.filter((r) => r.threadId === thread.id);
+  const statusColor = THREAD_STATUS_COLORS[thread.status as ThreadStatus];
+  const isLocked = thread.status === "LOCKED";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
