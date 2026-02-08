@@ -1,0 +1,37 @@
+- route: /dashboard
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Navigasi Utama
+      steps:
+        - title: Pilih Menu
+          description: Gunakan sidebar di kiri untuk berpindah halaman.
+        - title: Cari Cepat
+          description: Gunakan kolom pencarian di atas untuk menemukan data.
+    - name: Notifikasi & Bantuan
+      steps:
+        - title: Notifikasi
+          description: Klik ikon lonceng untuk melihat pemberitahuan terbaru.
+        - title: Bantuan
+          description: Klik ikon bantuan di samping lonceng untuk melihat panduan fitur.
+- route: /dashboard/attendance
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Absensi Guru
+      steps:
+        - title: Mulai Jam Pelajaran
+          description: Klik untuk membuka absensi siswa pada sesi terpilih.
+        - title: Tidak Hadir
+          description: Jika berhalangan, isi status sakit/izin beserta alasan.
+    - name: Absensi Siswa
+      steps:
+        - title: Pilih Sesi
+          description: Pilih tanggal dan sesi agar daftar siswa muncul.
+        - title: Simpan Absensi
+          description: Pastikan semua siswa terisi sebelum menyimpan.
+- route: /dashboard/assignments
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Tugas
+      steps:
+        - title: Pantau Status
+          description: Lihat progres pengumpulan tugas dan status penilaian.

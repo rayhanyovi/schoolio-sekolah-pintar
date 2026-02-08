@@ -8,6 +8,7 @@ import { RoleProvider } from "@/hooks/useRoleContext";
 import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { HelpMenu } from "@/components/help/HelpMenu";
 
 interface DashboardLayoutProps {
   initialRole?: Role;
@@ -21,14 +22,32 @@ export function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
   const [role, setRole] = useState<Role>(initialRole);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedUserName, setSelectedUserName] = useState<string>(userName);
+
+  const handleRoleChange = (nextRole: Role) => {
+    setRole(nextRole);
+    setSelectedUserId("");
+    setSelectedUserName(userName);
+  };
+
+  const handleUserChange = (id: string, name: string) => {
+    setSelectedUserId(id);
+    setSelectedUserName(name);
+  };
 
   return (
     <div className="flex h-screen bg-background">
-      <Sidebar role={role} userName={userName} />
+      <Sidebar role={role} userName={selectedUserName} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Debug Panel */}
-        <DebugPanel currentRole={role} onRoleChange={setRole} />
+        <DebugPanel
+          currentRole={role}
+          onRoleChange={handleRoleChange}
+          selectedUserId={selectedUserId}
+          onUserChange={handleUserChange}
+        />
 
         {/* Top Bar */}
         <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between shrink-0">
@@ -43,6 +62,7 @@ export function DashboardLayout({
           </div>
           
           <div className="flex items-center gap-2">
+            <HelpMenu role={role} />
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
@@ -53,7 +73,7 @@ export function DashboardLayout({
         </header>
 
         {/* Main Content */}
-        <RoleProvider role={role}>
+        <RoleProvider role={role} userId={selectedUserId}>
           <main className="flex-1 overflow-auto p-6">
             {children}
           </main>
