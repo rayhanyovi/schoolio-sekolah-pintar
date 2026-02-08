@@ -52,21 +52,27 @@ export function AssignTeacherDialog({
             Pilih guru yang akan mengampu mata pelajaran ini
           </p>
           <ScrollArea className="h-[300px] rounded-md border p-4">
-            <div className="space-y-3">
-              {teachers.map((teacher) => (
-                <div
-                  key={teacher.id}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                  onClick={() => handleToggle(teacher.id)}
-                >
-                  <Checkbox
-                    checked={selectedTeachers.includes(teacher.id)}
-                    onCheckedChange={() => handleToggle(teacher.id)}
-                  />
-                  <span className="text-sm">{teacher.name}</span>
-                </div>
-              ))}
-            </div>
+            {teachers.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Belum ada guru tersedia
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {teachers.map((teacher) => (
+                  <div
+                    key={teacher.id}
+                    className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                    onClick={() => handleToggle(teacher.id)}
+                  >
+                    <Checkbox
+                      checked={selectedTeachers.includes(teacher.id)}
+                      onCheckedChange={() => handleToggle(teacher.id)}
+                    />
+                    <span className="text-sm">{teacher.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </ScrollArea>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>

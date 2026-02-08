@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClassFormValues, ClassSummary, TeacherOption } from "@/lib/schemas";
+import { ClassFormValues, ClassSummary, MajorSummary, TeacherOption } from "@/lib/schemas";
 import { GRADES } from "@/lib/constants";
 
 interface ClassFormDialogProps {
@@ -14,6 +14,7 @@ interface ClassFormDialogProps {
   onOpenChange: (open: boolean) => void;
   classData?: ClassSummary | null;
   teachers: TeacherOption[];
+  majors: MajorSummary[];
   onSubmit: (data: ClassFormValues) => void;
 }
 
@@ -22,11 +23,43 @@ export function ClassFormDialog({
   onOpenChange,
   classData,
   teachers,
+  majors,
   onSubmit,
 }: ClassFormDialogProps) {
+  const formatClassName = (grade: number, major: string, section: string) => {
+    const romanMap: Record<number, string> = {
+      1: "I",
+      2: "II",
+      3: "III",
+      4: "IV",
+      5: "V",
+      6: "VI",
+      7: "VII",
+      8: "VIII",
+      9: "IX",
+      10: "X",
+      11: "XI",
+      12: "XII",
+    };
+    const gradeLabel = romanMap[grade] ?? grade.toString();
+    return [gradeLabel, major, section].filter(Boolean).join("-");
+  };
+  const majorOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [];
+    const seen = new Set<string>();
+    majors.forEach((major) => {
+      const code = major.code.trim().toUpperCase();
+      if (!code || seen.has(code)) return;
+      const label = major.name?.trim() ? `${code} - ${major.name.trim()}` : code;
+      options.push({ value: code, label });
+      seen.add(code);
+    });
+    return options;
+  }, [majors]);
   const [formData, setFormData] = useState<ClassFormValues>({
     name: "",
     grade: 10,
+    major: "",
     section: "",
     homeroomTeacherId: "",
     academicYear: "2024/2025",
@@ -37,6 +70,7 @@ export function ClassFormDialog({
       setFormData({
         name: classData.name,
         grade: classData.grade,
+        major: classData.major ?? "",
         section: classData.section,
         homeroomTeacherId: classData.homeroomTeacherId,
         academicYear: classData.academicYear,
@@ -45,6 +79,7 @@ export function ClassFormDialog({
       setFormData({
         name: "",
         grade: 10,
+        major: "",
         section: "",
         homeroomTeacherId: "",
         academicYear: "2024/2025",
@@ -71,8 +106,12 @@ export function ClassFormDialog({
               <Select
                 value={formData.grade.toString()}
                 onValueChange={(value) => {
-                  const grade = parseInt(value) as 10 | 11 | 12;
-                  setFormData({ ...formData, grade, name: `${grade === 10 ? "X" : grade === 11 ? "XI" : "XII"}-${formData.section}` });
+                  const grade = parseInt(value);
+                  setFormData((prev) => ({
+                    ...prev,
+                    grade,
+                    name: formatClassName(grade, prev.major, prev.section),
+                  }));
                 }}
               >
                 <SelectTrigger>
@@ -88,14 +127,17 @@ export function ClassFormDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="section">Bagian</Label>
+              <Label htmlFor="section">Kelompok</Label>
               <Input
                 id="section"
                 value={formData.section}
                 onChange={(e) => {
                   const section = e.target.value.toUpperCase();
-                  const gradeLabel = formData.grade === 10 ? "X" : formData.grade === 11 ? "XI" : "XII";
-                  setFormData({ ...formData, section, name: `${gradeLabel}-${section}` });
+                  setFormData((prev) => ({
+                    ...prev,
+                    section,
+                    name: formatClassName(prev.grade, prev.major, section),
+                  }));
                 }}
                 placeholder="A, B, C..."
                 maxLength={2}
@@ -104,12 +146,39 @@ export function ClassFormDialog({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="major">Jurusan (Opsional)</Label>
+            <Select
+              value={formData.major || "none"}
+              onValueChange={(value) => {
+                const majorValue = value === "none" ? "" : value;
+                setFormData((prev) => ({
+                  ...prev,
+                  major: majorValue,
+                  name: formatClassName(prev.grade, majorValue, prev.section),
+                }));
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih jurusan..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Tanpa Jurusan</SelectItem>
+                {majorOptions.map((major) => (
+                  <SelectItem key={major.value} value={major.value}>
+                    {major.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="name">Nama Kelas</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="X-A"
+              placeholder="X-RPL-A"
             />
           </div>
 
@@ -128,6 +197,11 @@ export function ClassFormDialog({
                     {teacher.name}
                   </SelectItem>
                 ))}
+                {teachers.length === 0 && (
+                  <SelectItem value="none" disabled>
+                    Belum ada guru
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

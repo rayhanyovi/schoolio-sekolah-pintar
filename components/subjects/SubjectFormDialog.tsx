@@ -17,13 +17,23 @@ interface SubjectFormDialogProps {
   onSubmit: (data: SubjectFormValues) => void;
 }
 
+const COLOR_OPTIONS = [
+  { value: "bg-primary", label: "Default" },
+  { value: "bg-secondary", label: "Sekunder" },
+  { value: "bg-success", label: "Sukses" },
+  { value: "bg-warning", label: "Peringatan" },
+  { value: "bg-info", label: "Info" },
+  { value: "bg-destructive", label: "Bahaya" },
+];
+
 export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: SubjectFormDialogProps) {
   const [formData, setFormData] = useState<SubjectFormValues>({
     name: "",
     code: "",
     category: "SCIENCE" as SubjectCategory,
     description: "",
-    hoursPerWeek: 2,
+    color: "bg-primary",
+    hoursPerWeek: 0,
   });
 
   useEffect(() => {
@@ -33,7 +43,8 @@ export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: Sub
         code: subject.code,
         category: subject.category,
         description: subject.description,
-        hoursPerWeek: subject.hoursPerWeek,
+        color: subject.color || "bg-primary",
+        hoursPerWeek: subject.hoursPerWeek ?? 0,
       });
     } else {
       setFormData({
@@ -41,7 +52,8 @@ export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: Sub
         code: "",
         category: "SCIENCE",
         description: "",
-        hoursPerWeek: 2,
+        color: "bg-primary",
+        hoursPerWeek: 0,
       });
     }
   }, [subject, open]);
@@ -103,15 +115,27 @@ export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: Sub
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="hours">Jam/Minggu</Label>
-              <Input
-                id="hours"
-                type="number"
-                min={1}
-                max={10}
-                value={formData.hoursPerWeek}
-                onChange={(e) => setFormData({ ...formData, hoursPerWeek: parseInt(e.target.value) || 2 })}
-              />
+              <Label htmlFor="color">Warna Mapel</Label>
+              <Select
+                value={formData.color}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, color: value })
+                }
+              >
+                <SelectTrigger id="color">
+                  <SelectValue placeholder="Pilih warna..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLOR_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
+                        <span className={`${option.value} h-3 w-3 rounded-full`} />
+                        <span>{option.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

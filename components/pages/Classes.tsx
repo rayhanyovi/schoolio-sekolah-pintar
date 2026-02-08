@@ -15,8 +15,9 @@ import {
   listClasses,
   updateClass,
 } from "@/lib/handlers/classes";
+import { listMajors } from "@/lib/handlers/majors";
 import { listTeachers } from "@/lib/handlers/users";
-import { ClassFormValues, ClassSummary, TeacherOption } from "@/lib/schemas";
+import { ClassFormValues, ClassSummary, MajorSummary, TeacherOption } from "@/lib/schemas";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 
@@ -25,6 +26,7 @@ export default function Classes() {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
+  const [majors, setMajors] = useState<MajorSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGrade, setSelectedGrade] = useState<string>("all");
@@ -38,15 +40,17 @@ export default function Classes() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [classData, teacherData] = await Promise.all([
+        const [classData, teacherData, majorData] = await Promise.all([
           listClasses(),
           listTeachers(),
+          listMajors(),
         ]);
         if (!isActive) return;
         setClasses(classData);
         setTeachers(
           teacherData.map((teacher) => ({ id: teacher.id, name: teacher.name }))
         );
+        setMajors(majorData);
       } catch (error) {
         if (!isActive) return;
         toast({
@@ -71,6 +75,16 @@ export default function Classes() {
     return matchesSearch && matchesGrade;
   });
 
+  const availableGrades = Array.from(new Set(classes.map((c) => c.grade))).sort(
+    (a, b) => a - b
+  );
+
+  useEffect(() => {
+    if (selectedGrade !== "all" && !availableGrades.includes(Number(selectedGrade))) {
+      setSelectedGrade("all");
+    }
+  }, [availableGrades, selectedGrade]);
+
   const totalStudents = classes.reduce((acc, c) => acc + c.studentCount, 0);
   const avgStudentsPerClass = classes.length
     ? Math.round(totalStudents / classes.length)
@@ -80,6 +94,7 @@ export default function Classes() {
     const payload = {
       name: data.name,
       grade: data.grade,
+      major: data.major || null,
       section: data.section,
       homeroomTeacherId: data.homeroomTeacherId || null,
       academicYear: data.academicYear || null,
@@ -204,9 +219,11 @@ export default function Classes() {
       <Tabs defaultValue="all" onValueChange={setSelectedGrade}>
         <TabsList>
           <TabsTrigger value="all">Semua</TabsTrigger>
-          <TabsTrigger value="10">Kelas 10</TabsTrigger>
-          <TabsTrigger value="11">Kelas 11</TabsTrigger>
-          <TabsTrigger value="12">Kelas 12</TabsTrigger>
+          {availableGrades.map((grade) => (
+            <TabsTrigger key={grade} value={grade.toString()}>
+              Kelas {grade}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value={selectedGrade} className="mt-6">
@@ -243,6 +260,7 @@ export default function Classes() {
         onOpenChange={setFormDialogOpen}
         classData={selectedClass}
         teachers={teachers}
+        majors={majors}
         onSubmit={handleSubmit}
       />
       <ClassDetailSheet

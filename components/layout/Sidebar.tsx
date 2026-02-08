@@ -26,7 +26,7 @@ import {
   MessageSquare,
   StickyNote,
   User,
-  PieChart,
+  Layers,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -37,9 +37,9 @@ interface SidebarProps {
 const menuItems: Record<Role, Array<{ icon: typeof LayoutDashboard; label: string; href: string }>> = {
   ADMIN: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-    { icon: PieChart, label: "Analytics", href: "/dashboard/analytics" },
     { icon: Users, label: "Pengguna", href: "/dashboard/users" },
     { icon: School, label: "Kelas", href: "/dashboard/classes" },
+    { icon: Layers, label: "Jurusan", href: "/dashboard/majors" },
     { icon: GraduationCap, label: "Mata Pelajaran", href: "/dashboard/subjects" },
     { icon: Calendar, label: "Jadwal", href: "/dashboard/schedules" },
     { icon: CalendarDays, label: "Kalender Akademik", href: "/dashboard/calendar" },

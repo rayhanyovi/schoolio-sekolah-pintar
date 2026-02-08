@@ -20,9 +20,12 @@ export function ClassCard({ classData, onEdit, onDelete, onViewDetails }: ClassC
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-xl font-bold text-foreground">{classData.name}</h3>
-            <Badge variant="secondary" className="mt-1">
-              Kelas {classData.grade}
-            </Badge>
+            <div className="mt-1 flex flex-wrap gap-2">
+              <Badge variant="secondary">Kelas {classData.grade}</Badge>
+              {classData.major && (
+                <Badge variant="outline">Jurusan {classData.major}</Badge>
+              )}
+            </div>
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button variant="ghost" size="icon" onClick={() => onViewDetails(classData)}>

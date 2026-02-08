@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Clock, Pencil, Trash2 } from "lucide-react";
+import { Users, Pencil, Trash2 } from "lucide-react";
 import { SubjectSummary } from "@/lib/schemas";
 import { SUBJECT_CATEGORIES, SUBJECT_CATEGORY_COLORS, SubjectCategory } from "@/lib/constants";
 
@@ -56,11 +56,7 @@ export function SubjectCard({ subject, onEdit, onDelete }: SubjectCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>{subject.hoursPerWeek} jam/minggu</span>
-          </div>
+        <div className="flex items-center justify-end pt-2 border-t">
           <Badge variant="outline" className="text-xs">
             {subject.classIds.length} kelas
           </Badge>

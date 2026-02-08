@@ -67,6 +67,11 @@ export function ClassDetailSheet({ open, onOpenChange, classData }: ClassDetailS
               <Badge variant="secondary" className="text-sm">
                 Kelas {classData.grade}
               </Badge>
+              {classData.major && (
+                <Badge variant="outline" className="text-sm">
+                  Jurusan {classData.major}
+                </Badge>
+              )}
               <Badge variant="outline" className="text-sm">
                 {classData.academicYear}
               </Badge>
@@ -78,6 +83,12 @@ export function ClassDetailSheet({ open, onOpenChange, classData }: ClassDetailS
                 <span className="text-muted-foreground">Wali Kelas:</span>
               </div>
               <span className="text-sm font-medium">{classData.homeroomTeacher}</span>
+
+              <div className="flex items-center gap-2 text-sm">
+                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Jurusan:</span>
+              </div>
+              <span className="text-sm font-medium">{classData.major || "-"}</span>
 
               <div className="flex items-center gap-2 text-sm">
                 <Users className="h-4 w-4 text-muted-foreground" />

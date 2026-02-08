@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, BookOpen, Users, Clock } from "lucide-react";
+import { Plus, Search, BookOpen, Users } from "lucide-react";
 import { SubjectCard } from "@/components/subjects/SubjectCard";
 import { SubjectFormDialog } from "@/components/subjects/SubjectFormDialog";
 import { AssignTeacherDialog } from "@/components/subjects/AssignTeacherDialog";
@@ -74,7 +74,6 @@ export default function Subjects() {
   });
 
   const totalTeachers = new Set(subjects.flatMap(s => s.teachers.map(t => t.id))).size;
-  const totalHours = subjects.reduce((acc, s) => acc + s.hoursPerWeek, 0);
 
   const handleSubmit = async (data: SubjectFormValues) => {
     const payload = {
@@ -82,6 +81,7 @@ export default function Subjects() {
       code: data.code,
       category: data.category,
       description: data.description,
+      color: data.color,
       hoursPerWeek: data.hoursPerWeek,
     };
 
@@ -166,7 +166,7 @@ export default function Subjects() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>
           <CardContent className="flex items-center gap-4 p-4">
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -186,17 +186,6 @@ export default function Subjects() {
             <div>
               <p className="text-sm text-muted-foreground">Guru Pengampu</p>
               <p className="text-2xl font-bold">{totalTeachers}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
-              <Clock className="h-6 w-6 text-accent" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Jam/Minggu</p>
-              <p className="text-2xl font-bold">{totalHours}</p>
             </div>
           </CardContent>
         </Card>
