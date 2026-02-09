@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users,
   TrendingUp,
-  TrendingDown,
   Calendar,
   Award,
   AlertTriangle,
@@ -99,21 +98,6 @@ export default function Analytics() {
     loadData();
   }, []);
 
-  if (role !== "ADMIN") {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center space-y-2">
-          <h2 className="text-xl font-semibold text-muted-foreground">
-            Akses Terbatas
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Hanya Administrator yang dapat mengakses halaman ini
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const attendanceCounts = attendance?.counts ?? {
     PRESENT: 0,
     ABSENT: 0,
@@ -139,7 +123,7 @@ export default function Analytics() {
     percent: attendanceTotal ? (count / attendanceTotal) * 100 : 0,
   }));
 
-  const gradeData = grades?.data ?? [];
+  const gradeData = useMemo(() => grades?.data ?? [], [grades]);
   const weightedAverage = useMemo(() => {
     if (gradeData.length === 0) return 0;
     const totalSubmissions = gradeData.reduce(
@@ -182,6 +166,21 @@ export default function Analytics() {
     { name: "Belum Diisi", value: genderCounts.UNKNOWN, fill: GENDER_COLORS[2] },
   ];
   const totalGender = genderData.reduce((sum, item) => sum + item.value, 0);
+
+  if (role !== "ADMIN") {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-center space-y-2">
+          <h2 className="text-xl font-semibold text-muted-foreground">
+            Akses Terbatas
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Hanya Administrator yang dapat mengakses halaman ini
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

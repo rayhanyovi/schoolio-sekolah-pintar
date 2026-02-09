@@ -25,7 +25,10 @@ export function AssignTeacherDialog({
   const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
 
   useEffect(() => {
-    setSelectedTeachers(currentTeacherIds);
+    const timer = setTimeout(() => {
+      setSelectedTeachers(currentTeacherIds);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [currentTeacherIds, open]);
 
   const handleToggle = (teacherId: string) => {

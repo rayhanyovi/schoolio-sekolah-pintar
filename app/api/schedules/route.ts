@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -8,13 +9,13 @@ export async function GET(request: NextRequest) {
   const teacherId = searchParams.get("teacherId");
   const dayOfWeek = searchParams.get("dayOfWeek");
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (classId) where.classId = classId;
   if (teacherId) where.teacherId = teacherId;
   if (dayOfWeek) where.dayOfWeek = dayOfWeek;
 
   const rows = await prisma.classSchedule.findMany({
-    where,
+    where: where as Prisma.ClassScheduleWhereInput,
     include: { class: true, subject: true, teacher: true },
     orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
   });

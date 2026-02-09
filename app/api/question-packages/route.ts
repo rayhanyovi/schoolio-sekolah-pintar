@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
 import { mockPackages } from "@/lib/questionTypes";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (q) {
     where.OR = [
       { name: { contains: q, mode: "insensitive" } },
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.questionPackage.findMany({
-    where,
+    where: where as Prisma.QuestionPackageWhereInput,
     include: { items: true, subject: true },
     orderBy: { createdAt: "desc" },
   });

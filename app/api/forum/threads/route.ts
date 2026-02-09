@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
 import { mockThreads } from "@/lib/mockData";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (subjectId) where.subjectId = subjectId;
   if (status) where.status = status;
   if (q) {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.forumThread.findMany({
-    where,
+    where: where as Prisma.ForumThreadWhereInput,
     include: { subject: true, author: true, class: true },
     orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
   });

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -9,14 +10,14 @@ export async function GET(request: NextRequest) {
   const teacherId = searchParams.get("teacherId");
   const q = searchParams.get("q")?.toLowerCase() ?? "";
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (classId) where.classId = classId;
   if (subjectId) where.subjectId = subjectId;
   if (teacherId) where.teacherId = teacherId;
   if (q) where.title = { contains: q, mode: "insensitive" };
 
   const rows = await prisma.material.findMany({
-    where,
+    where: where as Prisma.MaterialWhereInput,
     include: { subject: true, class: true, teacher: true, attachments: true },
     orderBy: { createdAt: "desc" },
   });

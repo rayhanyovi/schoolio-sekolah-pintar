@@ -1,13 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonOk } from "@/lib/api";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const subjectId = searchParams.get("subjectId");
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (subjectId) where.assignment = { subjectId };
   if (classId) {
     where.assignment = {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.assignmentSubmission.findMany({
-    where,
+    where: where as Prisma.AssignmentSubmissionWhereInput,
     include: { student: true },
   });
 

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
 import { mockAssignments } from "@/lib/mockData";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (subjectId) where.subjectId = subjectId;
   if (teacherId) where.teacherId = teacherId;
   if (status) where.status = status;
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.assignment.findMany({
-    where,
+    where: where as Prisma.AssignmentWhereInput,
     include: {
       subject: true,
       teacher: true,

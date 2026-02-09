@@ -71,16 +71,19 @@ export function UserFormDialog({
   const [studentSearch, setStudentSearch] = useState("");
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
-        ...defaultFormData,
-        ...initialData,
-        childIds: initialData.childIds ?? [],
-      });
-    } else {
-      setFormData({ ...defaultFormData, role: allowedRoles[0] });
-    }
-    setStudentSearch("");
+    const timer = setTimeout(() => {
+      if (initialData) {
+        setFormData({
+          ...defaultFormData,
+          ...initialData,
+          childIds: initialData.childIds ?? [],
+        });
+      } else {
+        setFormData({ ...defaultFormData, role: allowedRoles[0] });
+      }
+      setStudentSearch("");
+    }, 0);
+    return () => clearTimeout(timer);
   }, [initialData, open, allowedRoles]);
 
   const handleSubmit = (e: React.FormEvent) => {

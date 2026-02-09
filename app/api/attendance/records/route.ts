@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonOk } from "@/lib/api";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
   const dateFrom = searchParams.get("dateFrom");
   const dateTo = searchParams.get("dateTo");
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (studentId) where.studentId = studentId;
   if (subjectId) where.session = { subjectId };
   if (dateFrom || dateTo) {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.attendanceRecord.findMany({
-    where,
+    where: where as Prisma.AttendanceRecordWhereInput,
     include: {
       student: true,
       session: { include: { class: true, subject: true } },

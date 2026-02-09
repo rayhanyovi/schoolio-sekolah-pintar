@@ -66,25 +66,28 @@ export function ClassFormDialog({
   });
 
   useEffect(() => {
-    if (classData) {
-      setFormData({
-        name: classData.name,
-        grade: classData.grade,
-        major: classData.major ?? "",
-        section: classData.section,
-        homeroomTeacherId: classData.homeroomTeacherId,
-        academicYear: classData.academicYear,
-      });
-    } else {
-      setFormData({
-        name: "",
-        grade: 10,
-        major: "",
-        section: "",
-        homeroomTeacherId: "",
-        academicYear: "2024/2025",
-      });
-    }
+    const timer = setTimeout(() => {
+      if (classData) {
+        setFormData({
+          name: classData.name,
+          grade: classData.grade,
+          major: classData.major ?? "",
+          section: classData.section,
+          homeroomTeacherId: classData.homeroomTeacherId,
+          academicYear: classData.academicYear,
+        });
+      } else {
+        setFormData({
+          name: "",
+          grade: 10,
+          major: "",
+          section: "",
+          homeroomTeacherId: "",
+          academicYear: "2024/2025",
+        });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [classData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {

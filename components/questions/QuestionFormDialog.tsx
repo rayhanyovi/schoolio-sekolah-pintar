@@ -73,19 +73,22 @@ export function QuestionFormDialog({
   const isEditing = !!question;
 
   useEffect(() => {
-    if (question) {
-      setFormData({
-        ...question,
-        options: question.options || ["", "", "", ""],
-        correctAnswers: question.correctAnswers || [],
-        allowedFormats: question.allowedFormats || ["pdf", "docx"],
-      });
-    } else {
-      setFormData({
-        ...defaultQuestion,
-        subject: subjects[0]?.name ?? "",
-      });
-    }
+    const timer = setTimeout(() => {
+      if (question) {
+        setFormData({
+          ...question,
+          options: question.options || ["", "", "", ""],
+          correctAnswers: question.correctAnswers || [],
+          allowedFormats: question.allowedFormats || ["pdf", "docx"],
+        });
+      } else {
+        setFormData({
+          ...defaultQuestion,
+          subject: subjects[0]?.name ?? "",
+        });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [question, open, subjects]);
 
   const handleTypeChange = (type: AssignmentType) => {

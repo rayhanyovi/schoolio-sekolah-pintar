@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
+import { Prisma } from "@prisma/client";
 
 const parseDate = (value?: string | null) => {
   if (!value) return null;
@@ -14,16 +15,17 @@ export async function GET(request: NextRequest) {
   const dateFrom = parseDate(searchParams.get("dateFrom"));
   const dateTo = parseDate(searchParams.get("dateTo"));
 
-  const where: Record<string, any> = {};
+  const where: Record<string, unknown> = {};
   if (teacherId) where.teacherId = teacherId;
   if (dateFrom || dateTo) {
-    where.date = {};
-    if (dateFrom) where.date.gte = dateFrom;
-    if (dateTo) where.date.lte = dateTo;
+    where.date = {
+      ...(dateFrom ? { gte: dateFrom } : {}),
+      ...(dateTo ? { lte: dateTo } : {}),
+    };
   }
 
   const rows = await prisma.teacherAttendance.findMany({
-    where,
+    where: where as Prisma.TeacherAttendanceWhereInput,
     orderBy: { date: "asc" },
     include: { teacher: true },
   });

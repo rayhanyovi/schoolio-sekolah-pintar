@@ -25,26 +25,30 @@ export function ClassDetailSheet({ open, onOpenChange, classData }: ClassDetailS
   useEffect(() => {
     if (!open || !classId) return;
     let isActive = true;
-    setIsLoading(true);
-    setStudents([]);
-    listClassStudents(classId)
-      .then((data) => {
-        if (isActive) setStudents(data);
-      })
-      .catch((error) => {
-        if (!isActive) return;
-        setStudents([]);
-        toast({
-          title: "Gagal memuat siswa",
-          description: error instanceof Error ? error.message : "Terjadi kesalahan",
+    const timer = setTimeout(() => {
+      if (!isActive) return;
+      setIsLoading(true);
+      setStudents([]);
+      listClassStudents(classId)
+        .then((data) => {
+          if (isActive) setStudents(data);
+        })
+        .catch((error) => {
+          if (!isActive) return;
+          setStudents([]);
+          toast({
+            title: "Gagal memuat siswa",
+            description: error instanceof Error ? error.message : "Terjadi kesalahan",
+          });
+        })
+        .finally(() => {
+          if (isActive) setIsLoading(false);
         });
-      })
-      .finally(() => {
-        if (isActive) setIsLoading(false);
-      });
+    }, 0);
 
     return () => {
       isActive = false;
+      clearTimeout(timer);
     };
   }, [classId, open, toast]);
 

@@ -21,7 +21,7 @@ const buildQuery = (params?: QueryParams) => {
   return entries.length ? `?${entries.join("&")}` : "";
 };
 
-const parseJson = (text: string) => {
+const parseJson = (text: string): unknown => {
   if (!text) return null;
   try {
     return JSON.parse(text);
@@ -30,11 +30,29 @@ const parseJson = (text: string) => {
   }
 };
 
-const throwApiError = (status: number, payload: any) => {
-  const error: ApiError = payload?.error ?? {
-    code: "HTTP_ERROR",
-    message: payload?.message ?? "Request failed",
-  };
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const throwApiError = (status: number, payload: unknown) => {
+  const payloadRecord = isObjectRecord(payload) ? payload : null;
+  const payloadError = payloadRecord?.error;
+
+  const error: ApiError =
+    isObjectRecord(payloadError) &&
+    typeof payloadError.code === "string" &&
+    typeof payloadError.message === "string"
+      ? {
+          code: payloadError.code,
+          message: payloadError.message,
+          details: payloadError.details,
+        }
+      : {
+          code: "HTTP_ERROR",
+          message:
+            typeof payloadRecord?.message === "string"
+              ? payloadRecord.message
+              : "Request failed",
+        };
   const err = new Error(error.message) as Error & {
     code?: string;
     status?: number;

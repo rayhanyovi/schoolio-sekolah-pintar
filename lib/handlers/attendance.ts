@@ -7,19 +7,59 @@ import {
   teacherAttendanceSchema,
 } from "@/lib/schemas";
 
-const normalizeAttendanceSession = (value: Record<string, any>) => {
+type UnknownRecord = Record<string, unknown>;
+
+const normalizeAttendanceSession = (value: UnknownRecord) => {
+  const classValue =
+    value.class && typeof value.class === "object"
+      ? (value.class as UnknownRecord)
+      : null;
+  const subjectValue =
+    value.subject && typeof value.subject === "object"
+      ? (value.subject as UnknownRecord)
+      : null;
+  const teacherValue =
+    value.teacher && typeof value.teacher === "object"
+      ? (value.teacher as UnknownRecord)
+      : null;
+  const takenByValue =
+    value.takenBy && typeof value.takenBy === "object"
+      ? (value.takenBy as UnknownRecord)
+      : null;
+
   if (value && typeof value === "object") {
     return {
       id: value.id,
       classId: value.classId,
-      className: value.class?.name ?? value.className ?? "",
+      className:
+        (typeof classValue?.name === "string" ? classValue.name : undefined) ??
+        value.className ??
+        "",
       subjectId: value.subjectId,
-      subjectName: value.subject?.name ?? value.subjectName ?? "",
-      teacherId: value.teacherId ?? value.teacher?.id ?? null,
-      teacherName: value.teacher?.name ?? value.teacherName ?? "",
+      subjectName:
+        (typeof subjectValue?.name === "string"
+          ? subjectValue.name
+          : undefined) ??
+        value.subjectName ??
+        "",
+      teacherId:
+        value.teacherId ??
+        (typeof teacherValue?.id === "string" ? teacherValue.id : null),
+      teacherName:
+        (typeof teacherValue?.name === "string"
+          ? teacherValue.name
+          : undefined) ??
+        value.teacherName ??
+        "",
       takenByTeacherId:
-        value.takenByTeacherId ?? value.takenBy?.id ?? value.takenByTeacherId ?? null,
-      takenByTeacherName: value.takenBy?.name ?? value.takenByTeacherName ?? "",
+        value.takenByTeacherId ??
+        (typeof takenByValue?.id === "string" ? takenByValue.id : null),
+      takenByTeacherName:
+        (typeof takenByValue?.name === "string"
+          ? takenByValue.name
+          : undefined) ??
+        value.takenByTeacherName ??
+        "",
       scheduleId: value.scheduleId ?? null,
       date: value.date,
       startTime: value.startTime ?? "",
@@ -60,12 +100,16 @@ export const listAttendanceSessions = (params?: ListAttendanceSessionsParams) =>
 
 export const getAttendanceSession = (id: string) =>
   apiGet(`/api/attendance/sessions/${id}`).then((data) =>
-    attendanceSessionSchema.parse(normalizeAttendanceSession(data))
+    attendanceSessionSchema.parse(
+      normalizeAttendanceSession(data as UnknownRecord)
+    )
   );
 
 export const createAttendanceSession = (payload: Record<string, unknown>) =>
   apiPost("/api/attendance/sessions", payload).then((data) =>
-    attendanceSessionSchema.parse(normalizeAttendanceSession(data))
+    attendanceSessionSchema.parse(
+      normalizeAttendanceSession(data as UnknownRecord)
+    )
   );
 
 export const updateAttendanceSession = (
@@ -73,7 +117,9 @@ export const updateAttendanceSession = (
   payload: Record<string, unknown>
 ) =>
   apiPatch(`/api/attendance/sessions/${id}`, payload).then((data) =>
-    attendanceSessionSchema.parse(normalizeAttendanceSession(data))
+    attendanceSessionSchema.parse(
+      normalizeAttendanceSession(data as UnknownRecord)
+    )
   );
 
 export const deleteAttendanceSession = (id: string) =>
@@ -109,12 +155,22 @@ export const createTeacherAttendance = (payload: Record<string, unknown>) =>
     teacherAttendanceSchema.parse(normalizeTeacherAttendance(data))
   );
 
-const normalizeTeacherAttendance = (value: Record<string, any>) => {
+const normalizeTeacherAttendance = (value: UnknownRecord) => {
+  const teacherValue =
+    value.teacher && typeof value.teacher === "object"
+      ? (value.teacher as UnknownRecord)
+      : null;
+
   if (value && typeof value === "object") {
     return {
       id: value.id,
       teacherId: value.teacherId,
-      teacherName: value.teacher?.name ?? value.teacherName ?? "",
+      teacherName:
+        (typeof teacherValue?.name === "string"
+          ? teacherValue.name
+          : undefined) ??
+        value.teacherName ??
+        "",
       sessionId: value.sessionId ?? null,
       date: value.date,
       status: value.status,

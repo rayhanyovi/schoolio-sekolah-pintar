@@ -1,13 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonOk } from "@/lib/api";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (from || to) {
     where.session = {
       date: {
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.attendanceRecord.findMany({
-    where,
+    where: where as Prisma.AttendanceRecordWhereInput,
     select: { status: true },
   });
 

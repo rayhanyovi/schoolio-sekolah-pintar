@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
 import { mockQuestions } from "@/lib/questionTypes";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (type) where.type = type;
   if (difficulty) where.difficulty = difficulty;
   if (q) {
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.question.findMany({
-    where,
+    where: where as Prisma.QuestionWhereInput,
     include: { subject: true },
     orderBy: { createdAt: "desc" },
   });

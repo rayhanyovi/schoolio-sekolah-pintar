@@ -69,16 +69,19 @@ export function PackageFormDialog({
   const isEditing = !!package_;
 
   useEffect(() => {
-    if (package_) {
-      setFormData(package_);
-    } else {
-      setFormData({
-        ...defaultPackage,
-        subject: subjects[0]?.name ?? "",
-      });
-    }
-    setSearchQuery("");
-    setSubjectFilter("all");
+    const timer = setTimeout(() => {
+      if (package_) {
+        setFormData(package_);
+      } else {
+        setFormData({
+          ...defaultPackage,
+          subject: subjects[0]?.name ?? "",
+        });
+      }
+      setSearchQuery("");
+      setSubjectFilter("all");
+    }, 0);
+    return () => clearTimeout(timer);
   }, [package_, open, subjects]);
 
   const selectedQuestions = availableQuestions.filter((q) =>

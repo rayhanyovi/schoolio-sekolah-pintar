@@ -37,25 +37,28 @@ export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: Sub
   });
 
   useEffect(() => {
-    if (subject) {
-      setFormData({
-        name: subject.name,
-        code: subject.code,
-        category: subject.category,
-        description: subject.description,
-        color: subject.color || "bg-primary",
-        hoursPerWeek: subject.hoursPerWeek ?? 0,
-      });
-    } else {
-      setFormData({
-        name: "",
-        code: "",
-        category: "SCIENCE",
-        description: "",
-        color: "bg-primary",
-        hoursPerWeek: 0,
-      });
-    }
+    const timer = setTimeout(() => {
+      if (subject) {
+        setFormData({
+          name: subject.name,
+          code: subject.code,
+          category: subject.category,
+          description: subject.description,
+          color: subject.color || "bg-primary",
+          hoursPerWeek: subject.hoursPerWeek ?? 0,
+        });
+      } else {
+        setFormData({
+          name: "",
+          code: "",
+          category: "SCIENCE",
+          description: "",
+          color: "bg-primary",
+          hoursPerWeek: 0,
+        });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [subject, open]);
 
   const handleSubmit = (e: React.FormEvent) => {

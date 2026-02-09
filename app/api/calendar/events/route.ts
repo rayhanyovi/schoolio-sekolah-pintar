@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonOk } from "@/lib/api";
 import { mockEvents } from "@/lib/mockData";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (type) where.type = type;
   if (classId) where.classes = { some: { classId } };
   if (dateFrom || dateTo) {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.calendarEvent.findMany({
-    where,
+    where: where as Prisma.CalendarEventWhereInput,
     include: { classes: true },
     orderBy: { date: "asc" },
   });

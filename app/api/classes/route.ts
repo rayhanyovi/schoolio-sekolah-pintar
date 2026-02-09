@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk, parseNumber } from "@/lib/api";
 import { mockClasses } from "@/lib/mockData";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (grade) where.grade = grade;
   if (q) {
     where.OR = [
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.class.findMany({
-    where,
+    where: where as Prisma.ClassWhereInput,
     include: { homeroomTeacher: true, academicYear: true },
     orderBy: { name: "asc" },
   });

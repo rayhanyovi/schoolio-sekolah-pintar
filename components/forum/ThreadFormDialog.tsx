@@ -30,7 +30,10 @@ export function ThreadFormDialog({
 
   useEffect(() => {
     if (open) {
-      setFormData({ title: "", content: "", subjectId: "" });
+      const timer = setTimeout(() => {
+        setFormData({ title: "", content: "", subjectId: "" });
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 

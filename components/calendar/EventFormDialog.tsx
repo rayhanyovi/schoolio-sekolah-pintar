@@ -35,25 +35,28 @@ export function EventFormDialog({ open, onOpenChange, event, onSubmit }: EventFo
   });
 
   useEffect(() => {
-    if (event) {
-      setFormData({
-        title: event.title,
-        description: event.description,
-        date: event.date,
-        endDate: event.endDate,
-        type: event.type,
-        isRecurring: event.isRecurring,
-      });
-    } else {
-      setFormData({
-        title: "",
-        description: "",
-        date: new Date(),
-        endDate: undefined,
-        type: "ACADEMIC",
-        isRecurring: false,
-      });
-    }
+    const timer = setTimeout(() => {
+      if (event) {
+        setFormData({
+          title: event.title,
+          description: event.description,
+          date: event.date,
+          endDate: event.endDate,
+          type: event.type,
+          isRecurring: event.isRecurring,
+        });
+      } else {
+        setFormData({
+          title: "",
+          description: "",
+          date: new Date(),
+          endDate: undefined,
+          type: "ACADEMIC",
+          isRecurring: false,
+        });
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [event, open]);
 
   const handleSubmit = (e: React.FormEvent) => {

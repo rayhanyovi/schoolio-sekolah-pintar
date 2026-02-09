@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
 import { mockNotes } from "@/lib/mockData";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -19,13 +20,13 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: any = {};
+  const where: Record<string, unknown> = {};
   if (visibility) where.visibility = visibility;
   if (subjectId) where.subjectId = subjectId;
   if (q) where.title = { contains: q, mode: "insensitive" };
 
   const rows = await prisma.note.findMany({
-    where,
+    where: where as Prisma.NoteWhereInput,
     include: { subject: true, class: true, author: true },
     orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
   });

@@ -2,6 +2,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { materialListSchema, materialSchema } from "@/lib/schemas";
 
 export type MaterialPayload = Record<string, unknown>;
+type UnknownRecord = Record<string, unknown>;
 
 export type ListMaterialsParams = {
   classId?: string;
@@ -13,28 +14,49 @@ export type ListMaterialsParams = {
 export const listMaterials = async (params?: ListMaterialsParams) =>
   materialListSchema.parse(await apiGet("/api/materials", params));
 
-const normalizeMaterial = (value: Record<string, any>) => {
+const normalizeMaterial = (value: UnknownRecord) => {
+  const subjectValue =
+    value.subject && typeof value.subject === "object"
+      ? (value.subject as UnknownRecord)
+      : null;
+  const classValue =
+    value.class && typeof value.class === "object"
+      ? (value.class as UnknownRecord)
+      : null;
+  const teacherValue =
+    value.teacher && typeof value.teacher === "object"
+      ? (value.teacher as UnknownRecord)
+      : null;
+
   if (value && typeof value === "object" && value.subject) {
     return {
       id: value.id,
       title: value.title,
       description: value.description ?? "",
-      subject: value.subject?.name ?? "",
+      subject:
+        (typeof subjectValue?.name === "string" ? subjectValue.name : "") ?? "",
       subjectId: value.subjectId,
-      className: value.class?.name ?? "",
+      className: (typeof classValue?.name === "string" ? classValue.name : "") ?? "",
       classId: value.classId ?? undefined,
-      teacher: value.teacher?.name ?? "",
+      teacher:
+        (typeof teacherValue?.name === "string" ? teacherValue.name : "") ?? "",
       teacherId: value.teacherId,
       createdAt: value.createdAt,
       attachments: Array.isArray(value.attachments)
-        ? value.attachments.map((file: any) => ({
-            id: file.id,
-            name: file.fileName,
-            size: file.sizeLabel ?? "",
-            type: file.fileType,
-            url: file.url ?? undefined,
-            storageKey: file.storageKey ?? undefined,
-          }))
+        ? value.attachments.map((file) => {
+            const fileValue =
+              file && typeof file === "object"
+                ? (file as UnknownRecord)
+                : ({} as UnknownRecord);
+            return {
+              id: fileValue.id,
+              name: fileValue.fileName,
+              size: fileValue.sizeLabel ?? "",
+              type: fileValue.fileType,
+              url: fileValue.url ?? undefined,
+              storageKey: fileValue.storageKey ?? undefined,
+            };
+          })
         : [],
     };
   }
@@ -43,7 +65,7 @@ const normalizeMaterial = (value: Record<string, any>) => {
 
 export const getMaterial = async (id: string) => {
   const data = await apiGet<Record<string, unknown>>(`/api/materials/${id}`);
-  return materialSchema.parse(normalizeMaterial(data as Record<string, any>));
+  return materialSchema.parse(normalizeMaterial(data as UnknownRecord));
 };
 
 export const createMaterial = async (payload: MaterialPayload) => {
