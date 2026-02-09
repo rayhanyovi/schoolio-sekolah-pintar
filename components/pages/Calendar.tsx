@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,9 @@ export default function AcademicCalendar() {
   const [events, setEvents] = useState<CalendarEventSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    new Date(),
+  );
   const [selectedType, setSelectedType] = useState<string>("all");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] =
@@ -65,7 +67,8 @@ export default function AcademicCalendar() {
     } catch (error) {
       toast({
         title: "Gagal memuat event",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       });
     } finally {
       setIsLoading(false);
@@ -84,7 +87,7 @@ export default function AcademicCalendar() {
   // Events for selected date
   const eventsOnSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
-    return filteredEvents.filter(e => isSameDay(e.date, selectedDate));
+    return filteredEvents.filter((e) => isSameDay(e.date, selectedDate));
   }, [selectedDate, filteredEvents]);
 
   // Upcoming events (next 7 days)
@@ -107,9 +110,28 @@ export default function AcademicCalendar() {
     return map;
   }, [filteredEvents]);
 
-  const orderedEventTypes = useMemo(
-    () => Object.keys(EVENT_TYPES) as EventType[],
-    [],
+  const dayHighlightTypeMap = useMemo(() => {
+    const priority: EventType[] = ["HOLIDAY", "DEADLINE", "ACTIVITY", "ACADEMIC"];
+    const map = new Map<string, EventType>();
+    eventTypeMap.forEach((types, key) => {
+      const winner = priority.find((type) => types.has(type));
+      if (winner) map.set(key, winner);
+    });
+    return map;
+  }, [eventTypeMap]);
+
+  const dayModifiers = useMemo(
+    () => ({
+      holiday: (date: Date) =>
+        dayHighlightTypeMap.get(format(date, "yyyy-MM-dd")) === "HOLIDAY",
+      deadline: (date: Date) =>
+        dayHighlightTypeMap.get(format(date, "yyyy-MM-dd")) === "DEADLINE",
+      activity: (date: Date) =>
+        dayHighlightTypeMap.get(format(date, "yyyy-MM-dd")) === "ACTIVITY",
+      academic: (date: Date) =>
+        dayHighlightTypeMap.get(format(date, "yyyy-MM-dd")) === "ACADEMIC",
+    }),
+    [dayHighlightTypeMap],
   );
 
   const handleSubmit = async (data: Partial<CalendarEventSummary>) => {
@@ -127,14 +149,18 @@ export default function AcademicCalendar() {
         toast({ title: "Berhasil", description: "Event berhasil diperbarui" });
       } else {
         await createEvent(payload);
-        toast({ title: "Berhasil", description: "Event baru berhasil ditambahkan" });
+        toast({
+          title: "Berhasil",
+          description: "Event baru berhasil ditambahkan",
+        });
       }
       setSelectedEvent(null);
       await loadEvents(currentMonth);
     } catch (error) {
       toast({
         title: "Gagal menyimpan event",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       });
     }
   };
@@ -147,7 +173,8 @@ export default function AcademicCalendar() {
     } catch (error) {
       toast({
         title: "Gagal menghapus event",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       });
     }
   };
@@ -157,40 +184,25 @@ export default function AcademicCalendar() {
     setFormDialogOpen(true);
   };
 
-  const DayContent = ({ date }: { date: Date }) => {
-    const key = format(date, "yyyy-MM-dd");
-    const types = eventTypeMap.get(key);
-    const dots = types
-      ? orderedEventTypes.filter((type) => types.has(type)).slice(0, 4)
-      : [];
-    return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-1">
-        <span className="text-sm font-medium">{format(date, "d")}</span>
-        <div className="flex h-2 items-center gap-1">
-          {dots.map((type) => {
-            const color = EVENT_COLORS[type].split(" ")[0];
-            return (
-              <span
-                key={type}
-                className={`${color} h-1.5 w-1.5 rounded-full`}
-              />
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Kalender Akademik</h1>
-          <p className="text-muted-foreground">Jadwal kegiatan dan event sekolah</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Kalender Akademik
+          </h1>
+          <p className="text-muted-foreground">
+            Jadwal kegiatan dan event sekolah
+          </p>
         </div>
         {canEdit && (
-          <Button onClick={() => { setSelectedEvent(null); setFormDialogOpen(true); }}>
+          <Button
+            onClick={() => {
+              setSelectedEvent(null);
+              setFormDialogOpen(true);
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Tambah Event
           </Button>
@@ -250,8 +262,16 @@ export default function AcademicCalendar() {
               onSelect={setSelectedDate}
               month={currentMonth}
               onMonthChange={setCurrentMonth}
+              modifiers={dayModifiers}
               className="rounded-md p-3"
-              components={{ DayContent }}
+              modifiersClassNames={{
+                holiday:
+                  "[&>button]:bg-destructive/20 [&>button]:text-destructive [&>button]:font-semibold",
+                deadline:
+                  "[&>button]:bg-warning/25 [&>button]:text-warning [&>button]:font-semibold",
+                activity: "[&>button]:bg-secondary/40",
+                academic: "[&>button]:bg-primary/20 [&>button]:text-primary",
+              }}
               classNames={{
                 months: "flex flex-col space-y-4",
                 month: "space-y-3",
@@ -259,13 +279,14 @@ export default function AcademicCalendar() {
                 head_cell:
                   "text-muted-foreground rounded-md w-12 font-medium text-[0.75rem] uppercase tracking-wide",
                 row: "flex w-full justify-between mt-2",
-                cell:
-                  "h-12 w-12 text-center text-sm p-0 relative focus-within:z-20",
-                day: "h-12 w-12 p-0 rounded-lg hover:bg-muted/50 transition-colors",
+                cell: "h-12 w-12 text-center text-sm p-0 relative focus-within:z-20",
+                day: "h-12 w-12 p-0 rounded-lg transition-colors",
+                day_button:
+                  "h-full w-full rounded-lg p-0 flex items-center justify-center hover:bg-muted/50",
                 day_selected:
-                  "bg-primary text-primary-foreground hover:bg-primary focus:bg-primary",
+                  "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:focus:bg-primary",
                 day_today:
-                  "border border-primary/60 text-primary font-semibold",
+                  "[&>button]:border [&>button]:border-primary/60 [&>button]:text-primary [&>button]:font-semibold",
                 day_outside: "text-muted-foreground/40",
                 day_disabled: "text-muted-foreground opacity-30",
               }}
@@ -275,7 +296,8 @@ export default function AcademicCalendar() {
             {selectedDate && (
               <div className="mt-6 space-y-3">
                 <h4 className="font-semibold text-sm text-muted-foreground">
-                  Event pada {format(selectedDate, "d MMMM yyyy", { locale: id })}
+                  Event pada{" "}
+                  {format(selectedDate, "d MMMM yyyy", { locale: id })}
                 </h4>
                 {isLoading ? (
                   <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
@@ -370,7 +392,9 @@ export default function AcademicCalendar() {
               <div className="space-y-2">
                 {Object.entries(EVENT_TYPES).map(([key, label]) => (
                   <div key={key} className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${EVENT_COLORS[key as EventType].split(" ")[0]}`} />
+                    <div
+                      className={`w-3 h-3 rounded-full ${EVENT_COLORS[key as EventType].split(" ")[0]}`}
+                    />
                     <span className="text-sm">{label}</span>
                   </div>
                 ))}
