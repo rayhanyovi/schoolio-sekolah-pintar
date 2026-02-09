@@ -3,11 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
 import { mockAssignments } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: NextRequest, { params }: Params) {
+  const { id } = await params;
+
   if (isMockEnabled()) {
-    const item = mockAssignments.find((row) => row.id === params.id);
+    const item = mockAssignments.find((row) => row.id === id);
     if (!item) return jsonError("NOT_FOUND", "Assignment not found", 404);
     return jsonOk({
       ...item,
@@ -18,7 +20,7 @@ export async function GET(_: NextRequest, { params }: Params) {
   }
 
   const row = await prisma.assignment.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { subject: true, teacher: true, classes: true },
   });
   if (!row) return jsonError("NOT_FOUND", "Assignment not found", 404);
@@ -44,9 +46,10 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const { id } = await params;
   const body = await request.json();
   const row = await prisma.assignment.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       title: body.title,
       description: body.description,
@@ -76,6 +79,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_: NextRequest, { params }: Params) {
-  await prisma.assignment.delete({ where: { id: params.id } });
-  return jsonOk({ id: params.id });
+  const { id } = await params;
+  await prisma.assignment.delete({ where: { id } });
+  return jsonOk({ id });
 }

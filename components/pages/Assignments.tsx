@@ -7,9 +7,6 @@ import { useRoleContext } from "@/hooks/useRoleContext";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +26,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,8 +42,6 @@ import {
   CheckCircle2,
   Calendar,
   Upload,
-  File,
-  X,
   Eye,
   Pencil,
   Trash2,
@@ -69,7 +63,6 @@ import {
   setAssignmentQuestions,
   updateAssignment,
   listAssignmentSubmissions,
-  createAssignmentSubmission,
 } from "@/lib/handlers/assignments";
 import { listSchedules } from "@/lib/handlers/schedules";
 import { listClasses } from "@/lib/handlers/classes";
@@ -511,18 +504,12 @@ function StudentAssignmentsView({
   allowStudentSelect,
   allowWork,
 }: StudentAssignmentsViewProps) {
+  const router = useRouter();
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
   const [students, setStudents] = useState<UserSummary[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [submissions, setSubmissions] = useState<GradeSummary[]>([]);
   const [activeTab, setActiveTab] = useState("pending");
-  const [workingAssignment, setWorkingAssignment] = useState<
-    (AssignmentSummary & {
-      status: "pending" | "submitted" | "graded";
-      submittedAt?: Date;
-      grade?: number | null;
-    }) | null
-  >(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -697,7 +684,9 @@ function StudentAssignmentsView({
                 assignment={assignment}
                 onWork={() => {
                   if (!allowWork) return;
-                  setWorkingAssignment(assignment);
+                  router.push(
+                    `/dashboard/assignments/${assignment.id}/work?studentId=${encodeURIComponent(selectedStudentId)}`
+                  );
                 }}
                 allowWork={allowWork}
               />
@@ -713,21 +702,6 @@ function StudentAssignmentsView({
           </TabsContent>
         ))}
       </Tabs>
-
-      {allowWork && (
-        <Dialog open={!!workingAssignment} onOpenChange={() => setWorkingAssignment(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            {workingAssignment && (
-              <SubmissionForm
-                assignment={workingAssignment}
-                studentId={selectedStudentId}
-                onSubmitted={loadSubmissions}
-                onClose={() => setWorkingAssignment(null)}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
 
       {isLoading && (
         <p className="text-sm text-muted-foreground">Memuat tugas...</p>
@@ -993,123 +967,6 @@ function TeacherAssignmentDetail({
   );
 }
 
-type SubmissionFormProps = {
-  assignment: AssignmentSummary & {
-    status: "pending" | "submitted" | "graded";
-    submittedAt?: Date;
-    grade?: number | null;
-  };
-  studentId: string;
-  onSubmitted: () => Promise<void> | void;
-  onClose: () => void;
-};
-
-function SubmissionForm({
-  assignment,
-  studentId,
-  onSubmitted,
-  onClose,
-}: SubmissionFormProps) {
-  const [answer, setAnswer] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const deliveryType = getDeliveryType(assignment);
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!studentId) {
-      toast.error("Siswa belum dipilih.");
-      return;
-    }
-    if (deliveryType !== "FILE" && !answer.trim()) {
-      toast.error("Jawaban wajib diisi.");
-      return;
-    }
-    if (deliveryType === "FILE" && !selectedFile) {
-      toast.error("Pilih file terlebih dahulu.");
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const response =
-        deliveryType === "FILE"
-          ? {
-              fileName: selectedFile?.name ?? "",
-              size: selectedFile?.size ?? 0,
-              type: selectedFile?.type ?? "",
-            }
-          : { text: answer.trim() };
-
-      await createAssignmentSubmission(assignment.id, {
-        studentId,
-        status: "SUBMITTED",
-        submittedAt: new Date().toISOString(),
-        response,
-      });
-      toast.success("Tugas berhasil dikumpulkan");
-      await onSubmitted();
-      onClose();
-    } catch (error) {
-      toast.error("Gagal mengumpulkan tugas");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <DialogHeader>
-        <DialogTitle>Kerjakan Tugas</DialogTitle>
-        <DialogDescription>{assignment.title}</DialogDescription>
-      </DialogHeader>
-
-      <div className="space-y-2">
-        <Label>Mata Pelajaran</Label>
-        <div className="text-sm text-muted-foreground">
-          {assignment.subjectName}
-        </div>
-      </div>
-
-      {deliveryType === "FILE" ? (
-        <div className="space-y-2">
-          <Label>Upload File</Label>
-          <Input
-            type="file"
-            onChange={(event) =>
-              setSelectedFile(event.target.files?.[0] ?? null)
-            }
-          />
-          {selectedFile && (
-            <p className="text-xs text-muted-foreground">
-              {selectedFile.name}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <Label>Jawaban</Label>
-          <Textarea
-            value={answer}
-            onChange={(event) => setAnswer(event.target.value)}
-            rows={5}
-            placeholder="Tulis jawaban di sini..."
-          />
-        </div>
-      )}
-
-      <DialogFooter className="pt-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Batal
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Mengirim..." : "Kumpulkan"}
-        </Button>
-      </DialogFooter>
-    </form>
-  );
-}
-
 type AssignmentFormProps = {
   schedules: ScheduleSummary[];
   onClose: () => void;
@@ -1144,15 +1001,30 @@ function AssignmentForm({ schedules, onClose, onSave }: AssignmentFormProps) {
   const selectedSchedule = schedules.find((s) => s.id === scheduleId);
 
   useEffect(() => {
-    setIsLoadingTeachers(true);
-    listTeachers()
-      .then((data) => setTeachers(data))
-      .finally(() => setIsLoadingTeachers(false));
+    let isActive = true;
+    const timer = setTimeout(() => {
+      if (!isActive) return;
+      setIsLoadingTeachers(true);
+      listTeachers()
+        .then((data) => {
+          if (isActive) setTeachers(data);
+        })
+        .finally(() => {
+          if (isActive) setIsLoadingTeachers(false);
+        });
+    }, 0);
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
     if (selectedSchedule?.teacherId) {
-      setTeacherId(selectedSchedule.teacherId);
+      const timer = setTimeout(() => {
+        setTeacherId(selectedSchedule.teacherId);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [selectedSchedule?.teacherId]);
 

@@ -2,11 +2,12 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_: NextRequest, { params }: Params) {
+  const { id } = await params;
   const rows = await prisma.assignmentSubmission.findMany({
-    where: { assignmentId: params.id },
+    where: { assignmentId: id },
     include: { student: true },
     orderBy: { createdAt: "desc" },
   });
@@ -28,6 +29,7 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const { id } = await params;
   const body = await request.json();
   if (!body?.studentId) {
     return jsonError("VALIDATION_ERROR", "studentId is required");
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const row = await prisma.assignmentSubmission.create({
     data: {
-      assignmentId: params.id,
+      assignmentId: id,
       studentId: body.studentId,
       status: body.status ?? "PENDING",
       submittedAt: body.submittedAt ? new Date(body.submittedAt) : null,

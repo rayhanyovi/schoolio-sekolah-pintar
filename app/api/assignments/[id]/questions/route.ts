@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk } from "@/lib/api";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(request: Request, { params }: Params) {
+  const { id } = await params;
   const body = await request.json();
   const questionIds: string[] | undefined = body?.questionIds;
   const questionPackageId: string | null = body?.questionPackageId ?? null;
@@ -13,18 +14,18 @@ export async function PUT(request: Request, { params }: Params) {
   }
 
   await prisma.assignment.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       questionPackageId,
     },
   });
 
   if (questionIds) {
-    await prisma.assignmentQuestion.deleteMany({ where: { assignmentId: params.id } });
+    await prisma.assignmentQuestion.deleteMany({ where: { assignmentId: id } });
     if (questionIds.length) {
       await prisma.assignmentQuestion.createMany({
         data: questionIds.map((questionId, index) => ({
-          assignmentId: params.id,
+          assignmentId: id,
           questionId,
           position: index + 1,
         })),
@@ -36,11 +37,11 @@ export async function PUT(request: Request, { params }: Params) {
       where: { packageId: questionPackageId },
       orderBy: { position: "asc" },
     });
-    await prisma.assignmentQuestion.deleteMany({ where: { assignmentId: params.id } });
+    await prisma.assignmentQuestion.deleteMany({ where: { assignmentId: id } });
     if (items.length) {
       await prisma.assignmentQuestion.createMany({
         data: items.map((item, index) => ({
-          assignmentId: params.id,
+          assignmentId: id,
           questionId: item.questionId,
           position: item.position ?? index + 1,
         })),
@@ -49,5 +50,5 @@ export async function PUT(request: Request, { params }: Params) {
     }
   }
 
-  return jsonOk({ id: params.id, questionPackageId, questionIds: questionIds ?? [] });
+  return jsonOk({ id, questionPackageId, questionIds: questionIds ?? [] });
 }

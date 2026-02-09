@@ -2,9 +2,10 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonOk } from "@/lib/api";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const { id } = await params;
   const body = await request.json();
   const status = body.status;
   const submittedAt =
@@ -17,7 +18,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         : undefined;
 
   const row = await prisma.assignmentSubmission.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       status,
       grade: body.grade,
