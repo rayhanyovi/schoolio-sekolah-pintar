@@ -6,6 +6,7 @@ import {
   getStudentClassId,
   listLinkedClassIdsForParent,
 } from "@/lib/authz";
+import { validateScheduleTimeRange } from "@/lib/schedule-time";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -95,6 +96,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const body = await request.json();
+  const nextStartTime =
+    typeof body.startTime === "string" ? body.startTime : existing.startTime;
+  const nextEndTime =
+    typeof body.endTime === "string" ? body.endTime : existing.endTime;
+  const timeRangeError = validateScheduleTimeRange(nextStartTime, nextEndTime);
+  if (timeRangeError) {
+    return jsonError("VALIDATION_ERROR", timeRangeError);
+  }
+
   if (auth.role === ROLES.TEACHER) {
     const nextSubjectId =
       typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;

@@ -6,6 +6,7 @@ import {
   getStudentClassId,
   listLinkedClassIdsForParent,
 } from "@/lib/authz";
+import { validateScheduleTimeRange } from "@/lib/schedule-time";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -88,8 +89,16 @@ export async function POST(request: NextRequest) {
   if (roleError) return roleError;
 
   const body = await request.json();
-  if (!body?.classId || !body?.subjectId || !body?.dayOfWeek) {
-    return jsonError("VALIDATION_ERROR", "classId, subjectId, dayOfWeek are required");
+  if (!body?.classId || !body?.subjectId || !body?.dayOfWeek || !body?.startTime || !body?.endTime) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "classId, subjectId, dayOfWeek, startTime, endTime are required"
+    );
+  }
+
+  const timeRangeError = validateScheduleTimeRange(body.startTime, body.endTime);
+  if (timeRangeError) {
+    return jsonError("VALIDATION_ERROR", timeRangeError);
   }
 
   if (auth.role === ROLES.TEACHER) {

@@ -154,12 +154,15 @@ Implementasi TP-API-001:
 
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 
-- [ ] TP-SCH-001 Tambahkan server-side validation `startTime < endTime`. DoD: invalid range ditolak di API.
+- [x] TP-SCH-001 Tambahkan server-side validation `startTime < endTime`. DoD: invalid range ditolak di API.
 - [ ] TP-SCH-002 Tambahkan server-side overlap validator bentrok kelas. DoD: jadwal bentrok kelas tidak bisa disimpan.
 - [ ] TP-SCH-003 Tambahkan server-side overlap validator bentrok guru. DoD: jadwal bentrok guru tidak bisa disimpan.
 - [ ] TP-SCH-004 Tambahkan server-side overlap validator bentrok ruang (jika room digunakan). DoD: bentrok ruang ditolak.
 - [ ] TP-SCH-005 Tambahkan UI edit schedule templates + integrasi `updateScheduleTemplates`. DoD: admin bisa update template dari Settings.
 - [ ] TP-SCH-006 Tambahkan test integrasi untuk bypass validasi jadwal via direct API call. DoD: test gagal jika rule dilanggar.
+
+Implementasi TP-SCH-001:
+- Endpoint create/update jadwal (`/api/schedules`, `/api/schedules/[id]`) sekarang memvalidasi format jam `HH:mm` dan menolak request jika `startTime >= endTime`.
 
 ### 6.6 WS-ATT: Attendance Integrity & Governance (P1)
 
