@@ -88,7 +88,7 @@ Implementasi TP-SEC-004:
 ### 6.3 WS-AUTHZ: Role & Ownership Authorization (P0)
 
 - [ ] TP-AUTHZ-001 Buat authorization matrix eksplisit per resource dan action. DoD: matrix approved Product + Engineering.
-- [ ] TP-AUTHZ-002 Implement `requireRole()` untuk aksi level role (ADMIN/TEACHER/STUDENT/PARENT). DoD: endpoint terproteksi role.
+- [x] TP-AUTHZ-002 Implement `requireRole()` untuk aksi level role (ADMIN/TEACHER/STUDENT/PARENT). DoD: endpoint terproteksi role.
 - [ ] TP-AUTHZ-003 Implement ownership guard parent-child (`canViewStudent`). DoD: parent hanya dapat akses anak ter-link.
 - [ ] TP-AUTHZ-004 Implement ownership guard student-self data. DoD: student hanya akses data milik sendiri.
 - [ ] TP-AUTHZ-005 Implement ownership guard teacher kelas/mapel yang diajar. DoD: teacher tidak bisa mutate data kelas lain.
@@ -97,6 +97,10 @@ Implementasi TP-SEC-004:
 
 Implementasi TP-SEC-003:
 - `requireAuth()` sekarang mengembalikan `ActorContext` terstandar (`userId`, `role`, `schoolId`).
+
+Implementasi TP-AUTHZ-002:
+- Helper `requireRole()` dipakai untuk role enforcement terstandar di endpoint user-domain.
+- Endpoint yang sudah terproteksi role: `/api/users`, `/api/users/[id]` (mutasi), `/api/students`, `/api/parents`, `/api/teachers`, `/api/parent-links`.
 
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 

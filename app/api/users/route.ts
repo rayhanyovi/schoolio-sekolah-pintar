@@ -1,9 +1,15 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   const { searchParams } = new URL(request.url);
   const role = searchParams.get("role");
   const classId = searchParams.get("classId");
@@ -31,6 +37,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   const body = await request.json();
   if (!body?.name || !body?.role) {
     return jsonError("VALIDATION_ERROR", "name and role are required");
