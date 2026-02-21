@@ -126,7 +126,7 @@ Implementasi TP-AUTHZ-007:
 
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
-- [ ] TP-API-001 Hapus field actor identity dari payload sensitif (`authorId`, `studentId`, `teacherId`). DoD: actor identity hanya dari session.
+- [x] TP-API-001 Hapus field actor identity dari payload sensitif (`authorId`, `studentId`, `teacherId`). DoD: actor identity hanya dari session.
 - [ ] TP-API-002 Standarkan input validation Zod untuk seluruh endpoint write (POST/PATCH/PUT). DoD: invalid payload return 400 + code konsisten.
 - [ ] TP-API-003 Implement standard error code (`UNAUTHORIZED`, `FORBIDDEN`, `VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`). DoD: response error seragam lintas route.
 - [x] TP-API-004 Refactor `listClassSubjects` response/payload jadi typed schema. DoD: tidak ada `Record<string, unknown>` pada flow utama.
@@ -137,7 +137,7 @@ Implementasi TP-AUTHZ-007:
 - [x] TP-API-009 Hilangkan `any` normalisasi di `lib/handlers/materials.ts`. DoD: mapper typed + parse schema lulus.
 - [x] TP-API-010 Tertibkan endpoint profile agar tidak ambil user berdasarkan fallback data pertama. DoD: profile endpoint actor-scoped jelas.
 
-Progress TP-API-001:
+Implementasi TP-API-001:
 - Forum thread/reply submit sudah derive actor dari session (tanpa `authorId` payload).
 - Assignment submission sudah derive `studentId` dari session (tanpa `studentId` payload).
 - Notes create sudah derive `authorId` dari session (tanpa `authorId` payload).
@@ -146,6 +146,7 @@ Progress TP-API-001:
 - Schedule create/update untuk role `TEACHER` sekarang derive `teacherId` dari session saat mutasi guru.
 - Attendance session create/update untuk role `TEACHER` sekarang derive `teacherId`/`takenByTeacherId` dari session saat field actor dikirim client.
 - Calendar event create sekarang derive `createdById` dari session actor (payload `createdById` tidak dipercaya).
+- Seluruh penetapan actor saat write dilakukan dari session server-side; field ID pada payload hanya dipakai sebagai target business entity untuk konteks admin yang sah.
 
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 
