@@ -78,7 +78,7 @@ Ritme update TP-DOC-004:
 - [ ] TP-SEC-003 Implement actor context server-side (`userId`, `role`, `schoolId?`). DoD: seluruh handler sensitif memakai actor context yang sama.
 - [ ] TP-SEC-004 Nonaktifkan debug impersonation di environment produksi. DoD: fitur debug hanya aktif di dev/test.
 - [x] TP-SEC-005 Tambahkan endpoint login/logout backend final. DoD: flow login tidak bergantung pada sessionStorage role mock.
-- [ ] TP-SEC-006 Tambahkan session validation untuk setiap request API sensitif. DoD: request dengan session invalid ditolak konsisten.
+- [x] TP-SEC-006 Tambahkan session validation untuk setiap request API sensitif. DoD: request dengan session invalid ditolak konsisten.
 
 ### 6.3 WS-AUTHZ: Role & Ownership Authorization (P0)
 
