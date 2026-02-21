@@ -93,7 +93,7 @@ Implementasi TP-SEC-004:
 - [x] TP-AUTHZ-004 Implement ownership guard student-self data. DoD: student hanya akses data milik sendiri.
 - [x] TP-AUTHZ-005 Implement ownership guard teacher kelas/mapel yang diajar. DoD: teacher tidak bisa mutate data kelas lain.
 - [x] TP-AUTHZ-006 Terapkan deny-by-default pada endpoint yang belum punya policy. DoD: endpoint tanpa policy eksplisit return 403.
-- [ ] TP-AUTHZ-007 Audit semua endpoint `app/api/*` untuk policy coverage. DoD: 100% endpoint sensitif terdaftar status policy.
+- [x] TP-AUTHZ-007 Audit semua endpoint `app/api/*` untuk policy coverage. DoD: 100% endpoint sensitif terdaftar status policy.
 
 Implementasi TP-SEC-003:
 - `requireAuth()` sekarang mengembalikan `ActorContext` terstandar (`userId`, `role`, `schoolId`).
@@ -119,9 +119,10 @@ Implementasi TP-AUTHZ-006:
 - Deny-by-default diterapkan pada cluster endpoint yang sebelumnya terbuka: `calendar`, `analytics`, `grades summary`, `classes`, `subjects`, `majors`, `academic-years`, `schedule-templates`, `settings/school-profile`, `question-packages`, `questions`.
 - Endpoint tersebut kini menolak request tanpa session (`401`) dan menolak role tidak sesuai (`403`).
 
-Progress TP-AUTHZ-007:
+Implementasi TP-AUTHZ-007:
 - Audit policy coverage dilakukan untuk seluruh route `app/api/*` berbasis pengecekan source route handler.
-- Status sementara: semua route API non-auth sudah memiliki guard auth server-side; pengecualian terkontrol hanya endpoint publik auth `/api/auth/login` dan `/api/auth/logout`.
+- Hasil audit coverage: semua route API non-auth sudah memiliki guard auth server-side; pengecualian terkontrol hanya endpoint publik auth `/api/auth/login` dan `/api/auth/logout`.
+- Baseline ini memastikan endpoint sensitif tercatat memiliki policy coverage aktif (auth + role/ownership sesuai konteks route).
 
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
