@@ -15,11 +15,11 @@
 
 **Teacher**
 - [x] Schedules: sama seperti Admin (typed data/mapper di handler).
-- [ ] Materials: hilangkan `any` pada normalisasi di `lib/handlers/materials.ts` (buat typed schema/mapper).
+- [x] Materials: normalisasi `lib/handlers/materials.ts` sudah typed mapper (tanpa `any`).
 
 **Student**
 - [x] Schedules: sama seperti Admin/Teacher (typed data/mapper di handler).
-- [ ] Materials: sama seperti Teacher (typed data/mapper).
+- [x] Materials: sama seperti Teacher (typed data/mapper).
 
 **Parent**
 - [ ] (Tidak ada tambahan khusus, selain item Global/Student terkait dashboard & profil.)
