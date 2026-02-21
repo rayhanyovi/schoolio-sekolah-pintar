@@ -74,7 +74,7 @@ Ritme update TP-DOC-004:
 ### 6.2 WS-SEC: Authentication & Session Foundation (P0)
 
 - [x] TP-SEC-001 Implement route protection `middleware.ts` untuk `/dashboard` dan route sensitif. DoD: unauthenticated user tidak bisa akses halaman privat.
-- [ ] TP-SEC-002 Implement `requireAuth()` helper di API layer. DoD: endpoint sensitif return 401 jika tanpa session/token valid.
+- [x] TP-SEC-002 Implement `requireAuth()` helper di API layer. DoD: endpoint sensitif return 401 jika tanpa session/token valid.
 - [ ] TP-SEC-003 Implement actor context server-side (`userId`, `role`, `schoolId?`). DoD: seluruh handler sensitif memakai actor context yang sama.
 - [ ] TP-SEC-004 Nonaktifkan debug impersonation di environment produksi. DoD: fitur debug hanya aktif di dev/test.
 - [x] TP-SEC-005 Tambahkan endpoint login/logout backend final. DoD: flow login tidak bergantung pada sessionStorage role mock.
