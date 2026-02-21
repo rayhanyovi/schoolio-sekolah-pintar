@@ -25,6 +25,92 @@ export const listLinkedStudentIds = async (parentId: string) => {
   return rows.map((row) => row.studentId);
 };
 
+export const getStudentClassId = async (studentId: string) => {
+  const profile = await prisma.studentProfile.findUnique({
+    where: { userId: studentId },
+    select: { classId: true },
+  });
+  return profile?.classId ?? null;
+};
+
+export const listLinkedClassIdsForParent = async (parentId: string) => {
+  const linkedStudentIds = await listLinkedStudentIds(parentId);
+  if (!linkedStudentIds.length) {
+    return [];
+  }
+
+  const profiles = await prisma.studentProfile.findMany({
+    where: { userId: { in: linkedStudentIds } },
+    select: { classId: true },
+  });
+
+  return Array.from(
+    new Set(
+      profiles
+        .map((profile) => profile.classId)
+        .filter((value): value is string => Boolean(value))
+    )
+  );
+};
+
+export const isTeacherAssignedToSubject = async (
+  teacherId: string,
+  subjectId: string
+) => {
+  const relation = await prisma.subjectTeacher.findUnique({
+    where: {
+      subjectId_teacherId: {
+        subjectId,
+        teacherId,
+      },
+    },
+    select: { teacherId: true },
+  });
+  return Boolean(relation);
+};
+
+export const isSubjectLinkedToClass = async (
+  subjectId: string,
+  classId: string
+) => {
+  const relation = await prisma.subjectClass.findUnique({
+    where: {
+      subjectId_classId: {
+        subjectId,
+        classId,
+      },
+    },
+    select: { classId: true },
+  });
+  return Boolean(relation);
+};
+
+export const isSubjectLinkedToAllClasses = async (
+  subjectId: string,
+  classIds: string[]
+) => {
+  if (!classIds.length) return true;
+  const rows = await prisma.subjectClass.findMany({
+    where: {
+      subjectId,
+      classId: { in: classIds },
+    },
+    select: { classId: true },
+  });
+  return rows.length === classIds.length;
+};
+
+export const canTeacherManageSubjectClass = async (
+  teacherId: string,
+  subjectId: string,
+  classId?: string | null
+) => {
+  const hasSubjectAccess = await isTeacherAssignedToSubject(teacherId, subjectId);
+  if (!hasSubjectAccess) return false;
+  if (!classId) return true;
+  return isSubjectLinkedToClass(subjectId, classId);
+};
+
 export const canViewStudent = async (
   actor: ActorContext,
   studentId: string

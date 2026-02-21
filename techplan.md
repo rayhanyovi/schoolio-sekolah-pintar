@@ -91,7 +91,7 @@ Implementasi TP-SEC-004:
 - [x] TP-AUTHZ-002 Implement `requireRole()` untuk aksi level role (ADMIN/TEACHER/STUDENT/PARENT). DoD: endpoint terproteksi role.
 - [x] TP-AUTHZ-003 Implement ownership guard parent-child (`canViewStudent`). DoD: parent hanya dapat akses anak ter-link.
 - [x] TP-AUTHZ-004 Implement ownership guard student-self data. DoD: student hanya akses data milik sendiri.
-- [ ] TP-AUTHZ-005 Implement ownership guard teacher kelas/mapel yang diajar. DoD: teacher tidak bisa mutate data kelas lain.
+- [x] TP-AUTHZ-005 Implement ownership guard teacher kelas/mapel yang diajar. DoD: teacher tidak bisa mutate data kelas lain.
 - [ ] TP-AUTHZ-006 Terapkan deny-by-default pada endpoint yang belum punya policy. DoD: endpoint tanpa policy eksplisit return 403.
 - [ ] TP-AUTHZ-007 Audit semua endpoint `app/api/*` untuk policy coverage. DoD: 100% endpoint sensitif terdaftar status policy.
 
@@ -110,9 +110,10 @@ Implementasi TP-AUTHZ-004:
 - Student scope dipaksa ke data diri sendiri pada endpoint: `/api/students`, `/api/users/[id]`, `/api/grades`, `/api/attendance/records`, `/api/assignments/[id]/submissions`, `/api/submissions/[id]`.
 - Payload submission tidak lagi menerima `studentId` dari client; identitas submitter selalu dari session actor.
 
-Progress TP-AUTHZ-005:
+Implementasi TP-AUTHZ-005:
 - Ownership guard teacher untuk domain assignment sudah diterapkan pada endpoint: `/api/assignments`, `/api/assignments/[id]`, `/api/assignments/[id]/classes`, `/api/assignments/[id]/questions`, `/api/submissions/[id]`.
-- Guard memastikan guru hanya bisa mutate assignment mapel/kelas yang relevan dengan assignment yang dia kelola.
+- Ownership guard teacher untuk domain materi/jadwal/absensi sudah diterapkan pada endpoint: `/api/materials`, `/api/materials/[id]`, `/api/materials/[id]/attachments`, `/api/materials/[id]/attachments/[attachmentId]`, `/api/schedules`, `/api/schedules/[id]`, `/api/attendance/sessions`, `/api/attendance/sessions/[id]`, `/api/attendance/sessions/[id]/records`, `/api/attendance/records/[id]`.
+- Guard memastikan guru hanya bisa mutate resource pada kombinasi mapel/kelas yang dia ajar atau resource yang dia miliki.
 
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
@@ -132,6 +133,9 @@ Progress TP-API-001:
 - Assignment submission sudah derive `studentId` dari session (tanpa `studentId` payload).
 - Notes create sudah derive `authorId` dari session (tanpa `authorId` payload).
 - Teacher attendance create sudah derive `teacherId` dari session untuk role `TEACHER` (admin masih dapat menentukan target guru).
+- Material create/update untuk role `TEACHER` sekarang derive `teacherId` dari session (payload `teacherId` tidak dipercaya).
+- Schedule create/update untuk role `TEACHER` sekarang derive `teacherId` dari session saat mutasi guru.
+- Attendance session create/update untuk role `TEACHER` sekarang derive `teacherId`/`takenByTeacherId` dari session saat field actor dikirim client.
 
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 

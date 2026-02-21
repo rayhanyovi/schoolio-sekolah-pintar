@@ -1,9 +1,25 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import {
+  canTeacherManageSubjectClass,
+  getStudentClassId,
+  listLinkedClassIdsForParent,
+} from "@/lib/authz";
+import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [
+    ROLES.ADMIN,
+    ROLES.TEACHER,
+    ROLES.STUDENT,
+    ROLES.PARENT,
+  ]);
+  if (roleError) return roleError;
+
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const subjectId = searchParams.get("subjectId");
@@ -20,6 +36,37 @@ export async function GET(request: NextRequest) {
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
     where.date = { gte: start, lt: end };
+  }
+
+  if (auth.role === ROLES.TEACHER) {
+    const teacherFilter: Prisma.AttendanceSessionWhereInput = {
+      OR: [{ teacherId: auth.userId }, { takenByTeacherId: auth.userId }],
+    };
+    Object.assign(where, {
+      AND: [teacherFilter],
+    });
+  }
+
+  if (auth.role === ROLES.STUDENT) {
+    const ownClassId = await getStudentClassId(auth.userId);
+    if (!ownClassId) {
+      return jsonOk([]);
+    }
+    if (classId && classId !== ownClassId) {
+      return jsonError("FORBIDDEN", "Class access out of scope", 403);
+    }
+    where.classId = ownClassId;
+  }
+
+  if (auth.role === ROLES.PARENT) {
+    const linkedClassIds = await listLinkedClassIdsForParent(auth.userId);
+    if (!linkedClassIds.length) {
+      return jsonOk([]);
+    }
+    if (classId && !linkedClassIds.includes(classId)) {
+      return jsonError("FORBIDDEN", "Class access out of scope", 403);
+    }
+    where.classId = classId ? classId : { in: linkedClassIds };
   }
 
   const rows = await prisma.attendanceSession.findMany({
@@ -48,17 +95,43 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const body = await request.json();
   if (!body?.classId || !body?.subjectId || !body?.date) {
     return jsonError("VALIDATION_ERROR", "classId, subjectId, date are required");
   }
 
+  if (auth.role === ROLES.TEACHER) {
+    const allowed = await canTeacherManageSubjectClass(
+      auth.userId,
+      body.subjectId,
+      body.classId
+    );
+    if (!allowed) {
+      return jsonError(
+        "FORBIDDEN",
+        "Guru tidak memiliki akses ke kombinasi mapel/kelas ini",
+        403
+      );
+    }
+  }
+
+  const teacherId = auth.role === ROLES.ADMIN ? body.teacherId ?? null : auth.userId;
+  const takenByTeacherId =
+    auth.role === ROLES.ADMIN
+      ? body.takenByTeacherId ?? null
+      : auth.userId;
+
   const row = await prisma.attendanceSession.create({
     data: {
       classId: body.classId,
       subjectId: body.subjectId,
-      teacherId: body.teacherId ?? null,
-      takenByTeacherId: body.takenByTeacherId ?? null,
+      teacherId,
+      takenByTeacherId,
       scheduleId: body.scheduleId ?? null,
       date: new Date(body.date),
       startTime: body.startTime ?? null,
