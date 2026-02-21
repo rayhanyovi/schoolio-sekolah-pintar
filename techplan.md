@@ -101,7 +101,7 @@ Implementasi TP-SEC-004:
 - [ ] TP-API-002 Standarkan input validation Zod untuk seluruh endpoint write (POST/PATCH/PUT). DoD: invalid payload return 400 + code konsisten.
 - [ ] TP-API-003 Implement standard error code (`UNAUTHORIZED`, `FORBIDDEN`, `VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`). DoD: response error seragam lintas route.
 - [x] TP-API-004 Refactor `listClassSubjects` response/payload jadi typed schema. DoD: tidak ada `Record<string, unknown>` pada flow utama.
-- [ ] TP-API-005 Refactor `setClassSubjects` payload typed schema. DoD: payload tervalidasi penuh.
+- [x] TP-API-005 Refactor `setClassSubjects` payload typed schema. DoD: payload tervalidasi penuh.
 - [ ] TP-API-006 Refactor `setSubjectTeachers` payload typed schema. DoD: payload tervalidasi penuh.
 - [ ] TP-API-007 Refactor `setSubjectClasses` payload typed schema. DoD: payload tervalidasi penuh.
 - [ ] TP-API-008 Hilangkan `any` normalisasi di `lib/handlers/schedules.ts`. DoD: mapper typed + parse schema lulus.

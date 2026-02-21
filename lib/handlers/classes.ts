@@ -3,6 +3,8 @@ import {
   classListSchema,
   classSchema,
   classSubjectListSchema,
+  classSubjectSetPayloadSchema,
+  classSubjectSetResultSchema,
   classStudentListSchema,
 } from "@/lib/schemas";
 
@@ -37,7 +39,10 @@ export const listClassSubjects = async (classId: string) =>
     await apiGet(`/api/classes/${classId}/subjects`)
   );
 
-export const setClassSubjects = (classId: string, subjectIds: string[]) =>
-  apiPut<Record<string, unknown>>(`/api/classes/${classId}/subjects`, {
-    subjectIds,
-  });
+export const setClassSubjects = async (classId: string, subjectIds: string[]) =>
+  classSubjectSetResultSchema.parse(
+    await apiPut(
+      `/api/classes/${classId}/subjects`,
+      classSubjectSetPayloadSchema.parse({ subjectIds })
+    )
+  );

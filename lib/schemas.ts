@@ -188,6 +188,16 @@ export const classSubjectSchema = z.object({
 export const classSubjectListSchema = z.array(classSubjectSchema);
 export type ClassSubjectSummary = z.infer<typeof classSubjectSchema>;
 
+export const classSubjectSetPayloadSchema = z.object({
+  subjectIds: z.array(z.string()),
+});
+export const classSubjectSetResultSchema = z.object({
+  id: z.string(),
+  subjectIds: stringArray,
+});
+export type ClassSubjectSetPayload = z.infer<typeof classSubjectSetPayloadSchema>;
+export type ClassSubjectSetResult = z.infer<typeof classSubjectSetResultSchema>;
+
 export const calendarEventSchema = z.object({
   id: z.string(),
   title: z.string(),
