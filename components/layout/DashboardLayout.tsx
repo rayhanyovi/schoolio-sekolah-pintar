@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { DebugPanel } from "./DebugPanel";
 import { Role, ROLES } from "@/lib/constants";
@@ -9,6 +10,14 @@ import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { HelpMenu } from "@/components/help/HelpMenu";
+import { apiGet } from "@/lib/api-client";
+
+type SessionResponse = {
+  userId: string;
+  name: string;
+  role: Role;
+  canUseDebugPanel: boolean;
+};
 
 interface DashboardLayoutProps {
   initialRole?: Role;
@@ -21,9 +30,38 @@ export function DashboardLayout({
   userName = "Pengguna Demo",
   children,
 }: DashboardLayoutProps) {
+  const router = useRouter();
   const [role, setRole] = useState<Role>(initialRole);
+  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedUserName, setSelectedUserName] = useState<string>(userName);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadSession = async () => {
+      try {
+        const session = await apiGet<SessionResponse>("/api/auth/session");
+        if (!isMounted) return;
+        setRole(session.role);
+        setShowDebugPanel(session.canUseDebugPanel);
+        setSelectedUserId(session.userId);
+        setSelectedUserName(session.name);
+      } catch {
+        if (!isMounted) return;
+        router.replace("/auth");
+      } finally {
+        if (!isMounted) return;
+        setIsSessionReady(true);
+      }
+    };
+
+    loadSession();
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   const handleRoleChange = (nextRole: Role) => {
     setRole(nextRole);
@@ -36,18 +74,28 @@ export function DashboardLayout({
     setSelectedUserName(name);
   };
 
+  if (!isSessionReady) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+        Memuat sesi...
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar role={role} userName={selectedUserName} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Debug Panel */}
-        <DebugPanel
-          currentRole={role}
-          onRoleChange={handleRoleChange}
-          selectedUserId={selectedUserId}
-          onUserChange={handleUserChange}
-        />
+        {showDebugPanel && (
+          <DebugPanel
+            currentRole={role}
+            onRoleChange={handleRoleChange}
+            selectedUserId={selectedUserId}
+            onUserChange={handleUserChange}
+          />
+        )}
 
         {/* Top Bar */}
         <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between shrink-0">

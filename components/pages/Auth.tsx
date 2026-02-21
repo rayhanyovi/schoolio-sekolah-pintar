@@ -8,8 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_DESCRIPTION } from "@/lib/constants";
+import { apiPost } from "@/lib/api-client";
+import { setDebugAccess } from "@/lib/auth-session";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, BookOpen, Users, ClipboardCheck, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+type LoginResponse = {
+  user: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  canUseDebugPanel: boolean;
+};
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,15 +36,40 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate auth - will be replaced with Supabase
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      if (!isLogin) {
+        toast({
+          title: "Registrasi belum tersedia",
+          description: "Silakan gunakan akun demo untuk masuk.",
+        });
+        return;
+      }
+
+      const loginResult = await apiPost<LoginResponse>("/api/auth/login", {
+        username: email.trim(),
+        password,
+      });
+
+      setDebugAccess(loginResult.canUseDebugPanel);
       toast({
         title: "Selamat Datang!",
         description: "Anda akan dialihkan ke dashboard.",
       });
       router.push("/dashboard");
-    }, 1000);
+    } catch (error) {
+      setDebugAccess(false);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat proses login.";
+      toast({
+        title: "Login gagal",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const features = [
@@ -124,13 +160,13 @@ export default function Auth() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email / Username</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="email"
-                      type="email"
-                      placeholder="nama@sekolah.sch.id"
+                      type="text"
+                      placeholder="nama@sekolah.sch.id atau admin"
                       className="pl-10"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
