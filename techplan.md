@@ -130,7 +130,7 @@ Implementasi TP-SEC-004:
 ### 6.7 WS-FORUM: Enforcement & Moderation Integrity (P1)
 
 - [x] TP-FORUM-001 Enforce `locked thread` di server saat create reply. DoD: reply ke thread locked ditolak untuk non-moderator.
-- [ ] TP-FORUM-002 Enforce lock policy pada edit reply dan aksi terkait. DoD: policy lock konsisten di semua endpoint forum.
+- [x] TP-FORUM-002 Enforce lock policy pada edit reply dan aksi terkait. DoD: policy lock konsisten di semua endpoint forum.
 - [ ] TP-FORUM-003 Validasi role parent tidak bisa akses forum endpoint jika policy final tetap blokir. DoD: parent receive 403.
 - [ ] TP-FORUM-004 Tambahkan integration test bypass UI untuk forum lock. DoD: direct API bypass gagal.
 
