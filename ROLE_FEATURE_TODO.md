@@ -1,9 +1,11 @@
 **To-Do List: Fitur Belum Well Implemented**
 
 **Global / Multi-Role**
-- [ ] Dashboard: ganti data hardcoded di `components/pages/Dashboard.tsx` dengan data dari endpoint (stats, jadwal hari ini, tugas terbaru, ringkasan kehadiran).
-- [ ] Profil Saya: buat endpoint profil user + handler typed, lalu hubungkan UI di `components/pages/Profile.tsx`.
+- [x] Dashboard: data utama dashboard sudah dari endpoint (lihat `ROLE_FEATURE_MATRIX.md`), namun masih perlu penyempurnaan role-scoped data.
+- [x] Profil Saya: endpoint profil user sudah terhubung backend, namun masih perlu actor-scoped refinement di API.
 - [ ] Notifikasi Sistem: buat endpoint/handler + simpan setting, lalu hubungkan di `components/pages/Settings.tsx`.
+- [ ] Dashboard (refinement): role-specific scoping untuk stats/jadwal/tugas agar tidak menggunakan agregasi umum.
+- [ ] Profil Saya (refinement): rapikan endpoint profile agar selalu actor-scoped dan tidak bergantung fallback data list.
 
 **Admin**
 - [ ] Classes: ketikkan response `listClassSubjects` + payload `setClassSubjects` dengan schema jelas.
