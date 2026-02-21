@@ -1,5 +1,10 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/lib/api-client";
-import { subjectListSchema, subjectSchema } from "@/lib/schemas";
+import {
+  subjectListSchema,
+  subjectSchema,
+  subjectTeacherSetPayloadSchema,
+  subjectTeacherSetResultSchema,
+} from "@/lib/schemas";
 
 export type ListSubjectsParams = {
   category?: string;
@@ -23,10 +28,13 @@ export const updateSubject = async (
 export const deleteSubject = (id: string) =>
   apiDelete<{ id: string }>(`/api/subjects/${id}`);
 
-export const setSubjectTeachers = (id: string, teacherIds: string[]) =>
-  apiPut<Record<string, unknown>>(`/api/subjects/${id}/teachers`, {
-    teacherIds,
-  });
+export const setSubjectTeachers = async (id: string, teacherIds: string[]) =>
+  subjectTeacherSetResultSchema.parse(
+    await apiPut(
+      `/api/subjects/${id}/teachers`,
+      subjectTeacherSetPayloadSchema.parse({ teacherIds })
+    )
+  );
 
 export const setSubjectClasses = (id: string, classIds: string[]) =>
   apiPut<Record<string, unknown>>(`/api/subjects/${id}/classes`, { classIds });

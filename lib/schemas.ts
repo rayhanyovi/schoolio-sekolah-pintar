@@ -156,6 +156,16 @@ export const subjectSchema = z.object({
 export const subjectListSchema = z.array(subjectSchema);
 export type SubjectSummary = z.infer<typeof subjectSchema>;
 
+export const subjectTeacherSetPayloadSchema = z.object({
+  teacherIds: z.array(z.string()),
+});
+export const subjectTeacherSetResultSchema = z.object({
+  id: z.string(),
+  teacherIds: stringArray,
+});
+export type SubjectTeacherSetPayload = z.infer<typeof subjectTeacherSetPayloadSchema>;
+export type SubjectTeacherSetResult = z.infer<typeof subjectTeacherSetResultSchema>;
+
 export const subjectFormSchema = z.object({
   name: z.string(),
   code: z.string(),
