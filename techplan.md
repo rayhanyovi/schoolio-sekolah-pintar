@@ -50,13 +50,21 @@ Aturan histori:
 
 - [x] TP-DOC-001 Buat dokumen `techplan.md` sebagai single source of truth plan teknis.
 - [x] TP-DOC-002 Sinkronkan mismatch status fitur antara `ROLE_FEATURE_TODO.md` dan `ROLE_FEATURE_MATRIX.md`. DoD: perbedaan status Dashboard/Profile/Settings disepakati dan didokumentasikan.
-- [ ] TP-DOC-003 Definisikan owner per workstream (Backend, Frontend, QA, Product). DoD: tiap item P0-P1 punya owner.
+- [x] TP-DOC-003 Definisikan owner per workstream (Backend, Frontend, QA, Product). DoD: tiap item P0-P1 punya owner.
 - [ ] TP-DOC-004 Tetapkan ritme update dokumen (harian/mingguan). DoD: jadwal update disetujui dan berjalan.
 
 Alignment note TP-DOC-002 (21-02-2026):
 - Dashboard: disepakati `implemented with refinement`. Data utama sudah endpoint-driven, tetapi role-specific scoping masih backlog.
 - Profil Saya: disepakati `implemented with refinement`. Endpoint profile sudah terhubung backend, tetapi actor-scoped behavior masih backlog.
 - Settings/Notifikasi: disepakati `not implemented`. Masih state lokal UI dan belum persist backend.
+
+Owner mapping TP-DOC-003:
+- WS-SEC, WS-AUTHZ, WS-API, WS-ATT, WS-AUD: `Backend Lead`
+- WS-SCHEDULE, WS-PARENT, WS-ASSIGN, WS-GRADE, WS-FORUM: `Backend + Product`
+- WS-NOTIF, WS-FILE, WS-LIFE: `Backend + Architect`
+- WS-ROLE, WS-TEST: `QA Lead`
+- WS-DOC, WS-RELEASE, WS-OPS: `Engineering Manager`
+- Frontend execution owner untuk semua perubahan UI/API integration: `Frontend Lead`
 
 ### 6.2 WS-SEC: Authentication & Session Foundation (P0)
 
