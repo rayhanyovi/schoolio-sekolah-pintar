@@ -87,3 +87,38 @@ export const findTeacherOverlapSchedule = (
     }) ?? null
   );
 };
+
+const normalizeRoomKey = (room: string | null | undefined) =>
+  (room ?? "").trim().toLowerCase();
+
+export const findRoomOverlapSchedule = (
+  schedules: Array<{
+    id: string;
+    room: string | null;
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  }>,
+  input: {
+    room: string;
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  },
+  excludeId?: string
+) => {
+  const roomKey = normalizeRoomKey(input.room);
+  return (
+    schedules.find((schedule) => {
+      if (excludeId && schedule.id === excludeId) return false;
+      if (normalizeRoomKey(schedule.room) !== roomKey) return false;
+      if (schedule.dayOfWeek !== input.dayOfWeek) return false;
+      return isOverlappingTimeRange(
+        schedule.startTime,
+        schedule.endTime,
+        input.startTime,
+        input.endTime
+      );
+    }) ?? null
+  );
+};

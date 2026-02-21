@@ -8,6 +8,7 @@ import {
 } from "@/lib/authz";
 import {
   findClassOverlapSchedule,
+  findRoomOverlapSchedule,
   findTeacherOverlapSchedule,
   validateScheduleTimeRange,
 } from "@/lib/schedule-time";
@@ -92,6 +93,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       dayOfWeek: true,
       startTime: true,
       endTime: true,
+      room: true,
     },
   });
   if (!existing) return jsonError("NOT_FOUND", "Schedule not found", 404);
@@ -115,6 +117,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       : body.teacherId !== undefined
         ? auth.userId
         : existing.teacherId;
+  const nextRoom =
+    body.room !== undefined
+      ? typeof body.room === "string"
+        ? body.room.trim()
+        : ""
+      : existing.room ?? "";
   const nextStartTime =
     typeof body.startTime === "string" ? body.startTime : existing.startTime;
   const nextEndTime =
@@ -188,6 +196,39 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
+  if (nextRoom) {
+    const roomSchedules = await prisma.classSchedule.findMany({
+      where: {
+        dayOfWeek: nextDayOfWeek,
+        room: { not: null },
+      },
+      select: {
+        id: true,
+        room: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+    const roomConflict = findRoomOverlapSchedule(
+      roomSchedules,
+      {
+        room: nextRoom,
+        dayOfWeek: nextDayOfWeek,
+        startTime: nextStartTime,
+        endTime: nextEndTime,
+      },
+      existing.id
+    );
+    if (roomConflict) {
+      return jsonError(
+        "CONFLICT",
+        "Jadwal bentrok dengan penggunaan ruang pada rentang waktu yang sama",
+        409
+      );
+    }
+  }
+
   if (auth.role === ROLES.TEACHER) {
     const nextSubjectId =
       typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
@@ -215,7 +256,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       dayOfWeek: body.dayOfWeek,
       startTime: body.startTime,
       endTime: body.endTime,
-      room: body.room,
+      room:
+        body.room !== undefined
+          ? typeof body.room === "string"
+            ? body.room.trim() || null
+            : null
+          : undefined,
       color: body.color,
     },
   });

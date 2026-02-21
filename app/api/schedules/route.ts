@@ -8,6 +8,7 @@ import {
 } from "@/lib/authz";
 import {
   findClassOverlapSchedule,
+  findRoomOverlapSchedule,
   findTeacherOverlapSchedule,
   validateScheduleTimeRange,
 } from "@/lib/schedule-time";
@@ -106,6 +107,8 @@ export async function POST(request: NextRequest) {
   }
   const resolvedTeacherId =
     auth.role === ROLES.ADMIN ? body.teacherId ?? null : auth.userId;
+  const resolvedRoom =
+    typeof body.room === "string" ? body.room.trim() : "";
 
   const classSchedules = await prisma.classSchedule.findMany({
     where: {
@@ -163,6 +166,35 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  if (resolvedRoom) {
+    const roomSchedules = await prisma.classSchedule.findMany({
+      where: {
+        dayOfWeek: body.dayOfWeek,
+        room: { not: null },
+      },
+      select: {
+        id: true,
+        room: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+    const roomConflict = findRoomOverlapSchedule(roomSchedules, {
+      room: resolvedRoom,
+      dayOfWeek: body.dayOfWeek,
+      startTime: body.startTime,
+      endTime: body.endTime,
+    });
+    if (roomConflict) {
+      return jsonError(
+        "CONFLICT",
+        "Jadwal bentrok dengan penggunaan ruang pada rentang waktu yang sama",
+        409
+      );
+    }
+  }
+
   if (auth.role === ROLES.TEACHER) {
     const allowed = await canTeacherManageSubjectClass(
       auth.userId,
@@ -191,7 +223,7 @@ export async function POST(request: NextRequest) {
       dayOfWeek: body.dayOfWeek,
       startTime: body.startTime,
       endTime: body.endTime,
-      room: body.room ?? null,
+      room: resolvedRoom || null,
       color: subject?.color ?? "bg-primary",
     },
   });
