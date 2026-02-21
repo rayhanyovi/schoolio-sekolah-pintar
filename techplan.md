@@ -174,10 +174,14 @@ Progress TP-API-001:
 
 ### 6.10 WS-PARENT: Parent Flow & Data Scoping (P0-P1)
 
-- [ ] TP-PRN-001 Pastikan endpoint parent hanya mengembalikan linked children. DoD: tidak ada akses daftar siswa global dari parent context.
+- [x] TP-PRN-001 Pastikan endpoint parent hanya mengembalikan linked children. DoD: tidak ada akses daftar siswa global dari parent context.
 - [ ] TP-PRN-002 Validasi `selectedChildId` selalu belongs-to-parent. DoD: child context invalid auto reject/reset.
 - [ ] TP-PRN-003 Audit halaman parent yang masih memanggil list siswa generik. DoD: semua diganti endpoint scoped.
 - [ ] TP-PRN-004 Definisikan policy visibilitas parent pada detail submission/jawaban anak. DoD: keputusan produk terdokumentasi dan diterapkan.
+
+Implementasi TP-PRN-001:
+- Parent context pada endpoint siswa dan monitoring dipersempit ke linked children: `/api/students`, `/api/grades`, `/api/attendance/records`, `/api/assignments/[id]/submissions`.
+- Endpoint `/api/parents` untuk actor parent dipersempit ke profil parent sendiri (bukan daftar parent global).
 
 ### 6.11 WS-LIFE: Academic Lifecycle & Edge Cases (P2)
 
