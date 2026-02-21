@@ -532,21 +532,21 @@ function StudentAssignmentsView({
     loadBase();
   }, [selectedStudentId]);
 
-  const loadSubmissions = async () => {
-    if (!selectedStudentId) {
-      setSubmissions([]);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const data = await listGrades({ studentId: selectedStudentId });
-      setSubmissions(data);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const loadSubmissions = async () => {
+      if (!selectedStudentId) {
+        setSubmissions([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const data = await listGrades({ studentId: selectedStudentId });
+        setSubmissions(data);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     loadSubmissions();
   }, [selectedStudentId]);
 
@@ -684,9 +684,7 @@ function StudentAssignmentsView({
                 assignment={assignment}
                 onWork={() => {
                   if (!allowWork) return;
-                  router.push(
-                    `/dashboard/assignments/${assignment.id}/work?studentId=${encodeURIComponent(selectedStudentId)}`
-                  );
+                  router.push(`/dashboard/assignments/${assignment.id}/work`);
                 }}
                 allowWork={allowWork}
               />

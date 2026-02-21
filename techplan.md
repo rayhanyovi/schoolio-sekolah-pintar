@@ -89,7 +89,7 @@ Implementasi TP-SEC-004:
 
 - [ ] TP-AUTHZ-001 Buat authorization matrix eksplisit per resource dan action. DoD: matrix approved Product + Engineering.
 - [x] TP-AUTHZ-002 Implement `requireRole()` untuk aksi level role (ADMIN/TEACHER/STUDENT/PARENT). DoD: endpoint terproteksi role.
-- [ ] TP-AUTHZ-003 Implement ownership guard parent-child (`canViewStudent`). DoD: parent hanya dapat akses anak ter-link.
+- [x] TP-AUTHZ-003 Implement ownership guard parent-child (`canViewStudent`). DoD: parent hanya dapat akses anak ter-link.
 - [ ] TP-AUTHZ-004 Implement ownership guard student-self data. DoD: student hanya akses data milik sendiri.
 - [ ] TP-AUTHZ-005 Implement ownership guard teacher kelas/mapel yang diajar. DoD: teacher tidak bisa mutate data kelas lain.
 - [ ] TP-AUTHZ-006 Terapkan deny-by-default pada endpoint yang belum punya policy. DoD: endpoint tanpa policy eksplisit return 403.
@@ -101,6 +101,10 @@ Implementasi TP-SEC-003:
 Implementasi TP-AUTHZ-002:
 - Helper `requireRole()` dipakai untuk role enforcement terstandar di endpoint user-domain.
 - Endpoint yang sudah terproteksi role: `/api/users`, `/api/users/[id]` (mutasi), `/api/students`, `/api/parents`, `/api/teachers`, `/api/parent-links`.
+
+Implementasi TP-AUTHZ-003:
+- Ownership guard parent-child dipakai pada endpoint data siswa/monitoring: `/api/students`, `/api/grades`, `/api/attendance/records`, `/api/assignments/[id]/submissions`.
+- Parent request di luar linked child sekarang ditolak (`403`) atau hasil dikosongkan sesuai konteks query.
 
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
@@ -114,6 +118,12 @@ Implementasi TP-AUTHZ-002:
 - [x] TP-API-008 Hilangkan `any` normalisasi di `lib/handlers/schedules.ts`. DoD: mapper typed + parse schema lulus.
 - [x] TP-API-009 Hilangkan `any` normalisasi di `lib/handlers/materials.ts`. DoD: mapper typed + parse schema lulus.
 - [x] TP-API-010 Tertibkan endpoint profile agar tidak ambil user berdasarkan fallback data pertama. DoD: profile endpoint actor-scoped jelas.
+
+Progress TP-API-001:
+- Forum thread/reply submit sudah derive actor dari session (tanpa `authorId` payload).
+- Assignment submission sudah derive `studentId` dari session (tanpa `studentId` payload).
+- Notes create sudah derive `authorId` dari session (tanpa `authorId` payload).
+- Teacher attendance create sudah derive `teacherId` dari session untuk role `TEACHER` (admin masih dapat menentukan target guru).
 
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 

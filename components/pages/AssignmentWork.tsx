@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { ArrowLeft, Calendar, ClipboardList, FileText, Upload } from "lucide-react";
@@ -38,21 +38,12 @@ const getDeliveryType = (assignment: AssignmentSummary): AssignmentType => {
 export default function AssignmentWork() {
   const router = useRouter();
   const params = useParams<{ assignmentId: string }>();
-  const searchParams = useSearchParams();
-  const { role, userId } = useRoleContext();
+  const { role } = useRoleContext();
 
   const assignmentParam = params?.assignmentId;
   const assignmentId = Array.isArray(assignmentParam)
     ? assignmentParam[0]
     : assignmentParam ?? "";
-  const studentIdFromQuery = searchParams.get("studentId")?.trim() ?? "";
-
-  const studentId = useMemo(() => {
-    if (role === ROLES.STUDENT) {
-      return studentIdFromQuery || userId || "";
-    }
-    return studentIdFromQuery || userId || "";
-  }, [role, studentIdFromQuery, userId]);
 
   const [assignment, setAssignment] = useState<AssignmentSummary | null>(null);
   const [answer, setAnswer] = useState("");
@@ -104,10 +95,6 @@ export default function AssignmentWork() {
       toast.error("Halaman ini hanya untuk siswa.");
       return;
     }
-    if (!studentId) {
-      toast.error("Siswa belum dipilih.");
-      return;
-    }
     if (deliveryType !== "FILE" && !answer.trim()) {
       toast.error("Jawaban wajib diisi.");
       return;
@@ -129,7 +116,6 @@ export default function AssignmentWork() {
           : { text: answer.trim() };
 
       await createAssignmentSubmission(assignment.id, {
-        studentId,
         status: "SUBMITTED",
         submittedAt: new Date().toISOString(),
         response,

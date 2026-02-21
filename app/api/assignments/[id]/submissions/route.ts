@@ -1,13 +1,49 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { listLinkedStudentIds } from "@/lib/authz";
+import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [
+    ROLES.ADMIN,
+    ROLES.TEACHER,
+    ROLES.STUDENT,
+    ROLES.PARENT,
+  ]);
+  if (roleError) return roleError;
+
   const { id } = await params;
+  const where: Record<string, unknown> = { assignmentId: id };
+
+  if (auth.role === ROLES.STUDENT) {
+    where.studentId = auth.userId;
+  }
+
+  if (auth.role === ROLES.PARENT) {
+    const linkedStudentIds = await listLinkedStudentIds(auth.userId);
+    if (!linkedStudentIds.length) {
+      return jsonOk([]);
+    }
+    where.studentId = { in: linkedStudentIds };
+  }
+
+  if (auth.role === ROLES.TEACHER) {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id },
+      select: { teacherId: true },
+    });
+    if (!assignment || assignment.teacherId !== auth.userId) {
+      return jsonError("FORBIDDEN", "Anda tidak memiliki akses ke submission ini", 403);
+    }
+  }
+
   const rows = await prisma.assignmentSubmission.findMany({
-    where: { assignmentId: id },
+    where,
     include: { student: true },
     orderBy: { createdAt: "desc" },
   });
@@ -29,23 +65,33 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.STUDENT]);
+  if (roleError) return roleError;
+
   const { id } = await params;
   const body = await request.json();
-  if (!body?.studentId) {
-    return jsonError("VALIDATION_ERROR", "studentId is required");
-  }
-
-  const row = await prisma.assignmentSubmission.create({
-    data: {
+  const row = await prisma.assignmentSubmission.upsert({
+    where: {
+      assignmentId_studentId: {
+        assignmentId: id,
+        studentId: auth.userId,
+      },
+    },
+    update: {
+      status: body.status ?? "SUBMITTED",
+      submittedAt: body.submittedAt ? new Date(body.submittedAt) : new Date(),
+      response: body.response ?? null,
+    },
+    create: {
       assignmentId: id,
-      studentId: body.studentId,
-      status: body.status ?? "PENDING",
-      submittedAt: body.submittedAt ? new Date(body.submittedAt) : null,
-      grade: body.grade ?? null,
-      feedback: body.feedback ?? null,
+      studentId: auth.userId,
+      status: body.status ?? "SUBMITTED",
+      submittedAt: body.submittedAt ? new Date(body.submittedAt) : new Date(),
       response: body.response ?? null,
     },
   });
 
-  return jsonOk(row, { status: 201 });
+  return jsonOk(row, { status: 200 });
 }

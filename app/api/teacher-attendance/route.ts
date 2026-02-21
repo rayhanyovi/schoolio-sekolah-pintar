@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
 const parseDate = (value?: string | null) => {
@@ -10,13 +11,22 @@ const parseDate = (value?: string | null) => {
 };
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const { searchParams } = new URL(request.url);
   const teacherId = searchParams.get("teacherId") ?? undefined;
   const dateFrom = parseDate(searchParams.get("dateFrom"));
   const dateTo = parseDate(searchParams.get("dateTo"));
 
   const where: Record<string, unknown> = {};
-  if (teacherId) where.teacherId = teacherId;
+  if (auth.role === ROLES.TEACHER) {
+    where.teacherId = auth.userId;
+  } else if (teacherId) {
+    where.teacherId = teacherId;
+  }
   if (dateFrom || dateTo) {
     where.date = {
       ...(dateFrom ? { gte: dateFrom } : {}),
@@ -34,8 +44,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const body = await request.json();
-  const teacherId = body?.teacherId as string | undefined;
+  const teacherId =
+    auth.role === ROLES.ADMIN
+      ? (body?.teacherId as string | undefined)
+      : auth.userId;
   const status = body?.status as string | undefined;
   const sessionId = body?.sessionId as string | undefined;
   const isAllDay = Boolean(body?.isAllDay);
