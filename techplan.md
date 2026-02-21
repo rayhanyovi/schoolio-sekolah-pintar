@@ -95,6 +95,10 @@ Implementasi TP-SEC-004:
 - [x] TP-AUTHZ-006 Terapkan deny-by-default pada endpoint yang belum punya policy. DoD: endpoint tanpa policy eksplisit return 403.
 - [x] TP-AUTHZ-007 Audit semua endpoint `app/api/*` untuk policy coverage. DoD: 100% endpoint sensitif terdaftar status policy.
 
+Progress TP-AUTHZ-001:
+- Draft authorization matrix eksplisit per resource/action sudah dibuat di `AUTHZ_MATRIX.md`.
+- Status approval Product + Engineering masih pending, sehingga item tetap terbuka.
+
 Implementasi TP-SEC-003:
 - `requireAuth()` sekarang mengembalikan `ActorContext` terstandar (`userId`, `role`, `schoolId`).
 
