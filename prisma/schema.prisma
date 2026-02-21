@@ -275,6 +275,7 @@ model ClassSchedule {
 
 model AttendanceSession {
   id         String   @id @default(cuid())
+  sessionKey String   @unique
   classId    String
   subjectId  String
   teacherId  String?

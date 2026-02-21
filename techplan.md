@@ -179,7 +179,7 @@ Implementasi TP-SCH-005:
 ### 6.6 WS-ATT: Attendance Integrity & Governance (P1)
 
 - [x] TP-ATT-001 Tetapkan business key unik attendance session. DoD: policy unik disepakati dan terdokumentasi.
-- [ ] TP-ATT-002 Tambahkan unique constraint attendance session di Prisma + migration. DoD: duplicate session gagal di DB level.
+- [x] TP-ATT-002 Tambahkan unique constraint attendance session di Prisma + migration. DoD: duplicate session gagal di DB level.
 - [ ] TP-ATT-003 Ubah create attendance session menjadi idempotent upsert. DoD: retry request tidak menghasilkan duplikasi.
 - [ ] TP-ATT-004 Tambahkan status sesi absensi (`OPEN`, `LOCKED`, `FINALIZED`). DoD: update mengikuti status policy.
 - [ ] TP-ATT-005 Tambahkan cutoff edit absensi untuk teacher + override policy admin. DoD: edit retroaktif mengikuti aturan.
@@ -190,6 +190,10 @@ Implementasi TP-ATT-001:
 - Business key attendance session ditetapkan sebagai `sessionKey` terhitung:
 - `schedule:{scheduleId}:{YYYY-MM-DD}` untuk sesi berbasis jadwal.
 - `manual:{classId}:{subjectId}:{YYYY-MM-DD}:{startTime|-}:{endTime|-}` untuk sesi manual.
+
+Implementasi TP-ATT-002:
+- Ditambahkan kolom `AttendanceSession.sessionKey` dengan constraint `@unique` di Prisma.
+- Migration DB ditambahkan: `prisma/migrations/20260222051500_add_attendance_session_key/migration.sql`.
 
 ### 6.7 WS-FORUM: Enforcement & Moderation Integrity (P1)
 
