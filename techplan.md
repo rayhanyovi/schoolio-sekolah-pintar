@@ -180,7 +180,7 @@ Implementasi TP-SCH-005:
 
 - [x] TP-ATT-001 Tetapkan business key unik attendance session. DoD: policy unik disepakati dan terdokumentasi.
 - [x] TP-ATT-002 Tambahkan unique constraint attendance session di Prisma + migration. DoD: duplicate session gagal di DB level.
-- [ ] TP-ATT-003 Ubah create attendance session menjadi idempotent upsert. DoD: retry request tidak menghasilkan duplikasi.
+- [x] TP-ATT-003 Ubah create attendance session menjadi idempotent upsert. DoD: retry request tidak menghasilkan duplikasi.
 - [ ] TP-ATT-004 Tambahkan status sesi absensi (`OPEN`, `LOCKED`, `FINALIZED`). DoD: update mengikuti status policy.
 - [ ] TP-ATT-005 Tambahkan cutoff edit absensi untuk teacher + override policy admin. DoD: edit retroaktif mengikuti aturan.
 - [ ] TP-ATT-006 Tambahkan `overrideReason`, `overriddenBy`, `overriddenAt`. DoD: semua override tersimpan jejaknya.
@@ -194,6 +194,10 @@ Implementasi TP-ATT-001:
 Implementasi TP-ATT-002:
 - Ditambahkan kolom `AttendanceSession.sessionKey` dengan constraint `@unique` di Prisma.
 - Migration DB ditambahkan: `prisma/migrations/20260222051500_add_attendance_session_key/migration.sql`.
+
+Implementasi TP-ATT-003:
+- Endpoint create sesi absensi (`/api/attendance/sessions`) diubah menjadi idempotent `upsert` berbasis `sessionKey`.
+- Retry request dengan key yang sama tidak lagi membuat duplikasi record.
 
 ### 6.7 WS-FORUM: Enforcement & Moderation Integrity (P1)
 

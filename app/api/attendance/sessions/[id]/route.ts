@@ -2,7 +2,9 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { canTeacherManageSubjectClass } from "@/lib/authz";
+import { buildAttendanceSessionKey } from "@/lib/attendance-session-key";
 import { ROLES } from "@/lib/constants";
+import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -63,10 +65,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     where: { id },
     select: {
       id: true,
+      sessionKey: true,
       classId: true,
       subjectId: true,
       teacherId: true,
       takenByTeacherId: true,
+      scheduleId: true,
+      date: true,
+      startTime: true,
+      endTime: true,
     },
   });
   if (!existing) return jsonError("NOT_FOUND", "Attendance session not found", 404);
@@ -93,30 +100,68 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
-  const row = await prisma.attendanceSession.update({
-    where: { id },
-    data: {
-      classId: body.classId,
-      subjectId: body.subjectId,
-      teacherId:
-        auth.role === ROLES.ADMIN
-          ? body.teacherId
-          : body.teacherId !== undefined
-            ? auth.userId
-            : undefined,
-      takenByTeacherId:
-        auth.role === ROLES.ADMIN
-          ? body.takenByTeacherId
-          : body.takenByTeacherId !== undefined
-            ? auth.userId
-            : undefined,
-      scheduleId: body.scheduleId,
-      date: body.date ? new Date(body.date) : undefined,
-      startTime: body.startTime,
-      endTime: body.endTime,
-    },
+  const nextDate =
+    body.date !== undefined ? new Date(body.date) : existing.date;
+  if (Number.isNaN(nextDate.getTime())) {
+    return jsonError("VALIDATION_ERROR", "date is invalid");
+  }
+  const nextClassId =
+    typeof body.classId === "string" ? body.classId : existing.classId;
+  const nextSubjectId =
+    typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
+  const nextScheduleId =
+    body.scheduleId !== undefined ? body.scheduleId : existing.scheduleId;
+  const nextStartTime =
+    body.startTime !== undefined ? body.startTime : existing.startTime;
+  const nextEndTime = body.endTime !== undefined ? body.endTime : existing.endTime;
+  const nextSessionKey = buildAttendanceSessionKey({
+    classId: nextClassId,
+    subjectId: nextSubjectId,
+    date: nextDate,
+    scheduleId: nextScheduleId ?? null,
+    startTime: nextStartTime ?? null,
+    endTime: nextEndTime ?? null,
   });
-  return jsonOk(row);
+
+  try {
+    const row = await prisma.attendanceSession.update({
+      where: { id },
+      data: {
+        sessionKey: nextSessionKey,
+        classId: body.classId,
+        subjectId: body.subjectId,
+        teacherId:
+          auth.role === ROLES.ADMIN
+            ? body.teacherId
+            : body.teacherId !== undefined
+              ? auth.userId
+              : undefined,
+        takenByTeacherId:
+          auth.role === ROLES.ADMIN
+            ? body.takenByTeacherId
+            : body.takenByTeacherId !== undefined
+              ? auth.userId
+              : undefined,
+        scheduleId: body.scheduleId,
+        date: body.date ? new Date(body.date) : undefined,
+        startTime: body.startTime,
+        endTime: body.endTime,
+      },
+    });
+    return jsonOk(row);
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return jsonError(
+        "CONFLICT",
+        "Attendance session dengan business key yang sama sudah ada",
+        409
+      );
+    }
+    throw error;
+  }
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {

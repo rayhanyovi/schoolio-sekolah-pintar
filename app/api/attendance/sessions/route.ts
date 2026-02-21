@@ -6,6 +6,7 @@ import {
   getStudentClassId,
   listLinkedClassIdsForParent,
 } from "@/lib/authz";
+import { buildAttendanceSessionKey } from "@/lib/attendance-session-key";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -104,6 +105,10 @@ export async function POST(request: NextRequest) {
   if (!body?.classId || !body?.subjectId || !body?.date) {
     return jsonError("VALIDATION_ERROR", "classId, subjectId, date are required");
   }
+  const sessionDate = new Date(body.date);
+  if (Number.isNaN(sessionDate.getTime())) {
+    return jsonError("VALIDATION_ERROR", "date is invalid");
+  }
 
   if (auth.role === ROLES.TEACHER) {
     const allowed = await canTeacherManageSubjectClass(
@@ -125,19 +130,39 @@ export async function POST(request: NextRequest) {
     auth.role === ROLES.ADMIN
       ? body.takenByTeacherId ?? null
       : auth.userId;
+  const sessionKey = buildAttendanceSessionKey({
+    classId: body.classId,
+    subjectId: body.subjectId,
+    date: sessionDate,
+    scheduleId: body.scheduleId ?? null,
+    startTime: body.startTime ?? null,
+    endTime: body.endTime ?? null,
+  });
 
-  const row = await prisma.attendanceSession.create({
-    data: {
+  const row = await prisma.attendanceSession.upsert({
+    where: { sessionKey },
+    create: {
+      sessionKey,
       classId: body.classId,
       subjectId: body.subjectId,
       teacherId,
       takenByTeacherId,
       scheduleId: body.scheduleId ?? null,
-      date: new Date(body.date),
+      date: sessionDate,
+      startTime: body.startTime ?? null,
+      endTime: body.endTime ?? null,
+    },
+    update: {
+      classId: body.classId,
+      subjectId: body.subjectId,
+      teacherId,
+      takenByTeacherId,
+      scheduleId: body.scheduleId ?? null,
+      date: sessionDate,
       startTime: body.startTime ?? null,
       endTime: body.endTime ?? null,
     },
   });
 
-  return jsonOk(row, { status: 201 });
+  return jsonOk(row);
 }
