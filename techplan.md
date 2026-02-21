@@ -90,7 +90,7 @@ Implementasi TP-SEC-004:
 - [ ] TP-AUTHZ-001 Buat authorization matrix eksplisit per resource dan action. DoD: matrix approved Product + Engineering.
 - [x] TP-AUTHZ-002 Implement `requireRole()` untuk aksi level role (ADMIN/TEACHER/STUDENT/PARENT). DoD: endpoint terproteksi role.
 - [x] TP-AUTHZ-003 Implement ownership guard parent-child (`canViewStudent`). DoD: parent hanya dapat akses anak ter-link.
-- [ ] TP-AUTHZ-004 Implement ownership guard student-self data. DoD: student hanya akses data milik sendiri.
+- [x] TP-AUTHZ-004 Implement ownership guard student-self data. DoD: student hanya akses data milik sendiri.
 - [ ] TP-AUTHZ-005 Implement ownership guard teacher kelas/mapel yang diajar. DoD: teacher tidak bisa mutate data kelas lain.
 - [ ] TP-AUTHZ-006 Terapkan deny-by-default pada endpoint yang belum punya policy. DoD: endpoint tanpa policy eksplisit return 403.
 - [ ] TP-AUTHZ-007 Audit semua endpoint `app/api/*` untuk policy coverage. DoD: 100% endpoint sensitif terdaftar status policy.
@@ -105,6 +105,10 @@ Implementasi TP-AUTHZ-002:
 Implementasi TP-AUTHZ-003:
 - Ownership guard parent-child dipakai pada endpoint data siswa/monitoring: `/api/students`, `/api/grades`, `/api/attendance/records`, `/api/assignments/[id]/submissions`.
 - Parent request di luar linked child sekarang ditolak (`403`) atau hasil dikosongkan sesuai konteks query.
+
+Implementasi TP-AUTHZ-004:
+- Student scope dipaksa ke data diri sendiri pada endpoint: `/api/students`, `/api/users/[id]`, `/api/grades`, `/api/attendance/records`, `/api/assignments/[id]/submissions`, `/api/submissions/[id]`.
+- Payload submission tidak lagi menerima `studentId` dari client; identitas submitter selalu dari session actor.
 
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
