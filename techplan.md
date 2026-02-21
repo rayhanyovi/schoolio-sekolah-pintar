@@ -110,6 +110,10 @@ Implementasi TP-AUTHZ-004:
 - Student scope dipaksa ke data diri sendiri pada endpoint: `/api/students`, `/api/users/[id]`, `/api/grades`, `/api/attendance/records`, `/api/assignments/[id]/submissions`, `/api/submissions/[id]`.
 - Payload submission tidak lagi menerima `studentId` dari client; identitas submitter selalu dari session actor.
 
+Progress TP-AUTHZ-005:
+- Ownership guard teacher untuk domain assignment sudah diterapkan pada endpoint: `/api/assignments`, `/api/assignments/[id]`, `/api/assignments/[id]/classes`, `/api/assignments/[id]/questions`, `/api/submissions/[id]`.
+- Guard memastikan guru hanya bisa mutate assignment mapel/kelas yang relevan dengan assignment yang dia kelola.
+
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
 - [ ] TP-API-001 Hapus field actor identity dari payload sensitif (`authorId`, `studentId`, `teacherId`). DoD: actor identity hanya dari session.
@@ -157,12 +161,16 @@ Progress TP-API-001:
 
 ### 6.8 WS-ASSIGN: Assignment & Submission Lifecycle (P1-P2)
 
-- [ ] TP-ASG-001 Enforce teacher ownership untuk create/update assignment per mapel/kelas. DoD: teacher lintas kelas tidak bisa mutate.
-- [ ] TP-ASG-002 Enforce student ownership untuk submit assignment milik sendiri. DoD: student tidak bisa submit atas nama user lain.
+- [x] TP-ASG-001 Enforce teacher ownership untuk create/update assignment per mapel/kelas. DoD: teacher lintas kelas tidak bisa mutate.
+- [x] TP-ASG-002 Enforce student ownership untuk submit assignment milik sendiri. DoD: student tidak bisa submit atas nama user lain.
 - [ ] TP-ASG-003 Tambahkan policy late submission (`allowLateSubmission`, `lateUntil`). DoD: rule submit telat berjalan sesuai konfigurasi.
 - [ ] TP-ASG-004 Tambahkan policy resubmission (`maxAttempts` atau versioning). DoD: percobaan submit mengikuti kebijakan.
 - [ ] TP-ASG-005 Definisikan `gradingPolicy` (`LATEST`/`HIGHEST`/`MANUAL`). DoD: perhitungan nilai mengikuti policy aktif.
 - [ ] TP-ASG-006 Tambahkan audit jejak perubahan status submission penting. DoD: perubahan kritikal dapat ditelusuri.
+
+Implementasi TP-ASG-001 + TP-ASG-002:
+- Teacher assignment mutate dibatasi oleh ownership + relasi mapel/kelas di endpoint assignment.
+- Student submission endpoint sekarang session-derived (`studentId` tidak diambil dari payload) dan update submission dibatasi ke owner submission.
 
 ### 6.9 WS-GRADE: Grade Policy & Auditability (P1-P2)
 

@@ -6,6 +6,34 @@ import { ROLES } from "@/lib/constants";
 import { mockAssignments } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
 
+const isTeacherAssignedToSubject = async (teacherId: string, subjectId: string) => {
+  const relation = await prisma.subjectTeacher.findUnique({
+    where: {
+      subjectId_teacherId: {
+        subjectId,
+        teacherId,
+      },
+    },
+    select: { teacherId: true },
+  });
+  return Boolean(relation);
+};
+
+const isSubjectLinkedToAllClasses = async (
+  subjectId: string,
+  classIds: string[]
+) => {
+  if (!classIds.length) return true;
+  const rows = await prisma.subjectClass.findMany({
+    where: {
+      subjectId,
+      classId: { in: classIds },
+    },
+    select: { classId: true },
+  });
+  return rows.length === classIds.length;
+};
+
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
@@ -131,9 +159,35 @@ export async function POST(request: NextRequest) {
   if (!body?.title || !body?.subjectId || !body?.dueDate) {
     return jsonError("VALIDATION_ERROR", "title, subjectId, dueDate are required");
   }
+  const classIds: string[] = Array.isArray(body.classIds) ? body.classIds : [];
 
   const teacherId =
     auth.role === ROLES.ADMIN ? body.teacherId ?? auth.userId : auth.userId;
+
+  if (auth.role === ROLES.TEACHER) {
+    const hasSubjectAccess = await isTeacherAssignedToSubject(
+      auth.userId,
+      body.subjectId
+    );
+    if (!hasSubjectAccess) {
+      return jsonError(
+        "FORBIDDEN",
+        "Guru tidak terdaftar sebagai pengampu mapel ini",
+        403
+      );
+    }
+    const hasClassAccess = await isSubjectLinkedToAllClasses(
+      body.subjectId,
+      classIds
+    );
+    if (!hasClassAccess) {
+      return jsonError(
+        "FORBIDDEN",
+        "Kelas yang dipilih tidak sesuai relasi mapel",
+        403
+      );
+    }
+  }
 
   const row = await prisma.assignment.create({
     data: {
@@ -148,7 +202,6 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  const classIds: string[] = body.classIds ?? [];
   if (classIds.length) {
     await prisma.assignmentClass.createMany({
       data: classIds.map((cid) => ({ assignmentId: row.id, classId: cid })),
