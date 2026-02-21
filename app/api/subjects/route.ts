@@ -1,10 +1,21 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { mockSubjects } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [
+    ROLES.ADMIN,
+    ROLES.TEACHER,
+    ROLES.STUDENT,
+    ROLES.PARENT,
+  ]);
+  if (roleError) return roleError;
+
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
   const q = searchParams.get("q")?.toLowerCase() ?? "";
@@ -58,6 +69,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   const body = await request.json();
   if (!body?.name || !body?.code || !body?.category) {
     return jsonError("VALIDATION_ERROR", "name, code, and category are required");

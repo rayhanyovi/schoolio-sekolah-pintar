@@ -1,10 +1,16 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { mockQuestions } from "@/lib/questionTypes";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const { searchParams } = new URL(request.url);
   const subject = searchParams.get("subject");
   const type = searchParams.get("type");
@@ -68,6 +74,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const body = await request.json();
   if (!body?.type || !body?.topic || !body?.difficulty || !body?.text) {
     return jsonError("VALIDATION_ERROR", "type, topic, difficulty, text are required");

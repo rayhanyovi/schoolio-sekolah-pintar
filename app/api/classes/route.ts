@@ -1,10 +1,25 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseNumber } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseNumber, requireAuth, requireRole } from "@/lib/api";
+import {
+  getStudentClassId,
+  listLinkedClassIdsForParent,
+} from "@/lib/authz";
+import { ROLES } from "@/lib/constants";
 import { mockClasses } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [
+    ROLES.ADMIN,
+    ROLES.TEACHER,
+    ROLES.STUDENT,
+    ROLES.PARENT,
+  ]);
+  if (roleError) return roleError;
+
   const { searchParams } = new URL(request.url);
   const grade = parseNumber(searchParams.get("grade"));
   const q = searchParams.get("q")?.toLowerCase() ?? "";
@@ -35,6 +50,22 @@ export async function GET(request: NextRequest) {
     ];
   }
 
+  if (auth.role === ROLES.STUDENT) {
+    const ownClassId = await getStudentClassId(auth.userId);
+    if (!ownClassId) {
+      return jsonOk([]);
+    }
+    where.id = ownClassId;
+  }
+
+  if (auth.role === ROLES.PARENT) {
+    const linkedClassIds = await listLinkedClassIdsForParent(auth.userId);
+    if (!linkedClassIds.length) {
+      return jsonOk([]);
+    }
+    where.id = { in: linkedClassIds };
+  }
+
   const rows = await prisma.class.findMany({
     where: where as Prisma.ClassWhereInput,
     include: { homeroomTeacher: true, academicYear: true },
@@ -59,6 +90,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   const body = await request.json();
   if (!body?.name || !body?.grade || !body?.section) {
     return jsonError("VALIDATION_ERROR", "name, grade, and section are required");

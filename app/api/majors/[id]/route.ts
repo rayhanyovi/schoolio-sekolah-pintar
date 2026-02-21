@@ -1,10 +1,16 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const { id } = await params;
   if (!id) return jsonError("VALIDATION_ERROR", "id is required");
 
@@ -15,6 +21,11 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   const { id } = await params;
   if (!id) return jsonError("VALIDATION_ERROR", "id is required");
 
@@ -44,7 +55,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   return jsonOk(row);
 }
 
-export async function DELETE(_: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   const { id } = await params;
   if (!id) return jsonError("VALIDATION_ERROR", "id is required");
 

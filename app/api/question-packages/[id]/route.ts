@@ -1,11 +1,17 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { mockPackages } from "@/lib/questionTypes";
 
 type Params = { params: { id: string } };
 
-export async function GET(_: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   if (isMockEnabled()) {
     const item = mockPackages.find((row) => row.id === params.id);
     if (!item) return jsonError("NOT_FOUND", "Package not found", 404);
@@ -35,6 +41,11 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const body = await request.json();
   const subjectId = body.subjectId ?? null;
   const row = await prisma.questionPackage.update({
@@ -66,7 +77,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   return jsonOk(row);
 }
 
-export async function DELETE(_: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   await prisma.questionPackage.delete({ where: { id: params.id } });
   return jsonOk({ id: params.id });
 }

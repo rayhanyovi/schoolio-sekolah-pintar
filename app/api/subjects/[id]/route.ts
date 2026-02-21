@@ -1,11 +1,22 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { mockSubjects } from "@/lib/mockData";
 
 type Params = { params: { id: string } };
 
-export async function GET(_: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [
+    ROLES.ADMIN,
+    ROLES.TEACHER,
+    ROLES.STUDENT,
+    ROLES.PARENT,
+  ]);
+  if (roleError) return roleError;
+
   if (isMockEnabled()) {
     const item = mockSubjects.find((row) => row.id === params.id);
     if (!item) return jsonError("NOT_FOUND", "Subject not found", 404);
@@ -40,6 +51,11 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   const body = await request.json();
   const row = await prisma.subject.update({
     where: { id: params.id },
@@ -94,7 +110,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   return jsonOk(data);
 }
 
-export async function DELETE(_: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   await prisma.subject.delete({ where: { id: params.id } });
   return jsonOk({ id: params.id });
 }

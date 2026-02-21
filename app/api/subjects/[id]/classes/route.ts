@@ -1,9 +1,15 @@
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 
 type Params = { params: { id: string } };
 
 export async function PUT(request: Request, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN]);
+  if (roleError) return roleError;
+
   const body = await request.json();
   const classIds: string[] = body?.classIds ?? [];
   if (!Array.isArray(classIds)) {

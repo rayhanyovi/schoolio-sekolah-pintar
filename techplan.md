@@ -92,7 +92,7 @@ Implementasi TP-SEC-004:
 - [x] TP-AUTHZ-003 Implement ownership guard parent-child (`canViewStudent`). DoD: parent hanya dapat akses anak ter-link.
 - [x] TP-AUTHZ-004 Implement ownership guard student-self data. DoD: student hanya akses data milik sendiri.
 - [x] TP-AUTHZ-005 Implement ownership guard teacher kelas/mapel yang diajar. DoD: teacher tidak bisa mutate data kelas lain.
-- [ ] TP-AUTHZ-006 Terapkan deny-by-default pada endpoint yang belum punya policy. DoD: endpoint tanpa policy eksplisit return 403.
+- [x] TP-AUTHZ-006 Terapkan deny-by-default pada endpoint yang belum punya policy. DoD: endpoint tanpa policy eksplisit return 403.
 - [ ] TP-AUTHZ-007 Audit semua endpoint `app/api/*` untuk policy coverage. DoD: 100% endpoint sensitif terdaftar status policy.
 
 Implementasi TP-SEC-003:
@@ -115,13 +115,13 @@ Implementasi TP-AUTHZ-005:
 - Ownership guard teacher untuk domain materi/jadwal/absensi sudah diterapkan pada endpoint: `/api/materials`, `/api/materials/[id]`, `/api/materials/[id]/attachments`, `/api/materials/[id]/attachments/[attachmentId]`, `/api/schedules`, `/api/schedules/[id]`, `/api/attendance/sessions`, `/api/attendance/sessions/[id]`, `/api/attendance/sessions/[id]/records`, `/api/attendance/records/[id]`.
 - Guard memastikan guru hanya bisa mutate resource pada kombinasi mapel/kelas yang dia ajar atau resource yang dia miliki.
 
-Progress TP-AUTHZ-006:
-- Deny-by-default telah diterapkan pada endpoint analytics dan kalender yang sebelumnya terbuka: `/api/analytics/overview`, `/api/analytics/attendance`, `/api/analytics/grades`, `/api/analytics/demographics`, `/api/calendar/events`, `/api/calendar/events/[id]`, `/api/calendar/events/[id]/classes`, `/api/grades/summary`.
+Implementasi TP-AUTHZ-006:
+- Deny-by-default diterapkan pada cluster endpoint yang sebelumnya terbuka: `calendar`, `analytics`, `grades summary`, `classes`, `subjects`, `majors`, `academic-years`, `schedule-templates`, `settings/school-profile`, `question-packages`, `questions`.
 - Endpoint tersebut kini menolak request tanpa session (`401`) dan menolak role tidak sesuai (`403`).
 
 Progress TP-AUTHZ-007:
-- Audit coverage policy dilanjutkan pada cluster endpoint `calendar + analytics + grades summary`; route di cluster ini sudah memiliki guard auth + role server-side.
-- Cluster master data lain masih dalam antrean audit lanjutan untuk mencapai cakupan 100% endpoint sensitif.
+- Audit policy coverage dilakukan untuk seluruh route `app/api/*` berbasis pengecekan source route handler.
+- Status sementara: semua route API non-auth sudah memiliki guard auth server-side; pengecualian terkontrol hanya endpoint publik auth `/api/auth/login` dan `/api/auth/logout`.
 
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
