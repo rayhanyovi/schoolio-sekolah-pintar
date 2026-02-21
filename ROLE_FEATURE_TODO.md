@@ -8,17 +8,17 @@
 - [ ] Profil Saya (refinement): rapikan endpoint profile agar selalu actor-scoped dan tidak bergantung fallback data list.
 
 **Admin**
-- [ ] Classes: ketikkan response `listClassSubjects` + payload `setClassSubjects` dengan schema jelas.
-- [ ] Subjects: ketikkan payload `setSubjectTeachers` dan `setSubjectClasses` dengan schema jelas.
-- [ ] Schedules: hilangkan `any` pada normalisasi di `lib/handlers/schedules.ts` (buat schema/typed mapper).
+- [x] Classes: response `listClassSubjects` + payload `setClassSubjects` sudah typed schema.
+- [x] Subjects: payload `setSubjectTeachers` dan `setSubjectClasses` sudah typed schema.
+- [x] Schedules: normalisasi `lib/handlers/schedules.ts` sudah typed mapper (tanpa `any`).
 - [ ] Schedule Templates: tambahkan UI edit + panggil `updateScheduleTemplates` (saat ini read-only).
 
 **Teacher**
-- [ ] Schedules: sama seperti Admin (typed data/mapper di handler).
+- [x] Schedules: sama seperti Admin (typed data/mapper di handler).
 - [ ] Materials: hilangkan `any` pada normalisasi di `lib/handlers/materials.ts` (buat typed schema/mapper).
 
 **Student**
-- [ ] Schedules: sama seperti Admin/Teacher (typed data/mapper di handler).
+- [x] Schedules: sama seperti Admin/Teacher (typed data/mapper di handler).
 - [ ] Materials: sama seperti Teacher (typed data/mapper).
 
 **Parent**
