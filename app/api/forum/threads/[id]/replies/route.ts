@@ -1,11 +1,18 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { mockReplies } from "@/lib/mockData";
 
 type Params = { params: { id: string } };
 
-export async function GET(_: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  if (auth.role === ROLES.PARENT) {
+    return jsonError("FORBIDDEN", "Parent tidak memiliki akses ke forum", 403);
+  }
+
   if (isMockEnabled()) {
     const data = mockReplies.filter((row) => row.threadId === params.id);
     return jsonOk(data);
@@ -33,17 +40,35 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+
+  if (auth.role === ROLES.PARENT) {
+    return jsonError("FORBIDDEN", "Parent tidak memiliki akses ke forum", 403);
+  }
+
+  const thread = await prisma.forumThread.findUnique({
+    where: { id: params.id },
+    select: { status: true },
+  });
+  if (!thread) return jsonError("NOT_FOUND", "Thread not found", 404);
+
+  const isModerator = auth.role === ROLES.ADMIN || auth.role === ROLES.TEACHER;
+  if (thread.status === "LOCKED" && !isModerator) {
+    return jsonError("FORBIDDEN", "Thread ini sedang dikunci", 403);
+  }
+
   const body = await request.json();
-  if (!body?.content || !body?.authorId) {
-    return jsonError("VALIDATION_ERROR", "content and authorId are required");
+  if (!body?.content || typeof body.content !== "string") {
+    return jsonError("VALIDATION_ERROR", "content is required");
   }
 
   const row = await prisma.forumReply.create({
     data: {
       threadId: params.id,
       content: body.content,
-      authorId: body.authorId,
-      authorRole: body.authorRole ?? "STUDENT",
+      authorId: auth.userId,
+      authorRole: auth.role,
       isAcceptedAnswer: Boolean(body.isAcceptedAnswer),
       upvotes: body.upvotes ?? 0,
     },

@@ -1,10 +1,17 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { mockThreads } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  if (auth.role === ROLES.PARENT) {
+    return jsonError("FORBIDDEN", "Parent tidak memiliki akses ke forum", 403);
+  }
+
   const { searchParams } = new URL(request.url);
   const subjectId = searchParams.get("subjectId");
   const status = searchParams.get("status");
@@ -61,11 +68,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  if (auth.role === ROLES.PARENT) {
+    return jsonError("FORBIDDEN", "Parent tidak memiliki akses ke forum", 403);
+  }
+
   const body = await request.json();
-  if (!body?.title || !body?.content || !body?.subjectId || !body?.authorId) {
+  if (!body?.title || !body?.content || !body?.subjectId) {
     return jsonError(
       "VALIDATION_ERROR",
-      "title, content, subjectId, authorId are required"
+      "title, content, subjectId are required"
     );
   }
 
@@ -75,8 +88,8 @@ export async function POST(request: NextRequest) {
       content: body.content,
       subjectId: body.subjectId,
       classId: body.classId ?? null,
-      authorId: body.authorId,
-      authorRole: body.authorRole ?? "STUDENT",
+      authorId: auth.userId,
+      authorRole: auth.role,
       status: body.status ?? "OPEN",
       isPinned: Boolean(body.isPinned),
     },
