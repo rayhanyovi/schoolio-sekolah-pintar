@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
-import { canTeacherManageSubjectClass } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -35,12 +34,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (auth.role === ROLES.TEACHER) {
     const canManage =
       session.teacherId === auth.userId ||
-      session.takenByTeacherId === auth.userId ||
-      (await canTeacherManageSubjectClass(
-        auth.userId,
-        session.subjectId,
-        session.classId
-      ));
+      session.takenByTeacherId === auth.userId;
     if (!canManage) {
       return jsonError("FORBIDDEN", "Anda tidak bisa mengubah sesi ini", 403);
     }

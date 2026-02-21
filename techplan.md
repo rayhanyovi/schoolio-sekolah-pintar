@@ -184,7 +184,7 @@ Implementasi TP-SCH-005:
 - [ ] TP-ATT-004 Tambahkan status sesi absensi (`OPEN`, `LOCKED`, `FINALIZED`). DoD: update mengikuti status policy.
 - [ ] TP-ATT-005 Tambahkan cutoff edit absensi untuk teacher + override policy admin. DoD: edit retroaktif mengikuti aturan.
 - [ ] TP-ATT-006 Tambahkan `overrideReason`, `overriddenBy`, `overriddenAt`. DoD: semua override tersimpan jejaknya.
-- [ ] TP-ATT-007 Tambahkan guard teacher hanya isi absensi kelas yang diajar/substitute authorized. DoD: unauthorized attendance write ditolak.
+- [x] TP-ATT-007 Tambahkan guard teacher hanya isi absensi kelas yang diajar/substitute authorized. DoD: unauthorized attendance write ditolak.
 
 Implementasi TP-ATT-001:
 - Business key attendance session ditetapkan sebagai `sessionKey` terhitung:
@@ -198,6 +198,10 @@ Implementasi TP-ATT-002:
 Implementasi TP-ATT-003:
 - Endpoint create sesi absensi (`/api/attendance/sessions`) diubah menjadi idempotent `upsert` berbasis `sessionKey`.
 - Retry request dengan key yang sama tidak lagi membuat duplikasi record.
+
+Implementasi TP-ATT-007:
+- Write absensi siswa (`/api/attendance/sessions/[id]/records` dan `/api/attendance/records/[id]`) sekarang hanya diizinkan untuk guru pengampu sesi atau guru pengganti yang ditetapkan (`takenByTeacherId`).
+- Request write dari guru di luar konteks sesi tersebut kini ditolak dengan `403`.
 
 ### 6.7 WS-FORUM: Enforcement & Moderation Integrity (P1)
 
