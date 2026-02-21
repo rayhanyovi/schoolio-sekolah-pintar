@@ -51,7 +51,7 @@ Aturan histori:
 - [x] TP-DOC-001 Buat dokumen `techplan.md` sebagai single source of truth plan teknis.
 - [x] TP-DOC-002 Sinkronkan mismatch status fitur antara `ROLE_FEATURE_TODO.md` dan `ROLE_FEATURE_MATRIX.md`. DoD: perbedaan status Dashboard/Profile/Settings disepakati dan didokumentasikan.
 - [x] TP-DOC-003 Definisikan owner per workstream (Backend, Frontend, QA, Product). DoD: tiap item P0-P1 punya owner.
-- [ ] TP-DOC-004 Tetapkan ritme update dokumen (harian/mingguan). DoD: jadwal update disetujui dan berjalan.
+- [x] TP-DOC-004 Tetapkan ritme update dokumen (harian/mingguan). DoD: jadwal update disetujui dan berjalan.
 
 Alignment note TP-DOC-002 (21-02-2026):
 - Dashboard: disepakati `implemented with refinement`. Data utama sudah endpoint-driven, tetapi role-specific scoping masih backlog.
@@ -65,6 +65,11 @@ Owner mapping TP-DOC-003:
 - WS-ROLE, WS-TEST: `QA Lead`
 - WS-DOC, WS-RELEASE, WS-OPS: `Engineering Manager`
 - Frontend execution owner untuk semua perubahan UI/API integration: `Frontend Lead`
+
+Ritme update TP-DOC-004:
+- Harian (workday): update checklist item yang berubah status maksimal H+0 setelah PR merge.
+- Mingguan: review progres lintas workstream setiap Jumat pukul 16:00 WIB.
+- Sprint boundary: validasi ulang prioritas P0/P1 dan catat scope change log bila ada perubahan requirement.
 
 ### 6.2 WS-SEC: Authentication & Session Foundation (P0)
 
