@@ -75,7 +75,7 @@ Ritme update TP-DOC-004:
 
 - [x] TP-SEC-001 Implement route protection `middleware.ts` untuk `/dashboard` dan route sensitif. DoD: unauthenticated user tidak bisa akses halaman privat.
 - [x] TP-SEC-002 Implement `requireAuth()` helper di API layer. DoD: endpoint sensitif return 401 jika tanpa session/token valid.
-- [ ] TP-SEC-003 Implement actor context server-side (`userId`, `role`, `schoolId?`). DoD: seluruh handler sensitif memakai actor context yang sama.
+- [x] TP-SEC-003 Implement actor context server-side (`userId`, `role`, `schoolId?`). DoD: seluruh handler sensitif memakai actor context yang sama.
 - [x] TP-SEC-004 Nonaktifkan debug impersonation di environment produksi. DoD: fitur debug hanya aktif di dev/test.
 - [x] TP-SEC-005 Tambahkan endpoint login/logout backend final. DoD: flow login tidak bergantung pada sessionStorage role mock.
 - [x] TP-SEC-006 Tambahkan session validation untuk setiap request API sensitif. DoD: request dengan session invalid ditolak konsisten.
@@ -94,6 +94,9 @@ Implementasi TP-SEC-004:
 - [ ] TP-AUTHZ-005 Implement ownership guard teacher kelas/mapel yang diajar. DoD: teacher tidak bisa mutate data kelas lain.
 - [ ] TP-AUTHZ-006 Terapkan deny-by-default pada endpoint yang belum punya policy. DoD: endpoint tanpa policy eksplisit return 403.
 - [ ] TP-AUTHZ-007 Audit semua endpoint `app/api/*` untuk policy coverage. DoD: 100% endpoint sensitif terdaftar status policy.
+
+Implementasi TP-SEC-003:
+- `requireAuth()` sekarang mengembalikan `ActorContext` terstandar (`userId`, `role`, `schoolId`).
 
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
