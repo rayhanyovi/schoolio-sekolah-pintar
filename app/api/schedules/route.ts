@@ -6,7 +6,7 @@ import {
   getStudentClassId,
   listLinkedClassIdsForParent,
 } from "@/lib/authz";
-import { validateScheduleTimeRange } from "@/lib/schedule-time";
+import { findClassOverlapSchedule, validateScheduleTimeRange } from "@/lib/schedule-time";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -99,6 +99,33 @@ export async function POST(request: NextRequest) {
   const timeRangeError = validateScheduleTimeRange(body.startTime, body.endTime);
   if (timeRangeError) {
     return jsonError("VALIDATION_ERROR", timeRangeError);
+  }
+
+  const classSchedules = await prisma.classSchedule.findMany({
+    where: {
+      classId: body.classId,
+      dayOfWeek: body.dayOfWeek,
+    },
+    select: {
+      id: true,
+      classId: true,
+      dayOfWeek: true,
+      startTime: true,
+      endTime: true,
+    },
+  });
+  const classConflict = findClassOverlapSchedule(classSchedules, {
+    classId: body.classId,
+    dayOfWeek: body.dayOfWeek,
+    startTime: body.startTime,
+    endTime: body.endTime,
+  });
+  if (classConflict) {
+    return jsonError(
+      "CONFLICT",
+      "Jadwal bentrok dengan jadwal kelas lain pada rentang waktu yang sama",
+      409
+    );
   }
 
   if (auth.role === ROLES.TEACHER) {

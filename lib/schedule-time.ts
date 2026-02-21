@@ -16,3 +16,43 @@ export const validateScheduleTimeRange = (startTime: string, endTime: string) =>
   }
   return null;
 };
+
+export type ScheduleOverlapLookupInput = {
+  classId: string;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+};
+
+export const isOverlappingTimeRange = (
+  aStart: string,
+  aEnd: string,
+  bStart: string,
+  bEnd: string
+) => toMinutes(aStart) < toMinutes(bEnd) && toMinutes(bStart) < toMinutes(aEnd);
+
+export const findClassOverlapSchedule = async (
+  schedules: Array<{
+    id: string;
+    classId: string;
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  }>,
+  input: ScheduleOverlapLookupInput,
+  excludeId?: string
+) => {
+  return (
+    schedules.find((schedule) => {
+      if (excludeId && schedule.id === excludeId) return false;
+      if (schedule.classId !== input.classId) return false;
+      if (schedule.dayOfWeek !== input.dayOfWeek) return false;
+      return isOverlappingTimeRange(
+        schedule.startTime,
+        schedule.endTime,
+        input.startTime,
+        input.endTime
+      );
+    }) ?? null
+  );
+};

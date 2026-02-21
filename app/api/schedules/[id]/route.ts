@@ -6,7 +6,7 @@ import {
   getStudentClassId,
   listLinkedClassIdsForParent,
 } from "@/lib/authz";
-import { validateScheduleTimeRange } from "@/lib/schedule-time";
+import { findClassOverlapSchedule, validateScheduleTimeRange } from "@/lib/schedule-time";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -85,6 +85,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       classId: true,
       subjectId: true,
       teacherId: true,
+      dayOfWeek: true,
+      startTime: true,
+      endTime: true,
     },
   });
   if (!existing) return jsonError("NOT_FOUND", "Schedule not found", 404);
@@ -96,6 +99,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const body = await request.json();
+  const nextClassId =
+    typeof body.classId === "string" ? body.classId : existing.classId;
+  const nextDayOfWeek =
+    typeof body.dayOfWeek === "string" ? body.dayOfWeek : existing.dayOfWeek;
   const nextStartTime =
     typeof body.startTime === "string" ? body.startTime : existing.startTime;
   const nextEndTime =
@@ -105,11 +112,40 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return jsonError("VALIDATION_ERROR", timeRangeError);
   }
 
+  const classSchedules = await prisma.classSchedule.findMany({
+    where: {
+      classId: nextClassId,
+      dayOfWeek: nextDayOfWeek,
+    },
+    select: {
+      id: true,
+      classId: true,
+      dayOfWeek: true,
+      startTime: true,
+      endTime: true,
+    },
+  });
+  const classConflict = findClassOverlapSchedule(
+    classSchedules,
+    {
+      classId: nextClassId,
+      dayOfWeek: nextDayOfWeek,
+      startTime: nextStartTime,
+      endTime: nextEndTime,
+    },
+    existing.id
+  );
+  if (classConflict) {
+    return jsonError(
+      "CONFLICT",
+      "Jadwal bentrok dengan jadwal kelas lain pada rentang waktu yang sama",
+      409
+    );
+  }
+
   if (auth.role === ROLES.TEACHER) {
     const nextSubjectId =
       typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
-    const nextClassId =
-      typeof body.classId === "string" ? body.classId : existing.classId;
     const allowed = await canTeacherManageSubjectClass(
       auth.userId,
       nextSubjectId,
