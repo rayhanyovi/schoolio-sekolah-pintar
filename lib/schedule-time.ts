@@ -56,3 +56,34 @@ export const findClassOverlapSchedule = async (
     }) ?? null
   );
 };
+
+export const findTeacherOverlapSchedule = (
+  schedules: Array<{
+    id: string;
+    teacherId: string | null;
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  }>,
+  input: {
+    teacherId: string;
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  },
+  excludeId?: string
+) => {
+  return (
+    schedules.find((schedule) => {
+      if (excludeId && schedule.id === excludeId) return false;
+      if (schedule.teacherId !== input.teacherId) return false;
+      if (schedule.dayOfWeek !== input.dayOfWeek) return false;
+      return isOverlappingTimeRange(
+        schedule.startTime,
+        schedule.endTime,
+        input.startTime,
+        input.endTime
+      );
+    }) ?? null
+  );
+};

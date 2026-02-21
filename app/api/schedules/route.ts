@@ -6,7 +6,11 @@ import {
   getStudentClassId,
   listLinkedClassIdsForParent,
 } from "@/lib/authz";
-import { findClassOverlapSchedule, validateScheduleTimeRange } from "@/lib/schedule-time";
+import {
+  findClassOverlapSchedule,
+  findTeacherOverlapSchedule,
+  validateScheduleTimeRange,
+} from "@/lib/schedule-time";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -100,6 +104,8 @@ export async function POST(request: NextRequest) {
   if (timeRangeError) {
     return jsonError("VALIDATION_ERROR", timeRangeError);
   }
+  const resolvedTeacherId =
+    auth.role === ROLES.ADMIN ? body.teacherId ?? null : auth.userId;
 
   const classSchedules = await prisma.classSchedule.findMany({
     where: {
@@ -128,6 +134,35 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (resolvedTeacherId) {
+    const teacherSchedules = await prisma.classSchedule.findMany({
+      where: {
+        teacherId: resolvedTeacherId,
+        dayOfWeek: body.dayOfWeek,
+      },
+      select: {
+        id: true,
+        teacherId: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+    const teacherConflict = findTeacherOverlapSchedule(teacherSchedules, {
+      teacherId: resolvedTeacherId,
+      dayOfWeek: body.dayOfWeek,
+      startTime: body.startTime,
+      endTime: body.endTime,
+    });
+    if (teacherConflict) {
+      return jsonError(
+        "CONFLICT",
+        "Jadwal bentrok dengan jadwal guru pada rentang waktu yang sama",
+        409
+      );
+    }
+  }
+
   if (auth.role === ROLES.TEACHER) {
     const allowed = await canTeacherManageSubjectClass(
       auth.userId,
@@ -152,7 +187,7 @@ export async function POST(request: NextRequest) {
     data: {
       classId: body.classId,
       subjectId: body.subjectId,
-      teacherId: auth.role === ROLES.ADMIN ? body.teacherId ?? null : auth.userId,
+      teacherId: resolvedTeacherId,
       dayOfWeek: body.dayOfWeek,
       startTime: body.startTime,
       endTime: body.endTime,

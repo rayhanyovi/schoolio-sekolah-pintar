@@ -6,7 +6,11 @@ import {
   getStudentClassId,
   listLinkedClassIdsForParent,
 } from "@/lib/authz";
-import { findClassOverlapSchedule, validateScheduleTimeRange } from "@/lib/schedule-time";
+import {
+  findClassOverlapSchedule,
+  findTeacherOverlapSchedule,
+  validateScheduleTimeRange,
+} from "@/lib/schedule-time";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -103,6 +107,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     typeof body.classId === "string" ? body.classId : existing.classId;
   const nextDayOfWeek =
     typeof body.dayOfWeek === "string" ? body.dayOfWeek : existing.dayOfWeek;
+  const nextTeacherId =
+    auth.role === ROLES.ADMIN
+      ? body.teacherId !== undefined
+        ? body.teacherId
+        : existing.teacherId
+      : body.teacherId !== undefined
+        ? auth.userId
+        : existing.teacherId;
   const nextStartTime =
     typeof body.startTime === "string" ? body.startTime : existing.startTime;
   const nextEndTime =
@@ -143,6 +155,39 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     );
   }
 
+  if (nextTeacherId) {
+    const teacherSchedules = await prisma.classSchedule.findMany({
+      where: {
+        teacherId: nextTeacherId,
+        dayOfWeek: nextDayOfWeek,
+      },
+      select: {
+        id: true,
+        teacherId: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+    const teacherConflict = findTeacherOverlapSchedule(
+      teacherSchedules,
+      {
+        teacherId: nextTeacherId,
+        dayOfWeek: nextDayOfWeek,
+        startTime: nextStartTime,
+        endTime: nextEndTime,
+      },
+      existing.id
+    );
+    if (teacherConflict) {
+      return jsonError(
+        "CONFLICT",
+        "Jadwal bentrok dengan jadwal guru pada rentang waktu yang sama",
+        409
+      );
+    }
+  }
+
   if (auth.role === ROLES.TEACHER) {
     const nextSubjectId =
       typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
@@ -166,11 +211,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       classId: body.classId,
       subjectId: body.subjectId,
       teacherId:
-        auth.role === ROLES.ADMIN
-          ? body.teacherId
-          : body.teacherId !== undefined
-            ? auth.userId
-            : undefined,
+        auth.role === ROLES.ADMIN ? body.teacherId : body.teacherId !== undefined ? auth.userId : undefined,
       dayOfWeek: body.dayOfWeek,
       startTime: body.startTime,
       endTime: body.endTime,

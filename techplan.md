@@ -156,7 +156,7 @@ Implementasi TP-API-001:
 
 - [x] TP-SCH-001 Tambahkan server-side validation `startTime < endTime`. DoD: invalid range ditolak di API.
 - [x] TP-SCH-002 Tambahkan server-side overlap validator bentrok kelas. DoD: jadwal bentrok kelas tidak bisa disimpan.
-- [ ] TP-SCH-003 Tambahkan server-side overlap validator bentrok guru. DoD: jadwal bentrok guru tidak bisa disimpan.
+- [x] TP-SCH-003 Tambahkan server-side overlap validator bentrok guru. DoD: jadwal bentrok guru tidak bisa disimpan.
 - [ ] TP-SCH-004 Tambahkan server-side overlap validator bentrok ruang (jika room digunakan). DoD: bentrok ruang ditolak.
 - [ ] TP-SCH-005 Tambahkan UI edit schedule templates + integrasi `updateScheduleTemplates`. DoD: admin bisa update template dari Settings.
 - [ ] TP-SCH-006 Tambahkan test integrasi untuk bypass validasi jadwal via direct API call. DoD: test gagal jika rule dilanggar.
@@ -166,6 +166,9 @@ Implementasi TP-SCH-001:
 
 Implementasi TP-SCH-002:
 - Endpoint create/update jadwal sekarang mengecek overlap per kelas pada hari yang sama dan menolak konflik dengan `409 CONFLICT`.
+
+Implementasi TP-SCH-003:
+- Endpoint create/update jadwal sekarang mengecek overlap per guru pada hari yang sama dan menolak konflik dengan `409 CONFLICT`.
 
 ### 6.6 WS-ATT: Attendance Integrity & Governance (P1)
 
