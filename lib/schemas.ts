@@ -177,6 +177,17 @@ export const studentSummarySchema = z.object({
 export const classStudentListSchema = z.array(studentSummarySchema);
 export type StudentSummary = z.infer<typeof studentSummarySchema>;
 
+export const classSubjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  code: z.string(),
+  category: z.string(),
+  description: emptyString,
+  hoursPerWeek: zeroNumber,
+});
+export const classSubjectListSchema = z.array(classSubjectSchema);
+export type ClassSubjectSummary = z.infer<typeof classSubjectSchema>;
+
 export const calendarEventSchema = z.object({
   id: z.string(),
   title: z.string(),
