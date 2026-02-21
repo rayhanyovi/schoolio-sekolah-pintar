@@ -26,6 +26,7 @@ import {
 import {
   getSchoolProfile,
   getScheduleTemplates,
+  updateScheduleTemplates,
   updateSchoolProfile,
 } from "@/lib/handlers/settings";
 import {
@@ -54,6 +55,7 @@ export default function Settings() {
   const [academicYears, setAcademicYears] = useState<AcademicYearSummary[]>([]);
   const [scheduleTemplate, setScheduleTemplate] = useState<ScheduleTemplateSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSavingScheduleTemplate, setIsSavingScheduleTemplate] = useState(false);
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     assignmentReminders: true,
@@ -105,6 +107,44 @@ export default function Settings() {
       toast({ title: "Berhasil", description: "Tahun ajaran aktif berhasil diubah" });
     } catch (error) {
       toast({ title: "Gagal mengubah", description: "Tidak dapat mengubah tahun ajaran" });
+    }
+  };
+
+  const updateTemplateField = <K extends keyof ScheduleTemplateSummary>(
+    id: string,
+    field: K,
+    value: ScheduleTemplateSummary[K]
+  ) => {
+    setScheduleTemplate((prev) =>
+      prev.map((slot) => (slot.id === id ? { ...slot, [field]: value } : slot))
+    );
+  };
+
+  const handleSaveScheduleTemplate = async () => {
+    try {
+      setIsSavingScheduleTemplate(true);
+      const saved = await updateScheduleTemplates(
+        scheduleTemplate.map((slot) => ({
+          id: slot.id,
+          name: slot.name,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          duration: slot.duration,
+          isBreak: slot.isBreak,
+        }))
+      );
+      setScheduleTemplate(saved);
+      toast({
+        title: "Berhasil",
+        description: "Template jam pelajaran berhasil diperbarui",
+      });
+    } catch {
+      toast({
+        title: "Gagal menyimpan",
+        description: "Periksa data template jam pelajaran",
+      });
+    } finally {
+      setIsSavingScheduleTemplate(false);
     }
   };
 
@@ -295,37 +335,88 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px]">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {scheduleTemplate.map((slot, index) => (
                     <div
                       key={slot.id}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        slot.isBreak ? "bg-warning/10 border border-warning/20" : "bg-muted/50"
+                      className={`p-3 rounded-lg border ${
+                        slot.isBreak ? "bg-warning/10 border-warning/20" : "bg-muted/50 border-border"
                       }`}
                     >
-                      <div className="flex items-center gap-4">
-                        <span className="w-8 text-center text-sm font-medium text-muted-foreground">
-                          {index + 1}
-                        </span>
-                        <div>
-                          <span className="font-medium">{slot.name}</span>
-                          {slot.isBreak && (
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              Istirahat
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-8 text-center text-sm font-medium text-muted-foreground">
+                              {index + 1}
+                            </span>
+                            <Input
+                              value={slot.name}
+                              onChange={(event) =>
+                                updateTemplateField(slot.id, "name", event.target.value)
+                              }
+                              className="max-w-[280px]"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={slot.isBreak}
+                              onCheckedChange={(checked) =>
+                                updateTemplateField(slot.id, "isBreak", Boolean(checked))
+                              }
+                            />
+                            <Badge variant="outline" className="text-xs">
+                              {slot.isBreak ? "Istirahat" : "Pelajaran"}
                             </Badge>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">
-                          {slot.startTime} - {slot.endTime}
-                        </span>
-                        <Badge variant="secondary">{slot.duration} menit</Badge>
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Mulai</Label>
+                            <Input
+                              type="time"
+                              value={slot.startTime}
+                              onChange={(event) =>
+                                updateTemplateField(slot.id, "startTime", event.target.value)
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Selesai</Label>
+                            <Input
+                              type="time"
+                              value={slot.endTime}
+                              onChange={(event) =>
+                                updateTemplateField(slot.id, "endTime", event.target.value)
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Durasi (menit)</Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={slot.duration}
+                              onChange={(event) =>
+                                updateTemplateField(
+                                  slot.id,
+                                  "duration",
+                                  Number(event.target.value || 0)
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </ScrollArea>
+              <div className="flex justify-end pt-4">
+                <Button onClick={handleSaveScheduleTemplate} disabled={isSavingScheduleTemplate}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSavingScheduleTemplate ? "Menyimpan..." : "Simpan Jam Pelajaran"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
