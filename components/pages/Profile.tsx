@@ -25,7 +25,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 import { ROLE_LABELS } from "@/lib/constants";
-import { getUserProfile, listUsers, updateUserProfile } from "@/lib/handlers/users";
+import { apiGet } from "@/lib/api-client";
+import { getUserProfile, updateUserProfile } from "@/lib/handlers/users";
 import { UserProfileSummary } from "@/lib/schemas";
 import { format } from "date-fns";
 
@@ -39,6 +40,10 @@ interface ProfileData {
   birthDate: string;
   avatar?: string;
 }
+
+type SessionResponse = {
+  userId: string;
+};
 
 const splitName = (fullName: string) => {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
@@ -91,19 +96,10 @@ export default function Profile() {
     const loadProfile = async () => {
       setIsLoading(true);
       try {
-        const byRole = await listUsers({ role });
-        const fallback = byRole.length ? byRole : await listUsers();
-        const selected = fallback[0];
-        if (!selected) {
-          if (isActive) {
-            setProfile(null);
-            setUserId(null);
-          }
-          return;
-        }
+        const session = await apiGet<SessionResponse>("/api/auth/session");
         if (!isActive) return;
-        setUserId(selected.id);
-        const data = await getUserProfile(selected.id);
+        setUserId(session.userId);
+        const data = await getUserProfile(session.userId);
         if (!isActive) return;
         setProfile(toProfileData(data));
       } catch (error) {
@@ -120,7 +116,7 @@ export default function Profile() {
     return () => {
       isActive = false;
     };
-  }, [role, toast]);
+  }, [toast]);
 
   const handleSaveProfile = async () => {
     if (!userId || !profile) return;

@@ -1,10 +1,23 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 
 type Params = { params: { id: string } };
 
-export async function GET(_: NextRequest, { params }: Params) {
+const authorizeProfileAccess = async (request: NextRequest, userId: string) => {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  if (auth.role !== ROLES.ADMIN && auth.userId !== userId) {
+    return jsonError("FORBIDDEN", "You are not allowed to access this profile", 403);
+  }
+  return auth;
+};
+
+export async function GET(request: NextRequest, { params }: Params) {
+  const auth = await authorizeProfileAccess(request, params.id);
+  if (auth instanceof Response) return auth;
+
   const row = await prisma.user.findUnique({
     where: { id: params.id },
     include: {
@@ -19,6 +32,9 @@ export async function GET(_: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const auth = await authorizeProfileAccess(request, params.id);
+  if (auth instanceof Response) return auth;
+
   const body = await request.json();
   const derivedName =
     typeof body.name === "string" && body.name.trim().length

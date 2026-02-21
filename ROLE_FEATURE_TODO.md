@@ -5,7 +5,7 @@
 - [x] Profil Saya: endpoint profil user sudah terhubung backend, namun masih perlu actor-scoped refinement di API.
 - [ ] Notifikasi Sistem: buat endpoint/handler + simpan setting, lalu hubungkan di `components/pages/Settings.tsx`.
 - [ ] Dashboard (refinement): role-specific scoping untuk stats/jadwal/tugas agar tidak menggunakan agregasi umum.
-- [ ] Profil Saya (refinement): rapikan endpoint profile agar selalu actor-scoped dan tidak bergantung fallback data list.
+- [x] Profil Saya (refinement): endpoint profile sudah actor-scoped dan memakai sesi aktif (tanpa fallback data list).
 
 **Admin**
 - [x] Classes: response `listClassSubjects` + payload `setClassSubjects` sudah typed schema.

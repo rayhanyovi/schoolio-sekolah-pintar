@@ -106,7 +106,7 @@ Implementasi TP-SEC-004:
 - [x] TP-API-007 Refactor `setSubjectClasses` payload typed schema. DoD: payload tervalidasi penuh.
 - [x] TP-API-008 Hilangkan `any` normalisasi di `lib/handlers/schedules.ts`. DoD: mapper typed + parse schema lulus.
 - [x] TP-API-009 Hilangkan `any` normalisasi di `lib/handlers/materials.ts`. DoD: mapper typed + parse schema lulus.
-- [ ] TP-API-010 Tertibkan endpoint profile agar tidak ambil user berdasarkan fallback data pertama. DoD: profile endpoint actor-scoped jelas.
+- [x] TP-API-010 Tertibkan endpoint profile agar tidak ambil user berdasarkan fallback data pertama. DoD: profile endpoint actor-scoped jelas.
 
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 
