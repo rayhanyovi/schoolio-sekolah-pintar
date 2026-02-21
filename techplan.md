@@ -115,6 +115,14 @@ Implementasi TP-AUTHZ-005:
 - Ownership guard teacher untuk domain materi/jadwal/absensi sudah diterapkan pada endpoint: `/api/materials`, `/api/materials/[id]`, `/api/materials/[id]/attachments`, `/api/materials/[id]/attachments/[attachmentId]`, `/api/schedules`, `/api/schedules/[id]`, `/api/attendance/sessions`, `/api/attendance/sessions/[id]`, `/api/attendance/sessions/[id]/records`, `/api/attendance/records/[id]`.
 - Guard memastikan guru hanya bisa mutate resource pada kombinasi mapel/kelas yang dia ajar atau resource yang dia miliki.
 
+Progress TP-AUTHZ-006:
+- Deny-by-default telah diterapkan pada endpoint analytics dan kalender yang sebelumnya terbuka: `/api/analytics/overview`, `/api/analytics/attendance`, `/api/analytics/grades`, `/api/analytics/demographics`, `/api/calendar/events`, `/api/calendar/events/[id]`, `/api/calendar/events/[id]/classes`, `/api/grades/summary`.
+- Endpoint tersebut kini menolak request tanpa session (`401`) dan menolak role tidak sesuai (`403`).
+
+Progress TP-AUTHZ-007:
+- Audit coverage policy dilanjutkan pada cluster endpoint `calendar + analytics + grades summary`; route di cluster ini sudah memiliki guard auth + role server-side.
+- Cluster master data lain masih dalam antrean audit lanjutan untuk mencapai cakupan 100% endpoint sensitif.
+
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
 - [ ] TP-API-001 Hapus field actor identity dari payload sensitif (`authorId`, `studentId`, `teacherId`). DoD: actor identity hanya dari session.
@@ -136,6 +144,7 @@ Progress TP-API-001:
 - Material create/update untuk role `TEACHER` sekarang derive `teacherId` dari session (payload `teacherId` tidak dipercaya).
 - Schedule create/update untuk role `TEACHER` sekarang derive `teacherId` dari session saat mutasi guru.
 - Attendance session create/update untuk role `TEACHER` sekarang derive `teacherId`/`takenByTeacherId` dari session saat field actor dikirim client.
+- Calendar event create sekarang derive `createdById` dari session actor (payload `createdById` tidak dipercaya).
 
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 

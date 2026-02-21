@@ -1,9 +1,15 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonOk } from "@/lib/api";
+import { jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const subjectId = searchParams.get("subjectId");
@@ -14,6 +20,12 @@ export async function GET(request: NextRequest) {
     where.assignment = {
       ...(where.assignment ?? {}),
       classes: { some: { classId } },
+    };
+  }
+  if (auth.role === ROLES.TEACHER) {
+    where.assignment = {
+      ...(where.assignment ?? {}),
+      teacherId: auth.userId,
     };
   }
 

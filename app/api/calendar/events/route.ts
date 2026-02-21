@@ -1,10 +1,25 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonOk } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import {
+  getStudentClassId,
+  listLinkedClassIdsForParent,
+} from "@/lib/authz";
+import { ROLES } from "@/lib/constants";
 import { mockEvents } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [
+    ROLES.ADMIN,
+    ROLES.TEACHER,
+    ROLES.STUDENT,
+    ROLES.PARENT,
+  ]);
+  if (roleError) return roleError;
+
   const { searchParams } = new URL(request.url);
   const dateFrom = searchParams.get("dateFrom");
   const dateTo = searchParams.get("dateTo");
@@ -33,6 +48,48 @@ export async function GET(request: NextRequest) {
     if (dateTo) where.date.lte = new Date(dateTo);
   }
 
+  if (auth.role === ROLES.STUDENT) {
+    const ownClassId = await getStudentClassId(auth.userId);
+    if (!ownClassId) {
+      return jsonOk([]);
+    }
+    if (classId && classId !== ownClassId) {
+      return jsonError("FORBIDDEN", "Class access out of scope", 403);
+    }
+    if (!classId) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : []),
+        {
+          OR: [
+            { classes: { some: { classId: ownClassId } } },
+            { classes: { none: {} } },
+          ],
+        },
+      ];
+    }
+  }
+
+  if (auth.role === ROLES.PARENT) {
+    const linkedClassIds = await listLinkedClassIdsForParent(auth.userId);
+    if (!linkedClassIds.length) {
+      return jsonOk([]);
+    }
+    if (classId && !linkedClassIds.includes(classId)) {
+      return jsonError("FORBIDDEN", "Class access out of scope", 403);
+    }
+    if (!classId) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : []),
+        {
+          OR: [
+            { classes: { some: { classId: { in: linkedClassIds } } } },
+            { classes: { none: {} } },
+          ],
+        },
+      ];
+    }
+  }
+
   const rows = await prisma.calendarEvent.findMany({
     where: where as Prisma.CalendarEventWhereInput,
     include: { classes: true },
@@ -55,7 +112,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
+  if (roleError) return roleError;
+
   const body = await request.json();
+  if (!body?.title || !body?.date) {
+    return jsonError("VALIDATION_ERROR", "title and date are required");
+  }
+
   const row = await prisma.calendarEvent.create({
     data: {
       title: body.title,
@@ -64,7 +130,7 @@ export async function POST(request: NextRequest) {
       endDate: body.endDate ? new Date(body.endDate) : null,
       type: body.type ?? "ACADEMIC",
       isRecurring: Boolean(body.isRecurring),
-      createdById: body.createdById ?? null,
+      createdById: auth.userId,
     },
   });
 
