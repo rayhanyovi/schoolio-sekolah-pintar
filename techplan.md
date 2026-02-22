@@ -587,6 +587,7 @@ Implementasi TP-ROLE-006:
 - [x] TP-REL-004 Test integration authz + data integrity lulus di CI.
 - [ ] TP-REL-005 SOP operasional dan eskalasi insiden disetujui stakeholder.
 - [x] TP-REL-006 Sediakan endpoint status governance readiness untuk monitoring stakeholder. DoD: status blocker REL/DEC dapat diakses via API terproteksi.
+- [x] TP-REL-007 Sediakan dashboard governance readiness untuk admin. DoD: blocker REL/DEC terlihat di UI dashboard tanpa akses file langsung.
 
 Progress TP-REL-001:
 - Ditambahkan readiness checker `scripts/release-readiness-report.mjs` dengan command `npm run release:readiness` dan `npm run release:readiness:strict`.
@@ -623,6 +624,11 @@ Implementasi TP-REL-006:
 - Kontrak endpoint didokumentasikan di `GOVERNANCE_STATUS_API.md`.
 - Ditambahkan integration test `tests/integration/governance-readiness.integration.test.ts` untuk memverifikasi guard role admin, success path, dan error path loader.
 
+Implementasi TP-REL-007:
+- Ditambahkan halaman admin `app/dashboard/governance/page.tsx` dengan komponen `components/pages/Governance.tsx` untuk menampilkan snapshot readiness (`overall`, `TP-REL-001`, `TP-REL-005`, `TP-DEC gate`) serta daftar blocker per gate.
+- Ditambahkan menu navigasi admin pada sidebar (`/dashboard/governance`) untuk akses cepat ke panel governance.
+- Ditambahkan handler frontend `lib/handlers/governance.ts` dan schema response `governanceReadinessSnapshotSchema` pada `lib/schemas.ts` agar konsumsi API typed dan konsisten.
+
 ## 7. Checklist Keputusan Produk (Wajib Diputuskan)
 
 - [ ] TP-DEC-001 Putuskan model auth final (internal credential / SSO / hybrid).
@@ -648,6 +654,7 @@ Keputusan TP-DEC-002:
 - [x] TP-SCOPE-001 Template perubahan scope berikutnya. Format catatan: `Tanggal | ID baru | Alasan perubahan | Dampak modul | Keputusan`.
 - [x] TP-SCOPE-002 2026-02-22 | TP-REL-006 | Tambah endpoint governance readiness untuk visibilitas stakeholder | Dampak modul (API/OPS) | Keputusan (Approved + Engineering)
 - [x] TP-SCOPE-003 2026-02-22 | TP-AUTHZ-001/TP-REL-005/TP-DEC-* | Tambah audit trail histori approval governance otomatis | Dampak modul (OPS/DOC) | Keputusan (Approved + Engineering)
+- [x] TP-SCOPE-004 2026-02-22 | TP-REL-007 | Tambah dashboard governance readiness pada UI admin | Dampak modul (UI/API) | Keputusan (Approved + Engineering)
 
 Template TP-SCOPE-001:
 - `YYYY-MM-DD | TP-XXX-YYY | Alasan perubahan | Dampak modul (API/UI/DB/OPS) | Keputusan (Approved/Deferred/Rejected + PIC)`

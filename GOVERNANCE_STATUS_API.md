@@ -62,6 +62,12 @@ Endpoint menghitung status dari dokumen governance berikut:
 - `OPS_SIGNOFF_PACKET.md`
 - `PRODUCT_DECISION_PACKET.md`
 
+## Integrasi Dashboard
+
+- Halaman admin: `GET /dashboard/governance`
+- Frontend handler: `lib/handlers/governance.ts`
+- Schema parser: `governanceReadinessSnapshotSchema` di `lib/schemas.ts`
+
 ## Error Handling
 
 - `401 UNAUTHORIZED`: session tidak valid.
