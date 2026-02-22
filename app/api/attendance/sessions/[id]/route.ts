@@ -203,35 +203,68 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         : existing.finalizedAt;
 
   try {
-    const row = await prisma.attendanceSession.update({
-      where: { id },
-      data: {
-        sessionKey: nextSessionKey,
-        status: nextStatus,
-        classId: body.classId,
-        subjectId: body.subjectId,
-        teacherId:
-          auth.role === ROLES.ADMIN
-            ? body.teacherId
-            : body.teacherId !== undefined
-              ? auth.userId
-              : undefined,
-        takenByTeacherId:
-          auth.role === ROLES.ADMIN
-            ? body.takenByTeacherId
-            : body.takenByTeacherId !== undefined
-              ? auth.userId
-              : undefined,
-        scheduleId: body.scheduleId,
-        date: body.date ? new Date(body.date) : undefined,
-        startTime: body.startTime,
-        endTime: body.endTime,
-        lockedAt: nextLockedAt,
-        finalizedAt: nextFinalizedAt,
-        overrideReason: mustUseAdminOverride ? overrideReason : undefined,
-        overriddenById: mustUseAdminOverride ? auth.userId : undefined,
-        overriddenAt: mustUseAdminOverride ? now : undefined,
-      },
+    const row = await prisma.$transaction(async (tx) => {
+      const updated = await tx.attendanceSession.update({
+        where: { id },
+        data: {
+          sessionKey: nextSessionKey,
+          status: nextStatus,
+          classId: body.classId,
+          subjectId: body.subjectId,
+          teacherId:
+            auth.role === ROLES.ADMIN
+              ? body.teacherId
+              : body.teacherId !== undefined
+                ? auth.userId
+                : undefined,
+          takenByTeacherId:
+            auth.role === ROLES.ADMIN
+              ? body.takenByTeacherId
+              : body.takenByTeacherId !== undefined
+                ? auth.userId
+                : undefined,
+          scheduleId: body.scheduleId,
+          date: body.date ? new Date(body.date) : undefined,
+          startTime: body.startTime,
+          endTime: body.endTime,
+          lockedAt: nextLockedAt,
+          finalizedAt: nextFinalizedAt,
+          overrideReason: mustUseAdminOverride ? overrideReason : undefined,
+          overriddenById: mustUseAdminOverride ? auth.userId : undefined,
+          overriddenAt: mustUseAdminOverride ? now : undefined,
+        },
+      });
+
+      if (mustUseAdminOverride) {
+        await tx.auditLog.create({
+          data: {
+            actorId: auth.userId,
+            actorRole: auth.role,
+            action: "ATTENDANCE_SESSION_OVERRIDE",
+            entityType: "AttendanceSession",
+            entityId: updated.id,
+            reason: overrideReason,
+            beforeData: {
+              status: existing.status,
+              date: existing.date,
+              startTime: existing.startTime,
+              endTime: existing.endTime,
+              classId: existing.classId,
+              subjectId: existing.subjectId,
+            },
+            afterData: {
+              status: updated.status,
+              date: updated.date,
+              startTime: updated.startTime,
+              endTime: updated.endTime,
+              classId: updated.classId,
+              subjectId: updated.subjectId,
+            },
+          },
+        });
+      }
+
+      return updated;
     });
     return jsonOk(row);
   } catch (error) {

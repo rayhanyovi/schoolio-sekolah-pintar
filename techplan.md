@@ -293,7 +293,7 @@ Implementasi TP-PRN-003:
 
 - [x] TP-AUD-001 Tambahkan tabel `AuditLog` minimal (actor, action, entity, before/after, timestamp). DoD: skema audit tersedia.
 - [x] TP-AUD-002 Log aksi sensitif users/profiles/role change. DoD: perubahan identitas/akses selalu tercatat.
-- [ ] TP-AUD-003 Log aksi sensitif attendance override. DoD: semua override absensi punya jejak.
+- [x] TP-AUD-003 Log aksi sensitif attendance override. DoD: semua override absensi punya jejak.
 - [x] TP-AUD-004 Log aksi sensitif grade change/publish. DoD: perubahan nilai bisa diinvestigasi.
 - [x] TP-AUD-005 Log aksi sensitif parent-student relink dan activate academic year. DoD: aksi governance tercatat.
 
@@ -304,6 +304,10 @@ Implementasi TP-AUD-001:
 Implementasi TP-AUD-002:
 - Endpoint mutasi user-domain sekarang menulis audit: `POST /api/users` (`USER_CREATED`), `PATCH /api/users/[id]` (`USER_UPDATED`/`USER_ROLE_CHANGED`), `DELETE /api/users/[id]` (`USER_DELETED`), dan `PATCH /api/users/[id]/profile` (`USER_PROFILE_UPDATED`).
 - Audit menyimpan actor dari session dan snapshot perubahan `beforeData`/`afterData` untuk kebutuhan investigasi perubahan identitas/akses.
+
+Implementasi TP-AUD-003:
+- Semua jalur attendance override oleh admin sekarang menulis `AuditLog`: override sesi (`ATTENDANCE_SESSION_OVERRIDE`), bulk update record sesi (`ATTENDANCE_RECORDS_OVERRIDE_BULK`), dan override per record (`ATTENDANCE_RECORD_OVERRIDE`).
+- Log override menyimpan actor, reason, serta snapshot `beforeData`/`afterData` untuk jejak investigasi perubahan absensi retroaktif.
 
 Implementasi TP-AUD-004:
 - Endpoint `PATCH /api/submissions/[id]` sekarang menulis `AuditLog` otomatis untuk perubahan grading (`GRADE_UPDATED`/`GRADE_PUBLISHED`) dengan snapshot `beforeData` dan `afterData`.

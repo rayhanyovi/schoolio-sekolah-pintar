@@ -119,6 +119,26 @@ export async function POST(request: NextRequest, { params }: Params) {
         })
       )
     );
+
+    if (mustUseAdminOverride) {
+      await tx.auditLog.create({
+        data: {
+          actorId: auth.userId,
+          actorRole: auth.role,
+          action: "ATTENDANCE_RECORDS_OVERRIDE_BULK",
+          entityType: "AttendanceSession",
+          entityId: id,
+          reason: overrideReason,
+          beforeData: {
+            status: session.status,
+            sessionDate: session.date,
+          },
+          afterData: {
+            updatedRecords: records.length,
+          },
+        },
+      });
+    }
   });
 
   return jsonOk({ id });

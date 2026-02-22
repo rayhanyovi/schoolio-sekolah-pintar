@@ -87,13 +87,40 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       });
     }
 
-    return tx.attendanceRecord.update({
+    const updated = await tx.attendanceRecord.update({
       where: { id: params.id },
       data: {
         status: nextStatus as AttendanceStatus | undefined,
         note: body.note as string | null | undefined,
       },
     });
+
+    if (mustUseAdminOverride) {
+      await tx.auditLog.create({
+        data: {
+          actorId: auth.userId,
+          actorRole: auth.role,
+          action: "ATTENDANCE_RECORD_OVERRIDE",
+          entityType: "AttendanceRecord",
+          entityId: updated.id,
+          reason: overrideReason,
+          beforeData: {
+            status: existing.status,
+            note: existing.note,
+          },
+          afterData: {
+            status: updated.status,
+            note: updated.note,
+          },
+          metadata: {
+            sessionId: existing.session.id,
+            studentId: existing.studentId,
+          },
+        },
+      });
+    }
+
+    return updated;
   });
   return jsonOk(row);
 }
