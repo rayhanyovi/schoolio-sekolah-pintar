@@ -69,6 +69,8 @@ export async function GET(request: NextRequest) {
         kind: item.type,
         deliveryType: null,
         type: item.type,
+        allowLateSubmission: false,
+        lateUntil: null,
       }))
     );
   }
@@ -139,6 +141,8 @@ export async function GET(request: NextRequest) {
     teacherName: row.teacher.name,
     classIds: row.classes.map((link) => link.classId),
     dueDate: row.dueDate,
+    allowLateSubmission: row.allowLateSubmission,
+    lateUntil: row.lateUntil,
     createdAt: row.createdAt,
     kind: row.kind,
     deliveryType: row.deliveryType,
@@ -158,6 +162,32 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   if (!body?.title || !body?.subjectId || !body?.dueDate) {
     return jsonError("VALIDATION_ERROR", "title, subjectId, dueDate are required");
+  }
+  const dueDate = new Date(body.dueDate);
+  if (Number.isNaN(dueDate.getTime())) {
+    return jsonError("VALIDATION_ERROR", "dueDate is invalid");
+  }
+  const allowLateSubmission = Boolean(body.allowLateSubmission);
+  const lateUntil =
+    body.lateUntil === undefined || body.lateUntil === null || body.lateUntil === ""
+      ? null
+      : new Date(body.lateUntil);
+  if (lateUntil && Number.isNaN(lateUntil.getTime())) {
+    return jsonError("VALIDATION_ERROR", "lateUntil is invalid");
+  }
+  if (allowLateSubmission && !lateUntil) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "lateUntil wajib diisi saat allowLateSubmission aktif",
+      400
+    );
+  }
+  if (allowLateSubmission && lateUntil && lateUntil.getTime() <= dueDate.getTime()) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "lateUntil harus lebih besar dari dueDate",
+      400
+    );
   }
   const classIds: string[] = Array.isArray(body.classIds) ? body.classIds : [];
 
@@ -195,7 +225,9 @@ export async function POST(request: NextRequest) {
       description: body.description ?? "",
       subjectId: body.subjectId,
       teacherId,
-      dueDate: new Date(body.dueDate),
+      dueDate,
+      allowLateSubmission,
+      lateUntil: allowLateSubmission ? lateUntil : null,
       kind: body.kind ?? null,
       deliveryType: body.deliveryType ?? body.type ?? null,
       status: body.status ?? "ACTIVE",

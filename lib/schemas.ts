@@ -445,6 +445,8 @@ export const assignmentSchema = z.object({
   teacherName: z.string(),
   classIds: stringArray,
   dueDate: dateSchema,
+  allowLateSubmission: z.boolean().default(false),
+  lateUntil: dateOptionalSchema,
   createdAt: dateSchema,
   kind: z.string().nullish(),
   deliveryType: z.string().nullish(),

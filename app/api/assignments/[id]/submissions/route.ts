@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { listLinkedStudentIds } from "@/lib/authz";
+import { canSubmitAssignmentAt } from "@/lib/assignment-policy";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -72,6 +73,27 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const body = await request.json();
+  const assignment = await prisma.assignment.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      dueDate: true,
+      allowLateSubmission: true,
+      lateUntil: true,
+    },
+  });
+  if (!assignment) {
+    return jsonError("NOT_FOUND", "Assignment not found", 404);
+  }
+  const submitWindow = canSubmitAssignmentAt({
+    dueDate: assignment.dueDate,
+    allowLateSubmission: assignment.allowLateSubmission,
+    lateUntil: assignment.lateUntil,
+  });
+  if (!submitWindow.allowed) {
+    return jsonError("CONFLICT", submitWindow.reason ?? "Submission ditolak", 409);
+  }
+
   const row = await prisma.$transaction(async (tx) => {
     const existing = await tx.assignmentSubmission.findUnique({
       where: {

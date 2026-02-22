@@ -226,7 +226,7 @@ Implementasi TP-ATT-007:
 
 - [x] TP-ASG-001 Enforce teacher ownership untuk create/update assignment per mapel/kelas. DoD: teacher lintas kelas tidak bisa mutate.
 - [x] TP-ASG-002 Enforce student ownership untuk submit assignment milik sendiri. DoD: student tidak bisa submit atas nama user lain.
-- [ ] TP-ASG-003 Tambahkan policy late submission (`allowLateSubmission`, `lateUntil`). DoD: rule submit telat berjalan sesuai konfigurasi.
+- [x] TP-ASG-003 Tambahkan policy late submission (`allowLateSubmission`, `lateUntil`). DoD: rule submit telat berjalan sesuai konfigurasi.
 - [ ] TP-ASG-004 Tambahkan policy resubmission (`maxAttempts` atau versioning). DoD: percobaan submit mengikuti kebijakan.
 - [ ] TP-ASG-005 Definisikan `gradingPolicy` (`LATEST`/`HIGHEST`/`MANUAL`). DoD: perhitungan nilai mengikuti policy aktif.
 - [x] TP-ASG-006 Tambahkan audit jejak perubahan status submission penting. DoD: perubahan kritikal dapat ditelusuri.
@@ -234,6 +234,10 @@ Implementasi TP-ATT-007:
 Implementasi TP-ASG-001 + TP-ASG-002:
 - Teacher assignment mutate dibatasi oleh ownership + relasi mapel/kelas di endpoint assignment.
 - Student submission endpoint sekarang session-derived (`studentId` tidak diambil dari payload) dan update submission dibatasi ke owner submission.
+
+Implementasi TP-ASG-003:
+- Model assignment ditambah field policy submit telat: `allowLateSubmission` dan `lateUntil`.
+- Validasi policy diterapkan pada create/update assignment serta enforcement submit di endpoint submission (`POST /api/assignments/[id]/submissions` dan `PATCH /api/submissions/[id]`) sehingga submit telat hanya diterima jika konfigurasi mengizinkan.
 
 Implementasi TP-ASG-006:
 - Lifecycle submit tugas sekarang menulis audit log pada endpoint `POST /api/assignments/[id]/submissions` (`SUBMISSION_CREATED`/`SUBMISSION_STATUS_CHANGED`) dan `PATCH /api/submissions/[id]` (`SUBMISSION_STATUS_CHANGED`).

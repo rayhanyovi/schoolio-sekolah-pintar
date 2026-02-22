@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { canSubmitAssignmentAt } from "@/lib/assignment-policy";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -19,6 +20,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       assignment: {
         select: {
           teacherId: true,
+          dueDate: true,
+          allowLateSubmission: true,
+          lateUntil: true,
         },
       },
     },
@@ -66,6 +70,16 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       : auth.role === ROLES.STUDENT
         ? "SUBMITTED"
         : undefined;
+  if (auth.role === ROLES.STUDENT && status === "SUBMITTED") {
+    const submitWindow = canSubmitAssignmentAt({
+      dueDate: existing.assignment.dueDate,
+      allowLateSubmission: existing.assignment.allowLateSubmission,
+      lateUntil: existing.assignment.lateUntil,
+    });
+    if (!submitWindow.allowed) {
+      return jsonError("CONFLICT", submitWindow.reason ?? "Submission ditolak", 409);
+    }
+  }
   const submittedAt =
     body.submittedAt !== undefined
       ? body.submittedAt

@@ -53,6 +53,8 @@ export async function GET(request: NextRequest, { params }: Params) {
       kind: item.type,
       deliveryType: null,
       type: item.type,
+      allowLateSubmission: false,
+      lateUntil: null,
     });
   }
 
@@ -106,6 +108,8 @@ export async function GET(request: NextRequest, { params }: Params) {
     teacherName: row.teacher.name,
     classIds: row.classes.map((link) => link.classId),
     dueDate: row.dueDate,
+    allowLateSubmission: row.allowLateSubmission,
+    lateUntil: row.lateUntil,
     createdAt: row.createdAt,
     kind: row.kind,
     deliveryType: row.deliveryType,
@@ -138,6 +142,42 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const nextClassIds = Array.isArray(body.classIds)
     ? body.classIds
     : existing.classes.map((row) => row.classId);
+  const nextDueDate =
+    body.dueDate !== undefined ? new Date(body.dueDate) : existing.dueDate;
+  if (Number.isNaN(nextDueDate.getTime())) {
+    return jsonError("VALIDATION_ERROR", "dueDate is invalid", 400);
+  }
+  const nextAllowLateSubmission =
+    body.allowLateSubmission !== undefined
+      ? Boolean(body.allowLateSubmission)
+      : existing.allowLateSubmission;
+  const nextLateUntil =
+    body.lateUntil !== undefined
+      ? body.lateUntil === null || body.lateUntil === ""
+        ? null
+        : new Date(body.lateUntil)
+      : existing.lateUntil;
+  if (nextLateUntil && Number.isNaN(nextLateUntil.getTime())) {
+    return jsonError("VALIDATION_ERROR", "lateUntil is invalid", 400);
+  }
+  if (nextAllowLateSubmission && !nextLateUntil) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "lateUntil wajib diisi saat allowLateSubmission aktif",
+      400
+    );
+  }
+  if (
+    nextAllowLateSubmission &&
+    nextLateUntil &&
+    nextLateUntil.getTime() <= nextDueDate.getTime()
+  ) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "lateUntil harus lebih besar dari dueDate",
+      400
+    );
+  }
 
   if (auth.role === ROLES.TEACHER) {
     const hasSubjectAccess = await teacherCanManageSubject(
@@ -172,7 +212,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       subjectId: body.subjectId,
       teacherId:
         auth.role === ROLES.ADMIN ? body.teacherId : existing.teacherId,
-      dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+      dueDate: body.dueDate !== undefined ? nextDueDate : undefined,
+      allowLateSubmission:
+        body.allowLateSubmission !== undefined ? nextAllowLateSubmission : undefined,
+      lateUntil:
+        body.allowLateSubmission === false
+          ? null
+          : body.lateUntil !== undefined
+            ? nextLateUntil
+            : undefined,
       kind: body.kind ?? undefined,
       deliveryType: body.deliveryType ?? body.type ?? undefined,
       status: body.status,

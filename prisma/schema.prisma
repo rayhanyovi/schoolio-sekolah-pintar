@@ -347,6 +347,8 @@ model Assignment {
   subjectId         String
   teacherId         String
   dueDate           DateTime
+  allowLateSubmission Boolean          @default(false)
+  lateUntil         DateTime?
   kind              AssignmentKind?
   deliveryType      AssignmentDeliveryType?
   status            AssignmentStatus  @default(ACTIVE)
