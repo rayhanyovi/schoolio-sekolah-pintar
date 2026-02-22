@@ -57,7 +57,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     submittedAt: row.submittedAt ?? undefined,
     grade: row.grade ?? null,
     feedback: row.feedback ?? "",
-    response: row.response ?? null,
+    response: auth.role === ROLES.PARENT ? null : row.response ?? null,
     createdAt: row.createdAt,
   }));
 

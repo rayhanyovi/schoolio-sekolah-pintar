@@ -252,7 +252,7 @@ Implementasi TP-GRD-001:
 - [x] TP-PRN-001 Pastikan endpoint parent hanya mengembalikan linked children. DoD: tidak ada akses daftar siswa global dari parent context.
 - [x] TP-PRN-002 Validasi `selectedChildId` selalu belongs-to-parent. DoD: child context invalid auto reject/reset.
 - [x] TP-PRN-003 Audit halaman parent yang masih memanggil list siswa generik. DoD: semua diganti endpoint scoped.
-- [ ] TP-PRN-004 Definisikan policy visibilitas parent pada detail submission/jawaban anak. DoD: keputusan produk terdokumentasi dan diterapkan.
+- [x] TP-PRN-004 Definisikan policy visibilitas parent pada detail submission/jawaban anak. DoD: keputusan produk terdokumentasi dan diterapkan.
 
 Implementasi TP-PRN-001:
 - Parent context pada endpoint siswa dan monitoring dipersempit ke linked children: `/api/students`, `/api/grades`, `/api/attendance/records`, `/api/assignments/[id]/submissions`.
@@ -265,6 +265,10 @@ Implementasi TP-PRN-002:
 Implementasi TP-PRN-003:
 - Ditambahkan endpoint scoped parent children: `GET /api/parents/me/children` (role parent-only) untuk mengambil daftar anak ter-link langsung dari backend.
 - Halaman parent `Assignments`, `Materials`, `Grades`, dan `Attendance` sudah menggunakan endpoint scoped tersebut (bukan lagi flow list siswa generik + filter client-side).
+
+Implementasi TP-PRN-004:
+- Policy v1 visibilitas parent ditetapkan: parent dapat melihat status submit, waktu submit, nilai, dan feedback anak; tetapi tidak dapat melihat detail jawaban mentah (`response`) anak.
+- Enforcement server-side diterapkan di endpoint `GET /api/assignments/[id]/submissions` dengan masking `response = null` khusus actor `PARENT`.
 
 ### 6.11 WS-LIFE: Academic Lifecycle & Edge Cases (P2)
 
