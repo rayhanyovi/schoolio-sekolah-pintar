@@ -13,6 +13,7 @@
     "release:readiness": "node scripts/release-readiness-report.mjs --warn-only --write",
     "release:readiness:strict": "node scripts/release-readiness-report.mjs --write",
     "governance:approve": "node scripts/governance-approval-update.mjs",
+    "governance:approve-refresh": "node scripts/governance-approve-refresh.mjs",
     "governance:sync-techplan": "node scripts/governance-sync-techplan.mjs",
     "governance:check-sync": "node scripts/governance-sync-techplan.mjs --check",
     "governance:refresh": "npm run governance:sync-techplan && npm run release:readiness",
