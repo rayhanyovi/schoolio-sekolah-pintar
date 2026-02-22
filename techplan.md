@@ -350,11 +350,15 @@ Implementasi TP-AUD-005:
 
 ### 6.16 WS-OPS: Observability, Error Handling, dan Operasional (P2-P3)
 
-- [ ] TP-OPS-001 Tambahkan request logging standar dengan correlation ID. DoD: incident tracing antar layer memungkinkan.
+- [x] TP-OPS-001 Tambahkan request logging standar dengan correlation ID. DoD: incident tracing antar layer memungkinkan.
 - [ ] TP-OPS-002 Tambahkan error monitoring dan klasifikasi severity. DoD: error kritikal terdeteksi dengan alert dasar.
 - [x] TP-OPS-003 Tambahkan metrics endpoint untuk health dasar API. DoD: status layanan bisa dipantau.
 - [ ] TP-OPS-004 Definisikan SOP backup dan restore database. DoD: prosedur diuji minimal satu kali.
 - [ ] TP-OPS-005 Definisikan SOP fallback operasional saat input absensi/tugas gagal. DoD: tim akademik punya panduan jelas.
+
+Implementasi TP-OPS-001:
+- Middleware API sekarang menghasilkan dan mempropagasikan `x-correlation-id` ke request downstream dan response header.
+- Logging request API dasar ditambahkan (`[api-request] correlationId=... METHOD PATH`) untuk tracing insiden antar layer.
 
 Implementasi TP-OPS-003:
 - Ditambahkan endpoint health metrics dasar `GET /api/metrics` (role `ADMIN`) yang mengembalikan status layanan, timestamp, uptime, dan hasil DB ping (`SELECT 1`).
