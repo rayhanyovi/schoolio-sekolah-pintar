@@ -282,12 +282,16 @@ Implementasi TP-PRN-003:
 - [x] TP-AUD-001 Tambahkan tabel `AuditLog` minimal (actor, action, entity, before/after, timestamp). DoD: skema audit tersedia.
 - [ ] TP-AUD-002 Log aksi sensitif users/profiles/role change. DoD: perubahan identitas/akses selalu tercatat.
 - [ ] TP-AUD-003 Log aksi sensitif attendance override. DoD: semua override absensi punya jejak.
-- [ ] TP-AUD-004 Log aksi sensitif grade change/publish. DoD: perubahan nilai bisa diinvestigasi.
+- [x] TP-AUD-004 Log aksi sensitif grade change/publish. DoD: perubahan nilai bisa diinvestigasi.
 - [ ] TP-AUD-005 Log aksi sensitif parent-student relink dan activate academic year. DoD: aksi governance tercatat.
 
 Implementasi TP-AUD-001:
 - Model `AuditLog` ditambahkan di Prisma dengan field inti actor/action/entity/beforeData/afterData/timestamp (`createdAt`), termasuk relasi actor ke `User`.
 - Migration baseline ditambahkan di `prisma/migrations/20260222103000_add_audit_log/migration.sql` lengkap dengan index query utama (`actorId`, `entityType+entityId`, `createdAt`).
+
+Implementasi TP-AUD-004:
+- Endpoint `PATCH /api/submissions/[id]` sekarang menulis `AuditLog` otomatis untuk perubahan grading (`GRADE_UPDATED`/`GRADE_PUBLISHED`) dengan snapshot `beforeData` dan `afterData`.
+- Metadata audit menyertakan `assignmentId` dan `studentId`, serta actor dari session (`actorId`, `actorRole`) untuk kebutuhan investigasi.
 
 ### 6.15 WS-TEST: Testing Pyramid & Quality Gate (P1-P3)
 

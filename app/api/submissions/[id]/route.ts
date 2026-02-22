@@ -75,16 +75,61 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         ? new Date()
         : undefined;
   const isStudentActor = auth.role === ROLES.STUDENT;
+  const reason =
+    typeof body.reason === "string" && body.reason.trim().length > 0
+      ? body.reason.trim()
+      : null;
 
-  const row = await prisma.assignmentSubmission.update({
-    where: { id },
-    data: {
-      status,
-      grade: isStudentActor ? undefined : body.grade,
-      feedback: isStudentActor ? undefined : body.feedback,
-      response: body.response,
-      submittedAt,
-    },
+  const row = await prisma.$transaction(async (tx) => {
+    const updated = await tx.assignmentSubmission.update({
+      where: { id },
+      data: {
+        status,
+        grade: isStudentActor ? undefined : body.grade,
+        feedback: isStudentActor ? undefined : body.feedback,
+        response: body.response,
+        submittedAt,
+      },
+    });
+
+    const shouldLogGradeAudit =
+      !isStudentActor &&
+      (existing.grade !== updated.grade ||
+        (existing.feedback ?? null) !== (updated.feedback ?? null) ||
+        existing.status !== updated.status);
+
+    if (shouldLogGradeAudit) {
+      const action =
+        existing.status !== updated.status && updated.status === "GRADED"
+          ? "GRADE_PUBLISHED"
+          : "GRADE_UPDATED";
+      await tx.auditLog.create({
+        data: {
+          actorId: auth.userId,
+          actorRole: auth.role,
+          action,
+          entityType: "AssignmentSubmission",
+          entityId: updated.id,
+          beforeData: {
+            status: existing.status,
+            grade: existing.grade,
+            feedback: existing.feedback,
+          },
+          afterData: {
+            status: updated.status,
+            grade: updated.grade,
+            feedback: updated.feedback,
+          },
+          metadata: {
+            assignmentId: updated.assignmentId,
+            studentId: updated.studentId,
+          },
+          reason,
+        },
+      });
+    }
+
+    return updated;
   });
 
   return jsonOk(row);
