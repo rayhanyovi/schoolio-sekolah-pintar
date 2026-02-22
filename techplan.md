@@ -132,7 +132,7 @@ Implementasi TP-AUTHZ-007:
 
 - [x] TP-API-001 Hapus field actor identity dari payload sensitif (`authorId`, `studentId`, `teacherId`). DoD: actor identity hanya dari session.
 - [ ] TP-API-002 Standarkan input validation Zod untuk seluruh endpoint write (POST/PATCH/PUT). DoD: invalid payload return 400 + code konsisten.
-- [ ] TP-API-003 Implement standard error code (`UNAUTHORIZED`, `FORBIDDEN`, `VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`). DoD: response error seragam lintas route.
+- [x] TP-API-003 Implement standard error code (`UNAUTHORIZED`, `FORBIDDEN`, `VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`). DoD: response error seragam lintas route.
 - [x] TP-API-004 Refactor `listClassSubjects` response/payload jadi typed schema. DoD: tidak ada `Record<string, unknown>` pada flow utama.
 - [x] TP-API-005 Refactor `setClassSubjects` payload typed schema. DoD: payload tervalidasi penuh.
 - [x] TP-API-006 Refactor `setSubjectTeachers` payload typed schema. DoD: payload tervalidasi penuh.
@@ -151,6 +151,10 @@ Implementasi TP-API-001:
 - Attendance session create/update untuk role `TEACHER` sekarang derive `teacherId`/`takenByTeacherId` dari session saat field actor dikirim client.
 - Calendar event create sekarang derive `createdById` dari session actor (payload `createdById` tidak dipercaya).
 - Seluruh penetapan actor saat write dilakukan dari session server-side; field ID pada payload hanya dipakai sebagai target business entity untuk konteks admin yang sah.
+
+Implementasi TP-API-003:
+- Kode error lintas route API diseragamkan ke set standar (`UNAUTHORIZED`, `FORBIDDEN`, `VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`), termasuk normalisasi endpoint login (`UNAUTHORIZED`) dan health metrics (`CONFLICT` dengan status `503`).
+- Ditambahkan unit guard `tests/unit/api-error-codes.unit.test.ts` yang memverifikasi seluruh pemanggilan `jsonError()` di `app/api` hanya memakai kode standar tersebut.
 
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 
@@ -389,7 +393,7 @@ Implementasi TP-AUD-005:
 
 Implementasi TP-TEST-001:
 - Baseline test framework ditambahkan menggunakan Vitest (`vitest.config.ts`) beserta script `npm test` dan `npm run test:watch`.
-- Pipeline test lokal tervalidasi berjalan (`7` file test, `13` test pass).
+- Pipeline test lokal tervalidasi berjalan (`8` file test, `14` test pass).
 
 Implementasi TP-TEST-002:
 - Ditambahkan unit test `tests/unit/authz-policy.unit.test.ts` untuk branch policy authz utama pada helper `lib/authz.ts`:

@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   const username = normalizeUsername(parsed.data.username);
   const account = findAccount(username, parsed.data.password);
   if (!account) {
-    return jsonError("INVALID_CREDENTIALS", "Username atau kata sandi salah", 401);
+    return jsonError("UNAUTHORIZED", "Username atau kata sandi salah", 401);
   }
 
   const canUseDebugPanel =

@@ -17,6 +17,6 @@ export async function GET(request: Request) {
       database: "up",
     });
   } catch {
-    return jsonError("SERVICE_UNAVAILABLE", "Database health check failed", 503);
+    return jsonError("CONFLICT", "Database health check failed", 503);
   }
 }
