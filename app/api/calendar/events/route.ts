@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import {
+  appendWhereAndCondition,
+  resolveAcademicYearScope,
+} from "@/lib/academic-year-scope";
+import {
   getStudentClassId,
   listLinkedClassIdsForParent,
 } from "@/lib/authz";
@@ -25,6 +29,12 @@ export async function GET(request: NextRequest) {
   const dateTo = searchParams.get("dateTo");
   const type = searchParams.get("type");
   const classId = searchParams.get("classId");
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
 
   if (isMockEnabled()) {
     const data = mockEvents.filter((item) => {
@@ -88,6 +98,22 @@ export async function GET(request: NextRequest) {
         },
       ];
     }
+  }
+
+  if (academicYearId) {
+    appendWhereAndCondition(
+      where,
+      classId
+        ? {
+            classes: { some: { classId, class: { academicYearId } } },
+          }
+        : {
+            OR: [
+              { classes: { some: { class: { academicYearId } } } },
+              { classes: { none: {} } },
+            ],
+          }
+    );
   }
 
   const rows = await prisma.calendarEvent.findMany({

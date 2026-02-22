@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
@@ -72,6 +73,12 @@ export async function GET(request: NextRequest) {
   const subjectId = searchParams.get("subjectId");
   const teacherId = searchParams.get("teacherId");
   const status = searchParams.get("status");
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
 
   if (isMockEnabled()) {
     const data = mockAssignments.filter((item) => {
@@ -101,11 +108,15 @@ export async function GET(request: NextRequest) {
   }
 
   const where: Record<string, unknown> = {};
+  const withAcademicYearClassFilter = (input: Record<string, unknown>) =>
+    academicYearId ? { ...input, class: { academicYearId } } : input;
   if (subjectId) where.subjectId = subjectId;
   if (teacherId) where.teacherId = teacherId;
   if (status) where.status = status;
   if (classId) {
-    where.classes = { some: { classId } };
+    where.classes = { some: withAcademicYearClassFilter({ classId }) };
+  } else if (academicYearId) {
+    where.classes = { some: withAcademicYearClassFilter({}) };
   }
 
   if (auth.role === ROLES.TEACHER) {
@@ -121,7 +132,9 @@ export async function GET(request: NextRequest) {
     if (!ownClassId) {
       return jsonOk([]);
     }
-    where.classes = { some: { classId: ownClassId } };
+    where.classes = {
+      some: withAcademicYearClassFilter({ classId: ownClassId }),
+    };
   }
 
   if (auth.role === ROLES.PARENT) {
@@ -143,7 +156,11 @@ export async function GET(request: NextRequest) {
     if (!classIds.length) {
       return jsonOk([]);
     }
-    where.classes = { some: { classId: { in: classIds } } };
+    where.classes = {
+      some: withAcademicYearClassFilter({
+        classId: { in: classIds },
+      }),
+    };
   }
 
   const rows = await prisma.assignment.findMany({

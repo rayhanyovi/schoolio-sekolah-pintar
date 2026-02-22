@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { Prisma, StudentLifecycleStatus } from "@prisma/client";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { ROLES } from "@/lib/constants";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
@@ -33,6 +34,12 @@ export async function GET(request: NextRequest) {
   const q = searchParams.get("q")?.trim() ?? "";
   const includeInactive = searchParams.get("includeInactive") === "true";
   const lifecycleStatusParam = searchParams.get("studentLifecycleStatus");
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
   const lifecycleStatus = toStudentLifecycleStatus(lifecycleStatusParam);
   if (lifecycleStatusParam && !lifecycleStatus) {
     return jsonError(
@@ -55,6 +62,9 @@ export async function GET(request: NextRequest) {
   const studentProfileWhere: Prisma.StudentProfileWhereInput = {};
   if (classId) {
     studentProfileWhere.classId = classId;
+  }
+  if (academicYearId) {
+    studentProfileWhere.class = { academicYearId };
   }
   if (lifecycleStatus) {
     studentProfileWhere.status = lifecycleStatus;

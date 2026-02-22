@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk, parseNumber, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import {
   getStudentClassId,
   listLinkedClassIdsForParent,
@@ -23,6 +24,12 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const grade = parseNumber(searchParams.get("grade"));
   const q = searchParams.get("q")?.toLowerCase() ?? "";
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
 
   if (isMockEnabled()) {
     const data = mockClasses
@@ -43,6 +50,7 @@ export async function GET(request: NextRequest) {
 
   const where: Record<string, unknown> = {};
   if (grade) where.grade = grade;
+  if (academicYearId) where.academicYearId = academicYearId;
   if (q) {
     where.OR = [
       { name: { contains: q, mode: "insensitive" } },

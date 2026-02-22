@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import {
   canTeacherManageSubjectClass,
   getStudentClassId,
@@ -26,11 +27,18 @@ export async function GET(request: NextRequest) {
   const subjectId = searchParams.get("subjectId");
   const teacherId = searchParams.get("teacherId");
   const date = searchParams.get("date");
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
 
   const where: Record<string, unknown> = {};
   if (classId) where.classId = classId;
   if (subjectId) where.subjectId = subjectId;
   if (teacherId) where.teacherId = teacherId;
+  if (academicYearId) where.class = { academicYearId };
   if (date) {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);

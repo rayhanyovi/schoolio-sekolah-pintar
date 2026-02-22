@@ -5,6 +5,9 @@ import { requireAuth, requireRole } from "@/lib/api";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    academicYear: {
+      findFirst: vi.fn(),
+    },
     user: {
       findMany: vi.fn(),
     },
@@ -32,6 +35,7 @@ describe("GET /api/students lifecycle default filter", () => {
   it("default hanya mengambil student ACTIVE jika includeInactive tidak diaktifkan", async () => {
     const mockedRequireAuth = vi.mocked(requireAuth);
     const mockedRequireRole = vi.mocked(requireRole);
+    const mockedFindActiveYear = vi.mocked(prisma.academicYear.findFirst);
     const mockedFindMany = vi.mocked(prisma.user.findMany);
 
     mockedRequireAuth.mockResolvedValue({
@@ -40,6 +44,7 @@ describe("GET /api/students lifecycle default filter", () => {
       schoolId: null,
     } as never);
     mockedRequireRole.mockReturnValue(null);
+    mockedFindActiveYear.mockResolvedValue({ id: "year-active" } as never);
     mockedFindMany.mockResolvedValue([] as never);
 
     const request = new Request("http://localhost/api/students", {
@@ -50,14 +55,16 @@ describe("GET /api/students lifecycle default filter", () => {
     expect(response.status).toBe(200);
     expect(mockedFindMany).toHaveBeenCalledTimes(1);
     const where = (mockedFindMany.mock.calls[0]?.[0] as { where: unknown }).where as {
-      studentProfile?: { status?: string };
+      studentProfile?: { status?: string; class?: { academicYearId?: string } };
     };
     expect(where.studentProfile?.status).toBe("ACTIVE");
+    expect(where.studentProfile?.class?.academicYearId).toBe("year-active");
   });
 
   it("mengizinkan includeInactive=true untuk menonaktifkan filter status default", async () => {
     const mockedRequireAuth = vi.mocked(requireAuth);
     const mockedRequireRole = vi.mocked(requireRole);
+    const mockedFindActiveYear = vi.mocked(prisma.academicYear.findFirst);
     const mockedFindMany = vi.mocked(prisma.user.findMany);
 
     mockedRequireAuth.mockResolvedValue({
@@ -66,6 +73,7 @@ describe("GET /api/students lifecycle default filter", () => {
       schoolId: null,
     } as never);
     mockedRequireRole.mockReturnValue(null);
+    mockedFindActiveYear.mockResolvedValue({ id: "year-active" } as never);
     mockedFindMany.mockResolvedValue([] as never);
 
     const request = new Request(

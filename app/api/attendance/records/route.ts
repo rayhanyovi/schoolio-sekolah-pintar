@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
@@ -21,6 +22,12 @@ export async function GET(request: NextRequest) {
   const subjectId = searchParams.get("subjectId");
   const dateFrom = searchParams.get("dateFrom");
   const dateTo = searchParams.get("dateTo");
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
 
   const where: Record<string, unknown> = {};
   if (studentId) where.studentId = studentId;
@@ -32,6 +39,12 @@ export async function GET(request: NextRequest) {
         ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
         ...(dateTo ? { lte: new Date(dateTo) } : {}),
       },
+    };
+  }
+  if (academicYearId) {
+    where.session = {
+      ...(where.session ?? {}),
+      class: { academicYearId },
     };
   }
 

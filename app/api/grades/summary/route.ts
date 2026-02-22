@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { ROLES } from "@/lib/constants";
 import { GradeComponent, Prisma, Semester } from "@prisma/client";
 
@@ -51,24 +52,34 @@ export async function GET(request: NextRequest) {
   const classId = searchParams.get("classId");
   const subjectId = searchParams.get("subjectId");
   const semesterParam = searchParams.get("semester");
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
   const requestedSemester = toSemester(semesterParam);
   if (semesterParam && !requestedSemester) {
     return jsonError("VALIDATION_ERROR", "semester harus ODD atau EVEN", 400);
   }
 
   const where: Record<string, unknown> = {};
-  if (subjectId) where.assignment = { subjectId };
+  const assignmentWhere: Record<string, unknown> = {};
+  if (subjectId) assignmentWhere.subjectId = subjectId;
   if (classId) {
-    where.assignment = {
-      ...(where.assignment ?? {}),
-      classes: { some: { classId } },
+    assignmentWhere.classes = {
+      some: academicYearId
+        ? { classId, class: { academicYearId } }
+        : { classId },
     };
+  } else if (academicYearId) {
+    assignmentWhere.classes = { some: { class: { academicYearId } } };
   }
   if (auth.role === ROLES.TEACHER) {
-    where.assignment = {
-      ...(where.assignment ?? {}),
-      teacherId: auth.userId,
-    };
+    assignmentWhere.teacherId = auth.userId;
+  }
+  if (Object.keys(assignmentWhere).length) {
+    where.assignment = assignmentWhere;
   }
 
   const rows = await prisma.assignmentSubmission.findMany({

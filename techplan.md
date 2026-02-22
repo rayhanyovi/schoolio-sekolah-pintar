@@ -318,7 +318,7 @@ Implementasi TP-PRN-004:
 
 - [x] TP-LIFE-001 Tambahkan model histori perpindahan kelas (`StudentClassEnrollment` atau ekuivalen). DoD: riwayat kelas tidak overwrite data lama.
 - [x] TP-LIFE-002 Tambahkan status lifecycle siswa (`ACTIVE`, `INACTIVE`, `GRADUATED`, `TRANSFERRED_OUT`). DoD: query operasional default hanya active.
-- [ ] TP-LIFE-003 Terapkan scoping query default ke academic year aktif. DoD: modul utama tidak mencampur data lintas tahun ajaran.
+- [x] TP-LIFE-003 Terapkan scoping query default ke academic year aktif. DoD: modul utama tidak mencampur data lintas tahun ajaran.
 - [ ] TP-LIFE-004 Buat workflow rollover tahun ajaran (minimal checklist service). DoD: proses pergantian tahun ajaran terdokumentasi + executable.
 - [ ] TP-LIFE-005 Definisikan policy jadwal saat event khusus/libur (`SCHOOL_HOLIDAY`, `EXAM_PERIOD`, dsb). DoD: attendance seeding patuh aturan event.
 
@@ -336,6 +336,17 @@ Implementasi TP-LIFE-002:
 - Query operasional siswa sekarang default hanya `ACTIVE` dan bisa override eksplisit lewat query param:
 - `GET /api/students`, `GET /api/parents/me/children`, dan `GET /api/users` (student-scoped query) menerapkan filter default `status=ACTIVE` kecuali `includeInactive=true`.
 - Ditambahkan integration test `tests/integration/student-lifecycle-filter.integration.test.ts` untuk memastikan default filter aktif dan behavior `includeInactive=true`.
+
+Implementasi TP-LIFE-003:
+- Ditambahkan helper scope `lib/academic-year-scope.ts` untuk resolusi `academicYearId` default (active year), opsi bypass (`includeAllAcademicYears=true`), validasi `academicYearId`, dan utility gabung filter `AND`.
+- Scoping query default ke tahun ajaran aktif diterapkan pada modul utama:
+- Siswa dan user-domain: `GET /api/users` (student-scoped), `GET /api/students`, `GET /api/parents/me/children`.
+- Master akademik dan operasional: `GET /api/classes`, `GET /api/schedules`, `GET /api/attendance/sessions`, `GET /api/attendance/records`.
+- Pembelajaran: `GET /api/assignments`, `GET /api/materials`.
+- Penilaian: `GET /api/grades`, `GET /api/grades/summary`, `GET /api/grades/weights`, `GET /api/grades/report-cards`.
+- Kalender akademik: `GET /api/calendar/events`.
+- Saat tidak ada active academic year dan query tidak meminta `includeAllAcademicYears`, endpoint list operasional return data kosong agar tidak mencampur data lintas tahun.
+- Ditambahkan integration test `tests/integration/academic-year-scope.integration.test.ts` untuk validasi default scope active year, bypass `includeAllAcademicYears`, dan fallback saat active year belum ada.
 
 ### 6.12 WS-FILE: Real Upload Pipeline (P2)
 

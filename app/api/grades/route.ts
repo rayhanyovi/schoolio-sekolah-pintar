@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
@@ -20,15 +21,28 @@ export async function GET(request: NextRequest) {
   const classId = searchParams.get("classId");
   const subjectId = searchParams.get("subjectId");
   const studentId = searchParams.get("studentId");
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
 
   const where: Record<string, unknown> = {};
+  const assignmentWhere: Record<string, unknown> = {};
   if (studentId) where.studentId = studentId;
-  if (subjectId) where.assignment = { subjectId };
+  if (subjectId) assignmentWhere.subjectId = subjectId;
   if (classId) {
-    where.assignment = {
-      ...(where.assignment ?? {}),
-      classes: { some: { classId } },
+    assignmentWhere.classes = {
+      some: academicYearId
+        ? { classId, class: { academicYearId } }
+        : { classId },
     };
+  } else if (academicYearId) {
+    assignmentWhere.classes = { some: { class: { academicYearId } } };
+  }
+  if (Object.keys(assignmentWhere).length) {
+    where.assignment = assignmentWhere;
   }
 
   if (auth.role === ROLES.STUDENT) {

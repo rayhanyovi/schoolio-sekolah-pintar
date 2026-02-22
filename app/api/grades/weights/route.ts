@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/constants";
 import { Prisma, Semester } from "@prisma/client";
@@ -29,6 +30,12 @@ export async function GET(request: NextRequest) {
   const subjectId = searchParams.get("subjectId");
   const classId = searchParams.get("classId");
   const semesterParam = searchParams.get("semester");
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
   const semester = semesterParam ? toSemester(semesterParam) : null;
   if (semesterParam && !semester) {
     return jsonError("VALIDATION_ERROR", "semester harus ODD atau EVEN", 400);
@@ -37,6 +44,7 @@ export async function GET(request: NextRequest) {
   const where: Prisma.GradeWeightWhereInput = {};
   if (subjectId) where.subjectId = subjectId;
   if (classId) where.classId = classId;
+  if (academicYearId) where.class = { academicYearId };
   if (semester) where.semester = semester;
 
   const rows = await prisma.gradeWeight.findMany({

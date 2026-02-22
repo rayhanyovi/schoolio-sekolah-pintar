@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import {
+  appendWhereAndCondition,
+  resolveAcademicYearScope,
+} from "@/lib/academic-year-scope";
+import {
   canTeacherManageSubjectClass,
   getStudentClassId,
   listLinkedClassIdsForParent,
@@ -25,6 +29,12 @@ export async function GET(request: NextRequest) {
   const subjectId = searchParams.get("subjectId");
   const teacherId = searchParams.get("teacherId");
   const q = searchParams.get("q")?.toLowerCase() ?? "";
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
 
   const where: Record<string, unknown> = {};
   if (classId) where.classId = classId;
@@ -64,6 +74,17 @@ export async function GET(request: NextRequest) {
     } else {
       where.OR = [{ classId: { in: linkedClassIds } }, { classId: null }];
     }
+  }
+
+  if (academicYearId) {
+    appendWhereAndCondition(
+      where,
+      classId
+        ? { class: { academicYearId } }
+        : {
+            OR: [{ classId: null }, { class: { academicYearId } }],
+          }
+    );
   }
 
   const rows = await prisma.material.findMany({

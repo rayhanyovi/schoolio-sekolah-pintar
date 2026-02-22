@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { GradeComponent, Prisma, Semester } from "@prisma/client";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/constants";
 
@@ -69,9 +70,14 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
-  const academicYearId = searchParams.get("academicYearId");
   const semesterParam = searchParams.get("semester");
   const includeSnapshot = searchParams.get("includeSnapshot") === "true";
+  const yearScopeResult = await resolveAcademicYearScope(request);
+  if (yearScopeResult.error) return yearScopeResult.error;
+  const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+  if (!includeAllAcademicYears && !academicYearId) {
+    return jsonOk([]);
+  }
   const semester = semesterParam ? toSemester(semesterParam) : null;
   if (semesterParam && !semester) {
     return jsonError("VALIDATION_ERROR", "semester harus ODD atau EVEN", 400);

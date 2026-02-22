@@ -44,7 +44,9 @@ describe("GET /api/grades/summary - weighted average", () => {
       schoolId: null,
     } as never);
     mockedRequireRole.mockReturnValue(null);
-    mockedFindActiveYear.mockResolvedValue({ semester: "ODD" } as never);
+    mockedFindActiveYear
+      .mockResolvedValueOnce({ id: "year-active" } as never)
+      .mockResolvedValueOnce({ semester: "ODD" } as never);
     mockedFindWeight.mockResolvedValue({
       homeworkWeight: 30,
       quizWeight: 0,
