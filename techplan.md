@@ -352,9 +352,13 @@ Implementasi TP-AUD-005:
 
 - [ ] TP-OPS-001 Tambahkan request logging standar dengan correlation ID. DoD: incident tracing antar layer memungkinkan.
 - [ ] TP-OPS-002 Tambahkan error monitoring dan klasifikasi severity. DoD: error kritikal terdeteksi dengan alert dasar.
-- [ ] TP-OPS-003 Tambahkan metrics endpoint untuk health dasar API. DoD: status layanan bisa dipantau.
+- [x] TP-OPS-003 Tambahkan metrics endpoint untuk health dasar API. DoD: status layanan bisa dipantau.
 - [ ] TP-OPS-004 Definisikan SOP backup dan restore database. DoD: prosedur diuji minimal satu kali.
 - [ ] TP-OPS-005 Definisikan SOP fallback operasional saat input absensi/tugas gagal. DoD: tim akademik punya panduan jelas.
+
+Implementasi TP-OPS-003:
+- Ditambahkan endpoint health metrics dasar `GET /api/metrics` (role `ADMIN`) yang mengembalikan status layanan, timestamp, uptime, dan hasil DB ping (`SELECT 1`).
+- Jika DB health check gagal, endpoint merespons `503 SERVICE_UNAVAILABLE`.
 
 ### 6.17 WS-ROLE: Role Flow Compliance Checklist (Acceptance)
 
