@@ -368,7 +368,7 @@ Implementasi TP-AUD-005:
 ### 6.15 WS-TEST: Testing Pyramid & Quality Gate (P1-P3)
 
 - [x] TP-TEST-001 Siapkan baseline test framework unit + integration. DoD: pipeline test bisa jalan di CI.
-- [ ] TP-TEST-002 Tambahkan unit test validator policy authz utama. DoD: branch policy kritikal tercakup.
+- [x] TP-TEST-002 Tambahkan unit test validator policy authz utama. DoD: branch policy kritikal tercakup.
 - [x] TP-TEST-003 Tambahkan integration test endpoint auth/authz sensitif. DoD: bypass role/ownership tertangkap test.
 - [x] TP-TEST-004 Tambahkan integration test schedule overlap + attendance duplicate. DoD: integritas data tervalidasi otomatis.
 - [x] TP-TEST-005 Tambahkan integration test forum lock enforcement. DoD: lock tidak bisa dibypass direct API.
@@ -379,7 +379,11 @@ Implementasi TP-AUD-005:
 
 Implementasi TP-TEST-001:
 - Baseline test framework ditambahkan menggunakan Vitest (`vitest.config.ts`) beserta script `npm test` dan `npm run test:watch`.
-- Pipeline test lokal tervalidasi berjalan (`5` file test, `7` test pass).
+- Pipeline test lokal tervalidasi berjalan (`6` file test, `12` test pass).
+
+Implementasi TP-TEST-002:
+- Ditambahkan unit test `tests/unit/authz-policy.unit.test.ts` untuk branch policy authz utama pada helper `lib/authz.ts`:
+- `hasAnyRole`, `canAccessOwnUser`, `canViewStudent` (student self vs other, parent linked vs not-linked), dan `canViewParent`.
 
 Implementasi TP-TEST-003:
 - Ditambahkan integration test `tests/integration/authz-sensitive.integration.test.ts` untuk endpoint sensitif auth/authz:
