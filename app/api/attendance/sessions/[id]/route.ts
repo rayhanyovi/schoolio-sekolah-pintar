@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { canTeacherManageSubjectClass } from "@/lib/authz";
+import {
+  canTeacherWriteAttendance,
+  needsAdminAttendanceOverride,
+} from "@/lib/attendance-policy";
 import { buildAttendanceSessionKey } from "@/lib/attendance-session-key";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
@@ -57,7 +61,6 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (roleError) return roleError;
 
   const { id } = await params;
-  const body = await request.json();
   if (!id) {
     return jsonError("VALIDATION_ERROR", "id is required");
   }
@@ -68,8 +71,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       sessionKey: true,
       classId: true,
       subjectId: true,
+      status: true,
       teacherId: true,
       takenByTeacherId: true,
+      overriddenById: true,
+      overrideReason: true,
+      overriddenAt: true,
+      lockedAt: true,
+      finalizedAt: true,
       scheduleId: true,
       date: true,
       startTime: true,
@@ -77,11 +86,43 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     },
   });
   if (!existing) return jsonError("NOT_FOUND", "Attendance session not found", 404);
+  const body = (await request.json()) as Record<string, unknown>;
+  const requestedStatus = typeof body.status === "string" ? body.status : undefined;
+  if (
+    requestedStatus !== undefined &&
+    !["OPEN", "LOCKED", "FINALIZED"].includes(requestedStatus)
+  ) {
+    return jsonError("VALIDATION_ERROR", "status is invalid", 400);
+  }
+
   if (auth.role === ROLES.TEACHER) {
     const canManageCurrent = await canTeacherManageSession(auth.userId, existing);
     if (!canManageCurrent) {
       return jsonError("FORBIDDEN", "Anda tidak bisa mengubah sesi ini", 403);
     }
+    if (
+      requestedStatus !== undefined &&
+      requestedStatus !== "LOCKED"
+    ) {
+      return jsonError(
+        "FORBIDDEN",
+        "Guru hanya dapat mengubah status sesi menjadi LOCKED",
+        403
+      );
+    }
+    const canWriteCurrentSession = canTeacherWriteAttendance(
+      existing.status,
+      existing.date
+    );
+    const isLockAction = requestedStatus === "LOCKED";
+    if (!canWriteCurrentSession && !isLockAction) {
+      return jsonError(
+        "FORBIDDEN",
+        "Periode edit absensi sudah ditutup untuk guru",
+        403
+      );
+    }
+
     const nextSubjectId =
       typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
     const nextClassId =
@@ -98,6 +139,30 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         403
       );
     }
+  }
+
+  const hasSessionMutation =
+    body.classId !== undefined ||
+    body.subjectId !== undefined ||
+    body.teacherId !== undefined ||
+    body.takenByTeacherId !== undefined ||
+    body.scheduleId !== undefined ||
+    body.date !== undefined ||
+    body.startTime !== undefined ||
+    body.endTime !== undefined ||
+    requestedStatus !== undefined;
+  const overrideReason =
+    typeof body.overrideReason === "string" ? body.overrideReason.trim() : "";
+  const mustUseAdminOverride =
+    auth.role === ROLES.ADMIN &&
+    hasSessionMutation &&
+    needsAdminAttendanceOverride(existing.status, existing.date);
+  if (mustUseAdminOverride && !overrideReason) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "overrideReason wajib diisi untuk edit di luar policy normal",
+      400
+    );
   }
 
   const nextDate =
@@ -122,12 +187,27 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     startTime: nextStartTime ?? null,
     endTime: nextEndTime ?? null,
   });
+  const now = new Date();
+  const nextStatus = requestedStatus ?? existing.status;
+  const nextLockedAt =
+    requestedStatus === "OPEN"
+      ? null
+      : requestedStatus === "LOCKED" || requestedStatus === "FINALIZED"
+        ? existing.lockedAt ?? now
+        : existing.lockedAt;
+  const nextFinalizedAt =
+    requestedStatus === "OPEN" || requestedStatus === "LOCKED"
+      ? null
+      : requestedStatus === "FINALIZED"
+        ? existing.finalizedAt ?? now
+        : existing.finalizedAt;
 
   try {
     const row = await prisma.attendanceSession.update({
       where: { id },
       data: {
         sessionKey: nextSessionKey,
+        status: nextStatus,
         classId: body.classId,
         subjectId: body.subjectId,
         teacherId:
@@ -146,6 +226,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         date: body.date ? new Date(body.date) : undefined,
         startTime: body.startTime,
         endTime: body.endTime,
+        lockedAt: nextLockedAt,
+        finalizedAt: nextFinalizedAt,
+        overrideReason: mustUseAdminOverride ? overrideReason : undefined,
+        overriddenById: mustUseAdminOverride ? auth.userId : undefined,
+        overriddenAt: mustUseAdminOverride ? now : undefined,
       },
     });
     return jsonOk(row);
@@ -179,8 +264,10 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     select: {
       classId: true,
       subjectId: true,
+      status: true,
       teacherId: true,
       takenByTeacherId: true,
+      date: true,
     },
   });
   if (!existing) return jsonError("NOT_FOUND", "Attendance session not found", 404);
@@ -188,6 +275,17 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const allowed = await canTeacherManageSession(auth.userId, existing);
     if (!allowed) {
       return jsonError("FORBIDDEN", "Anda tidak bisa menghapus sesi ini", 403);
+    }
+    const canWriteCurrentSession = canTeacherWriteAttendance(
+      existing.status,
+      existing.date
+    );
+    if (!canWriteCurrentSession) {
+      return jsonError(
+        "FORBIDDEN",
+        "Periode edit absensi sudah ditutup untuk guru",
+        403
+      );
     }
   }
 

@@ -181,9 +181,9 @@ Implementasi TP-SCH-005:
 - [x] TP-ATT-001 Tetapkan business key unik attendance session. DoD: policy unik disepakati dan terdokumentasi.
 - [x] TP-ATT-002 Tambahkan unique constraint attendance session di Prisma + migration. DoD: duplicate session gagal di DB level.
 - [x] TP-ATT-003 Ubah create attendance session menjadi idempotent upsert. DoD: retry request tidak menghasilkan duplikasi.
-- [ ] TP-ATT-004 Tambahkan status sesi absensi (`OPEN`, `LOCKED`, `FINALIZED`). DoD: update mengikuti status policy.
-- [ ] TP-ATT-005 Tambahkan cutoff edit absensi untuk teacher + override policy admin. DoD: edit retroaktif mengikuti aturan.
-- [ ] TP-ATT-006 Tambahkan `overrideReason`, `overriddenBy`, `overriddenAt`. DoD: semua override tersimpan jejaknya.
+- [x] TP-ATT-004 Tambahkan status sesi absensi (`OPEN`, `LOCKED`, `FINALIZED`). DoD: update mengikuti status policy.
+- [x] TP-ATT-005 Tambahkan cutoff edit absensi untuk teacher + override policy admin. DoD: edit retroaktif mengikuti aturan.
+- [x] TP-ATT-006 Tambahkan `overrideReason`, `overriddenBy`, `overriddenAt`. DoD: semua override tersimpan jejaknya.
 - [x] TP-ATT-007 Tambahkan guard teacher hanya isi absensi kelas yang diajar/substitute authorized. DoD: unauthorized attendance write ditolak.
 
 Implementasi TP-ATT-001:
@@ -198,6 +198,18 @@ Implementasi TP-ATT-002:
 Implementasi TP-ATT-003:
 - Endpoint create sesi absensi (`/api/attendance/sessions`) diubah menjadi idempotent `upsert` berbasis `sessionKey`.
 - Retry request dengan key yang sama tidak lagi membuat duplikasi record.
+
+Implementasi TP-ATT-004:
+- Ditambahkan enum dan field status sesi absensi di Prisma (`OPEN`, `LOCKED`, `FINALIZED`) pada `AttendanceSession`.
+- Endpoint update sesi (`PATCH /api/attendance/sessions/[id]`) sekarang memvalidasi transisi status dan timestamp status (`lockedAt`, `finalizedAt`) secara konsisten.
+
+Implementasi TP-ATT-005:
+- Diterapkan cutoff edit absensi untuk teacher berbasis policy window (`ATTENDANCE_TEACHER_EDIT_CUTOFF_HOURS`, default 24 jam) pada endpoint write attendance.
+- Jika sesi berada di luar policy normal (status non-OPEN atau cutoff lewat), admin wajib menyertakan `overrideReason` untuk melakukan edit.
+
+Implementasi TP-ATT-006:
+- Field override attendance (`overrideReason`, `overriddenById`, `overriddenAt`) ditambahkan di `AttendanceSession` beserta relasi actor override.
+- Endpoint write attendance session/record sekarang mengisi jejak override otomatis saat admin melakukan edit di luar policy normal.
 
 Implementasi TP-ATT-007:
 - Write absensi siswa (`/api/attendance/sessions/[id]/records` dan `/api/attendance/records/[id]`) sekarang hanya diizinkan untuk guru pengampu sesi atau guru pengganti yang ditetapkan (`takenByTeacherId`).

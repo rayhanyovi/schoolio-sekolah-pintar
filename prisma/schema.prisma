@@ -67,6 +67,12 @@ enum AttendanceStatus {
   PERMIT
 }
 
+enum AttendanceSessionStatus {
+  OPEN
+  LOCKED
+  FINALIZED
+}
+
 enum AssignmentKind {
   HOMEWORK
   PROJECT
@@ -125,6 +131,7 @@ model User {
   assignments        Assignment[]        @relation("AssignmentTeacher")
   attendanceSessions AttendanceSession[] @relation("SessionTeacher")
   takenSessions      AttendanceSession[] @relation("SessionTakenBy")
+  attendanceOverrides AttendanceSession[] @relation("SessionOverriddenBy")
   classSchedules     ClassSchedule[]
   homeroomClasses    Class[]             @relation("HomeroomTeacher")
   subjectTeaching    SubjectTeacher[]
@@ -279,8 +286,14 @@ model AttendanceSession {
   sessionKey String   @unique
   classId    String
   subjectId  String
+  status     AttendanceSessionStatus @default(OPEN)
   teacherId  String?
   takenByTeacherId String?
+  overriddenById String?
+  overrideReason String?
+  overriddenAt DateTime?
+  lockedAt DateTime?
+  finalizedAt DateTime?
   scheduleId String?
   date       DateTime
   startTime  String?
@@ -292,6 +305,7 @@ model AttendanceSession {
   subject  Subject        @relation(fields: [subjectId], references: [id])
   teacher  User?          @relation("SessionTeacher", fields: [teacherId], references: [id])
   takenBy  User?          @relation("SessionTakenBy", fields: [takenByTeacherId], references: [id])
+  overriddenBy User?      @relation("SessionOverriddenBy", fields: [overriddenById], references: [id])
   schedule ClassSchedule? @relation(fields: [scheduleId], references: [id])
   records  AttendanceRecord[]
   teacherAttendance TeacherAttendance[]
