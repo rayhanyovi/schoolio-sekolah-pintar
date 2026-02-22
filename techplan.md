@@ -159,7 +159,7 @@ Implementasi TP-API-001:
 - [x] TP-SCH-003 Tambahkan server-side overlap validator bentrok guru. DoD: jadwal bentrok guru tidak bisa disimpan.
 - [x] TP-SCH-004 Tambahkan server-side overlap validator bentrok ruang (jika room digunakan). DoD: bentrok ruang ditolak.
 - [x] TP-SCH-005 Tambahkan UI edit schedule templates + integrasi `updateScheduleTemplates`. DoD: admin bisa update template dari Settings.
-- [ ] TP-SCH-006 Tambahkan test integrasi untuk bypass validasi jadwal via direct API call. DoD: test gagal jika rule dilanggar.
+- [x] TP-SCH-006 Tambahkan test integrasi untuk bypass validasi jadwal via direct API call. DoD: test gagal jika rule dilanggar.
 
 Implementasi TP-SCH-001:
 - Endpoint create/update jadwal (`/api/schedules`, `/api/schedules/[id]`) sekarang memvalidasi format jam `HH:mm` dan menolak request jika `startTime >= endTime`.
@@ -175,6 +175,9 @@ Implementasi TP-SCH-004:
 
 Implementasi TP-SCH-005:
 - Tab `Jam Pelajaran` pada halaman Settings sekarang mendukung edit inline (nama slot, jam mulai/selesai, durasi, dan flag istirahat) serta menyimpan ke backend melalui `updateScheduleTemplates`.
+
+Implementasi TP-SCH-006:
+- Ditambahkan integration test `tests/integration/schedule-conflict.integration.test.ts` untuk memastikan direct API call ke `POST /api/schedules` tetap ditolak (`409 CONFLICT`) saat terjadi bentrok jadwal kelas.
 
 ### 6.6 WS-ATT: Attendance Integrity & Governance (P1)
 
@@ -220,7 +223,10 @@ Implementasi TP-ATT-007:
 - [x] TP-FORUM-001 Enforce `locked thread` di server saat create reply. DoD: reply ke thread locked ditolak untuk non-moderator.
 - [x] TP-FORUM-002 Enforce lock policy pada edit reply dan aksi terkait. DoD: policy lock konsisten di semua endpoint forum.
 - [x] TP-FORUM-003 Validasi role parent tidak bisa akses forum endpoint jika policy final tetap blokir. DoD: parent receive 403.
-- [ ] TP-FORUM-004 Tambahkan integration test bypass UI untuk forum lock. DoD: direct API bypass gagal.
+- [x] TP-FORUM-004 Tambahkan integration test bypass UI untuk forum lock. DoD: direct API bypass gagal.
+
+Implementasi TP-FORUM-004:
+- Ditambahkan integration test `tests/integration/forum-lock.integration.test.ts` untuk memastikan direct API call ke endpoint forum tetap ditolak saat thread `LOCKED` (create reply dan edit reply oleh non-moderator).
 
 ### 6.8 WS-ASSIGN: Assignment & Submission Lifecycle (P1-P2)
 
@@ -361,15 +367,22 @@ Implementasi TP-AUD-005:
 
 ### 6.15 WS-TEST: Testing Pyramid & Quality Gate (P1-P3)
 
-- [ ] TP-TEST-001 Siapkan baseline test framework unit + integration. DoD: pipeline test bisa jalan di CI.
+- [x] TP-TEST-001 Siapkan baseline test framework unit + integration. DoD: pipeline test bisa jalan di CI.
 - [ ] TP-TEST-002 Tambahkan unit test validator policy authz utama. DoD: branch policy kritikal tercakup.
 - [ ] TP-TEST-003 Tambahkan integration test endpoint auth/authz sensitif. DoD: bypass role/ownership tertangkap test.
 - [ ] TP-TEST-004 Tambahkan integration test schedule overlap + attendance duplicate. DoD: integritas data tervalidasi otomatis.
-- [ ] TP-TEST-005 Tambahkan integration test forum lock enforcement. DoD: lock tidak bisa dibypass direct API.
+- [x] TP-TEST-005 Tambahkan integration test forum lock enforcement. DoD: lock tidak bisa dibypass direct API.
 - [ ] TP-TEST-006 Tambahkan E2E role journey ADMIN. DoD: flow master data sampai monitoring lolos.
 - [ ] TP-TEST-007 Tambahkan E2E role journey TEACHER. DoD: flow ajar-absen-tugas-nilai lolos.
 - [ ] TP-TEST-008 Tambahkan E2E role journey STUDENT. DoD: flow materi-tugas-submit-nilai lolos.
 - [ ] TP-TEST-009 Tambahkan E2E role journey PARENT. DoD: flow monitor anak aman dan scoped.
+
+Implementasi TP-TEST-001:
+- Baseline test framework ditambahkan menggunakan Vitest (`vitest.config.ts`) beserta script `npm test` dan `npm run test:watch`.
+- Pipeline test lokal tervalidasi berjalan (`3` file test, `4` test pass).
+
+Implementasi TP-TEST-005:
+- Integration test enforcement forum lock ditambahkan pada `tests/integration/forum-lock.integration.test.ts` untuk skenario bypass direct API pada aksi create/edit reply.
 
 ### 6.16 WS-OPS: Observability, Error Handling, dan Operasional (P2-P3)
 
