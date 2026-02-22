@@ -14,6 +14,7 @@
     "release:readiness:strict": "node scripts/release-readiness-report.mjs --write",
     "governance:approve": "node scripts/governance-approval-update.mjs",
     "governance:sync-techplan": "node scripts/governance-sync-techplan.mjs",
+    "governance:check-sync": "node scripts/governance-sync-techplan.mjs --check",
     "governance:refresh": "npm run governance:sync-techplan && npm run release:readiness",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

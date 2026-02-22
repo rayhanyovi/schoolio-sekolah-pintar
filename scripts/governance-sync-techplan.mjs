@@ -1,6 +1,10 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+const args = new Set(process.argv.slice(2));
+const checkOnly = args.has("--check");
+const dryRun = args.has("--dry-run");
+
 const isApproved = (value) => /^approved\b/i.test(String(value ?? "").trim());
 
 const parseChecklistStatus = (markdown) => {
@@ -105,6 +109,18 @@ for (const id of ["TP-AUTHZ-001", "TP-REL-001", "TP-REL-005", ...decisionIds]) {
 
 if (techplanUpdated === techplanOriginal) {
   console.log("[governance-sync-techplan] tidak ada perubahan status checklist");
+  process.exit(0);
+}
+
+if (checkOnly) {
+  console.error(
+    "[governance-sync-techplan] out-of-sync: jalankan `npm run governance:sync-techplan` dan commit perubahan techplan"
+  );
+  process.exit(1);
+}
+
+if (dryRun) {
+  console.log("[governance-sync-techplan] dry run (tanpa write)");
   process.exit(0);
 }
 
