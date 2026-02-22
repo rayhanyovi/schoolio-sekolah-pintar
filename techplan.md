@@ -614,6 +614,7 @@ Progress TP-REL-005:
 - Readiness checker menghasilkan laporan status terkini di `RELEASE_READINESS_STATUS.md` agar approver dapat melihat blocker sign-off yang tersisa secara objektif.
 - Ditambahkan workflow governance refresh (`npm run governance:refresh`) untuk sinkronisasi checklist + regenerasi readiness report setelah approval diupdate.
 - Ditambahkan wrapper `npm run governance:approve-refresh -- ...` untuk alur satu langkah: update approval -> sync techplan -> refresh readiness report.
+- Workflow readiness report dijalankan juga secara terjadwal harian (`cron`) agar artifact status governance tetap tersedia walau tidak ada push/PR baru.
 - Item tetap terbuka sampai seluruh approver utama menandatangani approval record.
 
 Implementasi TP-REL-006:
