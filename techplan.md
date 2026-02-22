@@ -618,6 +618,7 @@ Implementasi TP-REL-006:
 - Ditambahkan endpoint backend `GET /api/governance/readiness` (admin-only) di `app/api/governance/readiness/route.ts`.
 - Endpoint menggunakan utility `lib/governance-readiness.ts` untuk menghitung status gate `TP-REL-001`, `TP-REL-005`, dan decision gate `TP-DEC-*` langsung dari dokumen governance.
 - Kontrak endpoint didokumentasikan di `GOVERNANCE_STATUS_API.md`.
+- Ditambahkan integration test `tests/integration/governance-readiness.integration.test.ts` untuk memverifikasi guard role admin, success path, dan error path loader.
 
 ## 7. Checklist Keputusan Produk (Wajib Diputuskan)
 
