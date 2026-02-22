@@ -376,7 +376,7 @@ Implementasi TP-AUD-005:
 - [x] TP-OPS-001 Tambahkan request logging standar dengan correlation ID. DoD: incident tracing antar layer memungkinkan.
 - [x] TP-OPS-002 Tambahkan error monitoring dan klasifikasi severity. DoD: error kritikal terdeteksi dengan alert dasar.
 - [x] TP-OPS-003 Tambahkan metrics endpoint untuk health dasar API. DoD: status layanan bisa dipantau.
-- [ ] TP-OPS-004 Definisikan SOP backup dan restore database. DoD: prosedur diuji minimal satu kali.
+- [x] TP-OPS-004 Definisikan SOP backup dan restore database. DoD: prosedur diuji minimal satu kali.
 - [x] TP-OPS-005 Definisikan SOP fallback operasional saat input absensi/tugas gagal. DoD: tim akademik punya panduan jelas.
 
 Implementasi TP-OPS-001:
@@ -390,6 +390,11 @@ Implementasi TP-OPS-002:
 Implementasi TP-OPS-003:
 - Ditambahkan endpoint health metrics dasar `GET /api/metrics` (role `ADMIN`) yang mengembalikan status layanan, timestamp, uptime, dan hasil DB ping (`SELECT 1`).
 - Jika DB health check gagal, endpoint merespons `503 SERVICE_UNAVAILABLE`.
+
+Implementasi TP-OPS-004:
+- SOP backup/restore database ditambahkan di `OPS_DB_BACKUP_RESTORE_SOP.md`.
+- Script operasional ditambahkan untuk environment `cmd`: `scripts/db-backup.cmd` dan `scripts/db-restore.cmd`.
+- Drill backup/restore tervalidasi pada 22-02-2026 menggunakan PostgreSQL lokal `localhost:55432` dengan verifikasi pasca-restore `count=3` dan payload `Alya:PRESENT,Bima:SICK,Citra:LATE`.
 
 Implementasi TP-OPS-005:
 - SOP fallback operasional dibuat di `OPS_FALLBACK_PLAYBOOK.md` untuk insiden gagal input absensi/tugas.
