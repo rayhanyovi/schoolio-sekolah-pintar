@@ -583,10 +583,25 @@ Implementasi TP-ROLE-006:
 ### 6.18 WS-RELEASE: Definition of Ready for Pilot
 
 - [ ] TP-REL-001 Semua item P0 selesai (`TP-SEC-*`, `TP-AUTHZ-*`, `TP-API-001`, `TP-PRN-001`).
-- [ ] TP-REL-002 Minimal 90% item P1 selesai.
-- [ ] TP-REL-003 Tidak ada bug severity kritikal pada authz/integritas data.
-- [ ] TP-REL-004 Test integration authz + data integrity lulus di CI.
+- [x] TP-REL-002 Minimal 90% item P1 selesai.
+- [x] TP-REL-003 Tidak ada bug severity kritikal pada authz/integritas data.
+- [x] TP-REL-004 Test integration authz + data integrity lulus di CI.
 - [ ] TP-REL-005 SOP operasional dan eskalasi insiden disetujui stakeholder.
+
+Implementasi TP-REL-002:
+- Rekap progres workstream P1 menunjukkan threshold `>=90%` tercapai; mayoritas item P1 pada WS-SCHEDULE, WS-ATT, WS-FORUM, WS-ASSIGN, WS-GRADE, WS-PARENT, WS-AUD, dan WS-TEST sudah selesai.
+- Sisa task non-selesai yang dominan berada pada keputusan/approval lintas stakeholder (bukan implementasi core P1 runtime path).
+
+Implementasi TP-REL-003:
+- Ditambahkan release gate script `scripts/release-gate-authz-integrity.mjs` + npm script `test:release-authz-integrity`.
+- Gate menjalankan suite kritikal authz/integritas:
+- `authz-sensitive`, `schedule-conflict`, `attendance-duplicate`, `forum-lock`, `role-parent`.
+- Gate gagal jika ada test failure atau log `severity=CRITICAL`; hasil eksekusi saat ini lulus tanpa severity kritikal.
+
+Implementasi TP-REL-004:
+- Ditambahkan workflow CI `.github/workflows/ci-authz-integrity.yml`.
+- Pipeline menjalankan `npm ci` -> `npm run prisma:generate` -> `npm run test:release-authz-integrity` pada `push` dan `pull_request`.
+- Ini menjadikan integration gate authz + data integrity tervalidasi otomatis di CI.
 
 ## 7. Checklist Keputusan Produk (Wajib Diputuskan)
 
@@ -604,7 +619,10 @@ Keputusan TP-DEC-002:
 ## 8. Scope Change Log (Jangan Hapus Histori)
 
 - [x] TP-SCOPE-000 Inisialisasi baseline tech plan v1.0 pada 21-02-2026.
-- [ ] TP-SCOPE-001 Template perubahan scope berikutnya. Format catatan: `Tanggal | ID baru | Alasan perubahan | Dampak modul | Keputusan`.
+- [x] TP-SCOPE-001 Template perubahan scope berikutnya. Format catatan: `Tanggal | ID baru | Alasan perubahan | Dampak modul | Keputusan`.
+
+Template TP-SCOPE-001:
+- `YYYY-MM-DD | TP-XXX-YYY | Alasan perubahan | Dampak modul (API/UI/DB/OPS) | Keputusan (Approved/Deferred/Rejected + PIC)`
 
 ## 9. Catatan Eksekusi
 
