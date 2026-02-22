@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseNumber, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonBody, parseNumber, requireAuth, requireRole } from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import {
   getStudentClassId,
@@ -9,6 +9,20 @@ import {
 import { ROLES } from "@/lib/constants";
 import { mockClasses } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
+
+const createClassSchema = z.object({
+  name: z.string().trim().min(1, "name wajib diisi"),
+  grade: z.coerce.number().int().min(1, "grade wajib berupa angka > 0"),
+  major: z.string().trim().optional().nullable(),
+  section: z.string().trim().min(1, "section wajib diisi"),
+  academicYearId: z.string().trim().optional().nullable(),
+  academicYear: z.string().trim().optional(),
+  homeroomTeacherId: z.string().trim().optional().nullable(),
+  studentCount: z.coerce.number().int().optional(),
+  maleCount: z.coerce.number().int().optional(),
+  femaleCount: z.coerce.number().int().optional(),
+});
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -103,10 +117,9 @@ export async function POST(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
-  if (!body?.name || !body?.grade || !body?.section) {
-    return jsonError("VALIDATION_ERROR", "name, grade, and section are required");
-  }
+  const parsedBody = await parseJsonBody(request, createClassSchema);
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody;
 
   let academicYearId: string | null = body.academicYearId ?? null;
   if (!academicYearId && body.academicYear) {

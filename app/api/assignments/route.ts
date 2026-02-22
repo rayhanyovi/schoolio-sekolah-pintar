@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
 import { mockAssignments } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
 
 const isTeacherAssignedToSubject = async (teacherId: string, subjectId: string) => {
   const relation = await prisma.subjectTeacher.findUnique({
@@ -56,6 +57,24 @@ const inferGradeComponentFromKind = (
   if (normalized === "PROJECT") return "PRACTICAL";
   return "HOMEWORK";
 };
+
+const createAssignmentSchema = z.object({
+  title: z.string().trim().min(1, "title wajib diisi"),
+  subjectId: z.string().trim().min(1, "subjectId wajib diisi"),
+  dueDate: z.string().trim().min(1, "dueDate wajib diisi"),
+  description: z.string().optional().nullable(),
+  classIds: z.array(z.string()).optional(),
+  teacherId: z.string().optional().nullable(),
+  allowLateSubmission: z.boolean().optional(),
+  lateUntil: z.string().optional().nullable(),
+  maxAttempts: z.union([z.number(), z.string(), z.null()]).optional(),
+  gradingPolicy: z.string().optional().nullable(),
+  gradeComponent: z.string().optional().nullable(),
+  kind: z.string().optional().nullable(),
+  deliveryType: z.string().optional().nullable(),
+  type: z.string().optional().nullable(),
+  status: z.string().optional().nullable(),
+});
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -204,10 +223,9 @@ export async function POST(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
-  const body = await request.json();
-  if (!body?.title || !body?.subjectId || !body?.dueDate) {
-    return jsonError("VALIDATION_ERROR", "title, subjectId, dueDate are required");
-  }
+  const parsedBody = await parseJsonBody(request, createAssignmentSchema);
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody;
   const dueDate = new Date(body.dueDate);
   if (Number.isNaN(dueDate.getTime())) {
     return jsonError("VALIDATION_ERROR", "dueDate is invalid");

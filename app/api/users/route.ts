@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { ROLES } from "@/lib/constants";
 import { Prisma, StudentLifecycleStatus } from "@prisma/client";
+import { z } from "zod";
 
 const STUDENT_LIFECYCLE_VALUES: StudentLifecycleStatus[] = [
   "ACTIVE",
@@ -21,6 +22,20 @@ const toStudentLifecycleStatus = (
     ? (normalized as StudentLifecycleStatus)
     : null;
 };
+
+const createUserSchema = z.object({
+  name: z.string().trim().min(1, "name wajib diisi"),
+  role: z.enum(["ADMIN", "TEACHER", "STUDENT", "PARENT"]),
+  email: z.string().trim().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  bio: z.string().optional().nullable(),
+  avatarUrl: z.string().optional().nullable(),
+  birthDate: z.string().optional().nullable(),
+  classId: z.string().optional().nullable(),
+  gender: z.string().optional().nullable(),
+  studentLifecycleStatus: z.string().optional().nullable(),
+});
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -91,10 +106,9 @@ export async function POST(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
-  if (!body?.name || !body?.role) {
-    return jsonError("VALIDATION_ERROR", "name and role are required");
-  }
+  const parsedBody = await parseJsonBody(request, createUserSchema);
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody;
   const studentLifecycleStatus =
     body.studentLifecycleStatus === undefined ||
     body.studentLifecycleStatus === null ||

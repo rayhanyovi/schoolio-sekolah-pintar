@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import {
@@ -10,9 +10,18 @@ import {
   isAllowedUploadMimeType,
   sanitizeFileName,
 } from "@/lib/upload-intent";
+import { z } from "zod";
 
 const CHECKSUM_SHA256_REGEX = /^[a-fA-F0-9]{64}$/;
 const DEFAULT_UPLOAD_INTENT_TTL_MINUTES = 15;
+
+const createUploadIntentSchema = z.object({
+  materialId: z.string().trim().min(1, "materialId wajib diisi"),
+  fileName: z.string().trim().min(1, "fileName wajib diisi"),
+  fileType: z.string().trim().min(1, "fileType wajib diisi"),
+  sizeBytes: z.coerce.number().int().min(1, "sizeBytes harus integer > 0"),
+  checksumSha256: z.string().trim().min(1, "checksumSha256 wajib diisi"),
+});
 
 const getUploadIntentTtlMinutes = () => {
   const parsed = Number.parseInt(
@@ -31,29 +40,16 @@ export async function POST(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
-  const body = await request.json();
-  const materialId =
-    typeof body?.materialId === "string" ? body.materialId.trim() : "";
-  const fileName =
-    typeof body?.fileName === "string" ? body.fileName.trim() : "";
-  const fileType =
-    typeof body?.fileType === "string" ? body.fileType.trim() : "";
-  const checksumSha256 =
-    typeof body?.checksumSha256 === "string"
-      ? body.checksumSha256.trim().toLowerCase()
-      : "";
-  const sizeBytes = Number(body?.sizeBytes);
+  const parsedBody = await parseJsonBody(request, createUploadIntentSchema);
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody;
 
-  if (!materialId || !fileName || !fileType) {
-    return jsonError(
-      "VALIDATION_ERROR",
-      "materialId, fileName, fileType wajib diisi",
-      400
-    );
-  }
-  if (!Number.isInteger(sizeBytes) || sizeBytes <= 0) {
-    return jsonError("VALIDATION_ERROR", "sizeBytes harus integer > 0", 400);
-  }
+  const materialId = body.materialId;
+  const fileName = body.fileName;
+  const fileType = body.fileType;
+  const checksumSha256 = body.checksumSha256.toLowerCase();
+  const sizeBytes = body.sizeBytes;
+
   if (!CHECKSUM_SHA256_REGEX.test(checksumSha256)) {
     return jsonError(
       "VALIDATION_ERROR",

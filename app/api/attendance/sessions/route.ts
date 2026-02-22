@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import {
   canTeacherManageSubjectClass,
@@ -10,6 +10,18 @@ import {
 import { buildAttendanceSessionKey } from "@/lib/attendance-session-key";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
+
+const createAttendanceSessionSchema = z.object({
+  classId: z.string().trim().min(1, "classId wajib diisi"),
+  subjectId: z.string().trim().min(1, "subjectId wajib diisi"),
+  date: z.string().trim().min(1, "date wajib diisi"),
+  teacherId: z.string().trim().optional().nullable(),
+  takenByTeacherId: z.string().trim().optional().nullable(),
+  scheduleId: z.string().trim().optional().nullable(),
+  startTime: z.string().trim().optional().nullable(),
+  endTime: z.string().trim().optional().nullable(),
+});
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -122,10 +134,9 @@ export async function POST(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
-  const body = await request.json();
-  if (!body?.classId || !body?.subjectId || !body?.date) {
-    return jsonError("VALIDATION_ERROR", "classId, subjectId, date are required");
-  }
+  const parsedBody = await parseJsonBody(request, createAttendanceSessionSchema);
+  if (parsedBody instanceof Response) return parsedBody;
+  const body = parsedBody;
   const sessionDate = new Date(body.date);
   if (Number.isNaN(sessionDate.getTime())) {
     return jsonError("VALIDATION_ERROR", "date is invalid");

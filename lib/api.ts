@@ -3,6 +3,7 @@ import { requireAuth as resolveAuthSession } from "@/lib/server-auth";
 import { Role } from "@/lib/constants";
 import { ActorContext, hasAnyRole, toActorContext } from "@/lib/authz";
 import { monitorApiError } from "@/lib/error-monitoring";
+import { ZodType, z } from "zod";
 
 export const isMockEnabled = () => process.env.debug_with_mock_data === "true";
 
@@ -36,4 +37,25 @@ export const requireRole = (
 ): NextResponse | null => {
   if (hasAnyRole(actor, roles)) return null;
   return jsonError("FORBIDDEN", "You are not allowed to perform this action", 403);
+};
+
+const toValidationMessage = (error: z.ZodError) =>
+  error.issues[0]?.message ?? "Payload tidak valid";
+
+export const parseJsonBody = async <T>(
+  request: Request,
+  schema: ZodType<T>
+): Promise<T | NextResponse> => {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400);
+  }
+
+  const parsed = schema.safeParse(payload);
+  if (!parsed.success) {
+    return jsonError("VALIDATION_ERROR", toValidationMessage(parsed.error), 400);
+  }
+  return parsed.data;
 };
