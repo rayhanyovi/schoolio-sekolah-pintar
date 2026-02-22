@@ -2,14 +2,17 @@ import { NextResponse } from "next/server";
 import { requireAuth as resolveAuthSession } from "@/lib/server-auth";
 import { Role } from "@/lib/constants";
 import { ActorContext, hasAnyRole, toActorContext } from "@/lib/authz";
+import { monitorApiError } from "@/lib/error-monitoring";
 
 export const isMockEnabled = () => process.env.debug_with_mock_data === "true";
 
 export const jsonOk = <T>(data: T, init?: ResponseInit) =>
   NextResponse.json({ data }, init);
 
-export const jsonError = (code: string, message: string, status = 400) =>
-  NextResponse.json({ error: { code, message } }, { status });
+export const jsonError = (code: string, message: string, status = 400) => {
+  const severity = monitorApiError({ code, message, status });
+  return NextResponse.json({ error: { code, message, severity } }, { status });
+};
 
 export const parseNumber = (value: string | null) => {
   if (!value) return null;
