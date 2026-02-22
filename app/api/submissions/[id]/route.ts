@@ -24,6 +24,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           allowLateSubmission: true,
           lateUntil: true,
           maxAttempts: true,
+          gradingPolicy: true,
         },
       },
     },
@@ -101,6 +102,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         ? new Date()
         : undefined;
   const isStudentActor = auth.role === ROLES.STUDENT;
+  const requestedGrade =
+    typeof body.grade === "number" ? body.grade : undefined;
+  if (
+    body.grade !== undefined &&
+    body.grade !== null &&
+    requestedGrade === undefined
+  ) {
+    return jsonError("VALIDATION_ERROR", "grade harus berupa angka", 400);
+  }
   const reason =
     typeof body.reason === "string" && body.reason.trim().length > 0
       ? body.reason.trim()
@@ -111,7 +121,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       where: { id },
       data: {
         status,
-        grade: isStudentActor ? undefined : body.grade,
+        grade: isStudentActor
+          ? undefined
+          : body.grade === null
+            ? null
+            : requestedGrade !== undefined
+              ? existing.assignment.gradingPolicy === "HIGHEST"
+                ? Math.max(existing.grade ?? Number.NEGATIVE_INFINITY, requestedGrade)
+                : requestedGrade
+              : undefined,
         feedback: isStudentActor ? undefined : body.feedback,
         response: body.response,
         submittedAt,

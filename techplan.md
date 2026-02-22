@@ -228,7 +228,7 @@ Implementasi TP-ATT-007:
 - [x] TP-ASG-002 Enforce student ownership untuk submit assignment milik sendiri. DoD: student tidak bisa submit atas nama user lain.
 - [x] TP-ASG-003 Tambahkan policy late submission (`allowLateSubmission`, `lateUntil`). DoD: rule submit telat berjalan sesuai konfigurasi.
 - [x] TP-ASG-004 Tambahkan policy resubmission (`maxAttempts` atau versioning). DoD: percobaan submit mengikuti kebijakan.
-- [ ] TP-ASG-005 Definisikan `gradingPolicy` (`LATEST`/`HIGHEST`/`MANUAL`). DoD: perhitungan nilai mengikuti policy aktif.
+- [x] TP-ASG-005 Definisikan `gradingPolicy` (`LATEST`/`HIGHEST`/`MANUAL`). DoD: perhitungan nilai mengikuti policy aktif.
 - [x] TP-ASG-006 Tambahkan audit jejak perubahan status submission penting. DoD: perubahan kritikal dapat ditelusuri.
 
 Implementasi TP-ASG-001 + TP-ASG-002:
@@ -242,6 +242,10 @@ Implementasi TP-ASG-003:
 Implementasi TP-ASG-004:
 - Ditambahkan policy resubmission berbasis `maxAttempts` di assignment dan `attemptCount` di submission.
 - Endpoint submit tugas sekarang menaikkan `attemptCount` per submit siswa dan menolak request ketika jumlah percobaan melebihi `maxAttempts`.
+
+Implementasi TP-ASG-005:
+- Ditambahkan field `gradingPolicy` pada assignment (`LATEST`, `HIGHEST`, `MANUAL`) dengan default `LATEST` dan validasi create/update assignment.
+- Endpoint grading submission (`PATCH /api/submissions/[id]`) kini menerapkan policy aktif; untuk `HIGHEST` nilai tersimpan otomatis mengambil nilai tertinggi antara nilai lama dan nilai baru.
 
 Implementasi TP-ASG-006:
 - Lifecycle submit tugas sekarang menulis audit log pada endpoint `POST /api/assignments/[id]/submissions` (`SUBMISSION_CREATED`/`SUBMISSION_STATUS_CHANGED`) dan `PATCH /api/submissions/[id]` (`SUBMISSION_STATUS_CHANGED`).

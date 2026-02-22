@@ -91,6 +91,12 @@ enum AssignmentStatus {
   CLOSED
 }
 
+enum GradingPolicy {
+  LATEST
+  HIGHEST
+  MANUAL
+}
+
 enum SubmissionStatus {
   PENDING
   SUBMITTED
@@ -350,6 +356,7 @@ model Assignment {
   allowLateSubmission Boolean          @default(false)
   lateUntil         DateTime?
   maxAttempts       Int?
+  gradingPolicy     GradingPolicy      @default(LATEST)
   kind              AssignmentKind?
   deliveryType      AssignmentDeliveryType?
   status            AssignmentStatus  @default(ACTIVE)

@@ -448,6 +448,7 @@ export const assignmentSchema = z.object({
   allowLateSubmission: z.boolean().default(false),
   lateUntil: dateOptionalSchema,
   maxAttempts: z.number().int().positive().nullish(),
+  gradingPolicy: z.string().default("LATEST"),
   createdAt: dateSchema,
   kind: z.string().nullish(),
   deliveryType: z.string().nullish(),

@@ -56,6 +56,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       allowLateSubmission: false,
       lateUntil: null,
       maxAttempts: null,
+      gradingPolicy: "LATEST",
     });
   }
 
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     allowLateSubmission: row.allowLateSubmission,
     lateUntil: row.lateUntil,
     maxAttempts: row.maxAttempts,
+    gradingPolicy: row.gradingPolicy,
     createdAt: row.createdAt,
     kind: row.kind,
     deliveryType: row.deliveryType,
@@ -196,6 +198,19 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       400
     );
   }
+  const nextGradingPolicy =
+    body.gradingPolicy !== undefined
+      ? body.gradingPolicy === null || body.gradingPolicy === ""
+        ? "LATEST"
+        : String(body.gradingPolicy).toUpperCase()
+      : existing.gradingPolicy;
+  if (!["LATEST", "HIGHEST", "MANUAL"].includes(nextGradingPolicy)) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "gradingPolicy harus salah satu dari LATEST, HIGHEST, MANUAL",
+      400
+    );
+  }
 
   if (auth.role === ROLES.TEACHER) {
     const hasSubjectAccess = await teacherCanManageSubject(
@@ -241,6 +256,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             : undefined,
       maxAttempts:
         body.maxAttempts !== undefined ? nextMaxAttempts : undefined,
+      gradingPolicy:
+        body.gradingPolicy !== undefined ? nextGradingPolicy : undefined,
       kind: body.kind ?? undefined,
       deliveryType: body.deliveryType ?? body.type ?? undefined,
       status: body.status,

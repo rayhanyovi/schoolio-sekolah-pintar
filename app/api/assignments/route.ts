@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
         allowLateSubmission: false,
         lateUntil: null,
         maxAttempts: null,
+        gradingPolicy: "LATEST",
       }))
     );
   }
@@ -145,6 +146,7 @@ export async function GET(request: NextRequest) {
     allowLateSubmission: row.allowLateSubmission,
     lateUntil: row.lateUntil,
     maxAttempts: row.maxAttempts,
+    gradingPolicy: row.gradingPolicy,
     createdAt: row.createdAt,
     kind: row.kind,
     deliveryType: row.deliveryType,
@@ -205,6 +207,17 @@ export async function POST(request: NextRequest) {
       400
     );
   }
+  const gradingPolicy =
+    body.gradingPolicy === undefined || body.gradingPolicy === null
+      ? "LATEST"
+      : String(body.gradingPolicy).toUpperCase();
+  if (!["LATEST", "HIGHEST", "MANUAL"].includes(gradingPolicy)) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "gradingPolicy harus salah satu dari LATEST, HIGHEST, MANUAL",
+      400
+    );
+  }
   const classIds: string[] = Array.isArray(body.classIds) ? body.classIds : [];
 
   const teacherId =
@@ -245,6 +258,7 @@ export async function POST(request: NextRequest) {
       allowLateSubmission,
       lateUntil: allowLateSubmission ? lateUntil : null,
       maxAttempts,
+      gradingPolicy,
       kind: body.kind ?? null,
       deliveryType: body.deliveryType ?? body.type ?? null,
       status: body.status ?? "ACTIVE",
