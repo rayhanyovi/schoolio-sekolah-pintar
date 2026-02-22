@@ -1,0 +1,35 @@
+name: CI Release Readiness Report
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  release-readiness-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate readiness report (non-blocking gate)
+        run: npm run release:readiness
+
+      - name: Upload readiness report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-readiness-status
+          path: RELEASE_READINESS_STATUS.md
+          if-no-files-found: error

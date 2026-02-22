@@ -588,6 +588,7 @@ Implementasi TP-ROLE-006:
 Progress TP-REL-001:
 - Ditambahkan readiness checker `scripts/release-readiness-report.mjs` dengan command `npm run release:readiness` dan `npm run release:readiness:strict`.
 - Checker mengevaluasi blocker otomatis untuk syarat P0 (`TP-SEC-*`, `TP-AUTHZ-*`, `TP-API-001`, `TP-PRN-001`) dan approval authz packet (Product + Engineering) untuk mempercepat verifikasi sebelum checklist diubah menjadi `[x]`.
+- Ditambahkan workflow CI non-blocking `.github/workflows/ci-release-readiness-report.yml` untuk menghasilkan artefak status readiness di setiap push/PR.
 
 Implementasi TP-REL-002:
 - Rekap progres workstream P1 menunjukkan threshold `>=90%` tercapai; mayoritas item P1 pada WS-SCHEDULE, WS-ATT, WS-FORUM, WS-ASSIGN, WS-GRADE, WS-PARENT, WS-AUD, dan WS-TEST sudah selesai.
