@@ -1,5 +1,10 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
-import { userListSchema, userProfileSchema, userSchema } from "@/lib/schemas";
+import {
+  studentClassEnrollmentListSchema,
+  userListSchema,
+  userProfileSchema,
+  userSchema,
+} from "@/lib/schemas";
 
 export type ListUsersParams = {
   role?: string;
@@ -81,6 +86,11 @@ export const unlinkParentStudent = (parentId: string, studentId: string) =>
 
 export const listStudents = async (params?: { classId?: string; q?: string }) =>
   userListSchema.parse(await apiGet("/api/students", params));
+
+export const listStudentClassEnrollments = async (studentId: string) =>
+  studentClassEnrollmentListSchema.parse(
+    await apiGet(`/api/students/${studentId}/enrollments`)
+  );
 
 export const listParentChildren = async (params?: { classId?: string; q?: string }) =>
   userListSchema.parse(await apiGet("/api/parents/me/children", params));

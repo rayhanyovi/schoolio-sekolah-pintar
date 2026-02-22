@@ -123,18 +123,49 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
 
     if (body.studentProfile) {
+      const previousClassId = before.studentProfile?.classId ?? null;
+      const nextClassId =
+        body.studentProfile.classId === undefined
+          ? previousClassId
+          : body.studentProfile.classId ?? null;
       await tx.studentProfile.upsert({
         where: { userId: params.id },
         update: {
-          classId: body.studentProfile.classId ?? null,
+          classId: nextClassId,
           gender: body.studentProfile.gender ?? null,
         },
         create: {
           userId: params.id,
-          classId: body.studentProfile.classId ?? null,
+          classId: nextClassId,
           gender: body.studentProfile.gender ?? null,
         },
       });
+
+      if (previousClassId !== nextClassId) {
+        const now = new Date();
+        await tx.studentClassEnrollment.updateMany({
+          where: {
+            studentId: params.id,
+            endedAt: null,
+          },
+          data: { endedAt: now },
+        });
+
+        if (nextClassId) {
+          const classRow = await tx.class.findUnique({
+            where: { id: nextClassId },
+            select: { academicYearId: true },
+          });
+          await tx.studentClassEnrollment.create({
+            data: {
+              studentId: params.id,
+              classId: nextClassId,
+              academicYearId: classRow?.academicYearId ?? null,
+              startedAt: now,
+            },
+          });
+        }
+      }
     }
 
     if (body.teacherProfile) {

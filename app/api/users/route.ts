@@ -62,13 +62,27 @@ export async function POST(request: NextRequest) {
     });
 
     if (body.role === "STUDENT") {
+      const targetClassId = body.classId ?? null;
       await tx.studentProfile.create({
         data: {
           userId: created.id,
-          classId: body.classId ?? null,
+          classId: targetClassId,
           gender: body.gender ?? null,
         },
       });
+      if (targetClassId) {
+        const classRow = await tx.class.findUnique({
+          where: { id: targetClassId },
+          select: { academicYearId: true },
+        });
+        await tx.studentClassEnrollment.create({
+          data: {
+            studentId: created.id,
+            classId: targetClassId,
+            academicYearId: classRow?.academicYearId ?? null,
+          },
+        });
+      }
     }
 
     if (body.role === "TEACHER") {

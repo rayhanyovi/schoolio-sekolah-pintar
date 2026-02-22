@@ -162,6 +162,7 @@ model User {
   attendanceRecords  AttendanceRecord[]
   teacherAttendance  TeacherAttendance[]
   majorTeaching      MajorTeacher[]
+  classEnrollments   StudentClassEnrollment[]
   auditLogs          AuditLog[]           @relation("AuditActor")
   notificationPreference NotificationPreference?
   notificationsReceived  Notification[]   @relation("NotificationRecipient")
@@ -178,6 +179,23 @@ model StudentProfile {
   gender    Gender?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model StudentClassEnrollment {
+  id             String   @id @default(cuid())
+  studentId      String
+  classId        String
+  academicYearId String?
+  startedAt      DateTime @default(now())
+  endedAt        DateTime?
+  createdAt      DateTime @default(now())
+
+  student      User         @relation(fields: [studentId], references: [id])
+  class        Class        @relation(fields: [classId], references: [id])
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+
+  @@index([studentId, startedAt])
+  @@index([studentId, endedAt])
 }
 
 model TeacherProfile {
@@ -233,6 +251,7 @@ model Class {
   attendanceSessions AttendanceSession[]
   gradeWeights       GradeWeight[]
   reportCardSnapshots ReportCardSnapshot[]
+  studentEnrollments  StudentClassEnrollment[]
 }
 
 model AcademicYear {
@@ -247,6 +266,7 @@ model AcademicYear {
 
   classes Class[]
   reportCardSnapshots ReportCardSnapshot[]
+  studentEnrollments StudentClassEnrollment[]
 }
 
 model Subject {

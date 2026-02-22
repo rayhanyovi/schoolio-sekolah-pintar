@@ -316,11 +316,17 @@ Implementasi TP-PRN-004:
 
 ### 6.11 WS-LIFE: Academic Lifecycle & Edge Cases (P2)
 
-- [ ] TP-LIFE-001 Tambahkan model histori perpindahan kelas (`StudentClassEnrollment` atau ekuivalen). DoD: riwayat kelas tidak overwrite data lama.
+- [x] TP-LIFE-001 Tambahkan model histori perpindahan kelas (`StudentClassEnrollment` atau ekuivalen). DoD: riwayat kelas tidak overwrite data lama.
 - [ ] TP-LIFE-002 Tambahkan status lifecycle siswa (`ACTIVE`, `INACTIVE`, `GRADUATED`, `TRANSFERRED_OUT`). DoD: query operasional default hanya active.
 - [ ] TP-LIFE-003 Terapkan scoping query default ke academic year aktif. DoD: modul utama tidak mencampur data lintas tahun ajaran.
 - [ ] TP-LIFE-004 Buat workflow rollover tahun ajaran (minimal checklist service). DoD: proses pergantian tahun ajaran terdokumentasi + executable.
 - [ ] TP-LIFE-005 Definisikan policy jadwal saat event khusus/libur (`SCHOOL_HOLIDAY`, `EXAM_PERIOD`, dsb). DoD: attendance seeding patuh aturan event.
+
+Implementasi TP-LIFE-001:
+- Ditambahkan model historis `StudentClassEnrollment` untuk menyimpan perpindahan kelas siswa beserta periode aktif (`startedAt`/`endedAt`) tanpa menimpa histori lama.
+- Flow create siswa (`POST /api/users` untuk role `STUDENT`) kini menulis enrollment awal saat `classId` diberikan.
+- Flow update profil siswa (`PATCH /api/users/[id]/profile`) kini menutup enrollment aktif lama dan membuat enrollment baru saat `classId` berubah.
+- Ditambahkan endpoint histori enrollment `GET /api/students/[id]/enrollments` dan integration test `tests/integration/student-enrollment-history.integration.test.ts`.
 
 ### 6.12 WS-FILE: Real Upload Pipeline (P2)
 
@@ -398,7 +404,7 @@ Implementasi TP-AUD-005:
 
 Implementasi TP-TEST-001:
 - Baseline test framework ditambahkan menggunakan Vitest (`vitest.config.ts`) beserta script `npm test` dan `npm run test:watch`.
-- Pipeline test lokal tervalidasi berjalan (`9` file test, `15` test pass).
+- Pipeline test lokal tervalidasi berjalan (`10` file test, `16` test pass).
 
 Implementasi TP-TEST-002:
 - Ditambahkan unit test `tests/unit/authz-policy.unit.test.ts` untuk branch policy authz utama pada helper `lib/authz.ts`:

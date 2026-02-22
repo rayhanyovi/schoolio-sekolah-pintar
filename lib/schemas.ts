@@ -197,6 +197,24 @@ export const studentSummarySchema = z.object({
 export const classStudentListSchema = z.array(studentSummarySchema);
 export type StudentSummary = z.infer<typeof studentSummarySchema>;
 
+export const studentClassEnrollmentSchema = z.object({
+  id: z.string(),
+  studentId: z.string(),
+  classId: z.string(),
+  className: z.string(),
+  academicYearId: z.string().nullish(),
+  academicYear: z.string().nullish(),
+  startedAt: dateSchema,
+  endedAt: dateNullableSchema,
+  isActive: z.boolean().default(false),
+});
+export const studentClassEnrollmentListSchema = z.array(
+  studentClassEnrollmentSchema
+);
+export type StudentClassEnrollmentSummary = z.infer<
+  typeof studentClassEnrollmentSchema
+>;
+
 export const classSubjectSchema = z.object({
   id: z.string(),
   name: z.string(),
