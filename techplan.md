@@ -370,7 +370,7 @@ Implementasi TP-AUD-005:
 - [x] TP-TEST-001 Siapkan baseline test framework unit + integration. DoD: pipeline test bisa jalan di CI.
 - [ ] TP-TEST-002 Tambahkan unit test validator policy authz utama. DoD: branch policy kritikal tercakup.
 - [ ] TP-TEST-003 Tambahkan integration test endpoint auth/authz sensitif. DoD: bypass role/ownership tertangkap test.
-- [ ] TP-TEST-004 Tambahkan integration test schedule overlap + attendance duplicate. DoD: integritas data tervalidasi otomatis.
+- [x] TP-TEST-004 Tambahkan integration test schedule overlap + attendance duplicate. DoD: integritas data tervalidasi otomatis.
 - [x] TP-TEST-005 Tambahkan integration test forum lock enforcement. DoD: lock tidak bisa dibypass direct API.
 - [ ] TP-TEST-006 Tambahkan E2E role journey ADMIN. DoD: flow master data sampai monitoring lolos.
 - [ ] TP-TEST-007 Tambahkan E2E role journey TEACHER. DoD: flow ajar-absen-tugas-nilai lolos.
@@ -379,7 +379,11 @@ Implementasi TP-AUD-005:
 
 Implementasi TP-TEST-001:
 - Baseline test framework ditambahkan menggunakan Vitest (`vitest.config.ts`) beserta script `npm test` dan `npm run test:watch`.
-- Pipeline test lokal tervalidasi berjalan (`3` file test, `4` test pass).
+- Pipeline test lokal tervalidasi berjalan (`4` file test, `5` test pass).
+
+Implementasi TP-TEST-004:
+- Integration test schedule overlap ditambahkan pada `tests/integration/schedule-conflict.integration.test.ts` untuk memastikan direct API call jadwal bentrok ditolak (`409 CONFLICT`).
+- Integration test attendance duplicate/idempotency ditambahkan pada `tests/integration/attendance-duplicate.integration.test.ts` untuk memastikan request duplikat attendance session tidak menghasilkan session baru.
 
 Implementasi TP-TEST-005:
 - Integration test enforcement forum lock ditambahkan pada `tests/integration/forum-lock.integration.test.ts` untuk skenario bypass direct API pada aksi create/edit reply.
