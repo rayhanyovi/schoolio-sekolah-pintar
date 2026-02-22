@@ -31,6 +31,7 @@ export type CreateUserPayload = {
   birthDate?: string | Date | null;
   classId?: string | null;
   gender?: string | null;
+  studentLifecycleStatus?: string | null;
 };
 
 export type UpdateUserPayload = Partial<CreateUserPayload>;
@@ -57,6 +58,7 @@ export type UserProfilePayload = {
   studentProfile?: {
     classId?: string | null;
     gender?: string | null;
+    status?: string | null;
   };
   teacherProfile?: {
     title?: string | null;

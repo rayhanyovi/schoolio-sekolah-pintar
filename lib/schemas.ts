@@ -46,6 +46,7 @@ export const userSchema = z
       .object({
         classId: z.string().nullish(),
         gender: z.string().nullish(),
+        status: z.string().nullish(),
       })
       .passthrough()
       .nullish(),
@@ -89,6 +90,7 @@ export const userProfileSchema = z
       .object({
         classId: z.string().nullish(),
         gender: z.string().nullish(),
+        status: z.string().nullish(),
       })
       .nullish(),
     teacherProfile: z
@@ -191,6 +193,7 @@ export const studentSummarySchema = z.object({
   name: z.string(),
   email: z.string().nullish(),
   gender: z.string().nullish(),
+  lifecycleStatus: z.string().nullish(),
   classId: z.string().nullish(),
   className: emptyString,
 });

@@ -1,9 +1,27 @@
 import { NextRequest } from "next/server";
+import { StudentLifecycleStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: { id: string } };
+
+const STUDENT_LIFECYCLE_VALUES: StudentLifecycleStatus[] = [
+  "ACTIVE",
+  "INACTIVE",
+  "GRADUATED",
+  "TRANSFERRED_OUT",
+];
+
+const toStudentLifecycleStatus = (
+  value: unknown
+): StudentLifecycleStatus | null => {
+  if (typeof value !== "string") return null;
+  const normalized = value.toUpperCase();
+  return STUDENT_LIFECYCLE_VALUES.includes(normalized as StudentLifecycleStatus)
+    ? (normalized as StudentLifecycleStatus)
+    : null;
+};
 
 const toProfileSnapshot = (
   row:
@@ -17,7 +35,11 @@ const toProfileSnapshot = (
         bio: string | null;
         avatarUrl: string | null;
         birthDate: Date | null;
-        studentProfile: { classId: string | null; gender: string | null } | null;
+        studentProfile: {
+          classId: string | null;
+          gender: string | null;
+          status: StudentLifecycleStatus;
+        } | null;
         teacherProfile: { title: string | null } | null;
         parentProfile: { id: string } | null;
       }
@@ -38,6 +60,7 @@ const toProfileSnapshot = (
       ? {
           classId: row.studentProfile.classId,
           gender: row.studentProfile.gender,
+          status: row.studentProfile.status,
         }
       : null,
     teacherProfile: row.teacherProfile
@@ -96,6 +119,22 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       : body.birthDate
       ? new Date(body.birthDate)
       : undefined;
+  const requestedStudentStatus =
+    body.studentProfile &&
+    body.studentProfile.status !== undefined &&
+    body.studentProfile.status !== null &&
+    body.studentProfile.status !== ""
+      ? toStudentLifecycleStatus(body.studentProfile.status)
+      : null;
+  if (
+    body.studentProfile &&
+    body.studentProfile.status !== undefined &&
+    body.studentProfile.status !== null &&
+    body.studentProfile.status !== "" &&
+    !requestedStudentStatus
+  ) {
+    return jsonError("VALIDATION_ERROR", "studentProfile.status tidak valid", 400);
+  }
   const row = await prisma.$transaction(async (tx) => {
     const before = await tx.user.findUnique({
       where: { id: params.id },
@@ -128,16 +167,20 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         body.studentProfile.classId === undefined
           ? previousClassId
           : body.studentProfile.classId ?? null;
+      const nextStatus =
+        requestedStudentStatus ?? before.studentProfile?.status ?? "ACTIVE";
       await tx.studentProfile.upsert({
         where: { userId: params.id },
         update: {
           classId: nextClassId,
           gender: body.studentProfile.gender ?? null,
+          status: nextStatus,
         },
         create: {
           userId: params.id,
           classId: nextClassId,
           gender: body.studentProfile.gender ?? null,
+          status: nextStatus,
         },
       });
 

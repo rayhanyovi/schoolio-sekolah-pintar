@@ -317,7 +317,7 @@ Implementasi TP-PRN-004:
 ### 6.11 WS-LIFE: Academic Lifecycle & Edge Cases (P2)
 
 - [x] TP-LIFE-001 Tambahkan model histori perpindahan kelas (`StudentClassEnrollment` atau ekuivalen). DoD: riwayat kelas tidak overwrite data lama.
-- [ ] TP-LIFE-002 Tambahkan status lifecycle siswa (`ACTIVE`, `INACTIVE`, `GRADUATED`, `TRANSFERRED_OUT`). DoD: query operasional default hanya active.
+- [x] TP-LIFE-002 Tambahkan status lifecycle siswa (`ACTIVE`, `INACTIVE`, `GRADUATED`, `TRANSFERRED_OUT`). DoD: query operasional default hanya active.
 - [ ] TP-LIFE-003 Terapkan scoping query default ke academic year aktif. DoD: modul utama tidak mencampur data lintas tahun ajaran.
 - [ ] TP-LIFE-004 Buat workflow rollover tahun ajaran (minimal checklist service). DoD: proses pergantian tahun ajaran terdokumentasi + executable.
 - [ ] TP-LIFE-005 Definisikan policy jadwal saat event khusus/libur (`SCHOOL_HOLIDAY`, `EXAM_PERIOD`, dsb). DoD: attendance seeding patuh aturan event.
@@ -327,6 +327,15 @@ Implementasi TP-LIFE-001:
 - Flow create siswa (`POST /api/users` untuk role `STUDENT`) kini menulis enrollment awal saat `classId` diberikan.
 - Flow update profil siswa (`PATCH /api/users/[id]/profile`) kini menutup enrollment aktif lama dan membuat enrollment baru saat `classId` berubah.
 - Ditambahkan endpoint histori enrollment `GET /api/students/[id]/enrollments` dan integration test `tests/integration/student-enrollment-history.integration.test.ts`.
+
+Implementasi TP-LIFE-002:
+- Ditambahkan enum Prisma `StudentLifecycleStatus` dan field `StudentProfile.status` (default `ACTIVE`) melalui migration `prisma/migrations/20260222190000_add_student_lifecycle_status/migration.sql`.
+- Endpoint write user-domain kini mendukung lifecycle status siswa:
+- `POST /api/users` menerima `studentLifecycleStatus` untuk create student.
+- `PATCH /api/users/[id]/profile` menerima `studentProfile.status` untuk update lifecycle.
+- Query operasional siswa sekarang default hanya `ACTIVE` dan bisa override eksplisit lewat query param:
+- `GET /api/students`, `GET /api/parents/me/children`, dan `GET /api/users` (student-scoped query) menerapkan filter default `status=ACTIVE` kecuali `includeInactive=true`.
+- Ditambahkan integration test `tests/integration/student-lifecycle-filter.integration.test.ts` untuk memastikan default filter aktif dan behavior `includeInactive=true`.
 
 ### 6.12 WS-FILE: Real Upload Pipeline (P2)
 

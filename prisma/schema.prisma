@@ -19,6 +19,13 @@ enum Gender {
   FEMALE
 }
 
+enum StudentLifecycleStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+  TRANSFERRED_OUT
+}
+
 enum SubjectCategory {
   SCIENCE
   SOCIAL
@@ -177,6 +184,7 @@ model StudentProfile {
   classId   String?
   class     Class?   @relation(fields: [classId], references: [id])
   gender    Gender?
+  status    StudentLifecycleStatus @default(ACTIVE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

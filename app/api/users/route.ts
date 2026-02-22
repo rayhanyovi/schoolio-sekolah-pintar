@@ -2,7 +2,24 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
-import { Prisma } from "@prisma/client";
+import { Prisma, StudentLifecycleStatus } from "@prisma/client";
+
+const STUDENT_LIFECYCLE_VALUES: StudentLifecycleStatus[] = [
+  "ACTIVE",
+  "INACTIVE",
+  "GRADUATED",
+  "TRANSFERRED_OUT",
+];
+
+const toStudentLifecycleStatus = (
+  value: unknown
+): StudentLifecycleStatus | null => {
+  if (typeof value !== "string") return null;
+  const normalized = value.toUpperCase();
+  return STUDENT_LIFECYCLE_VALUES.includes(normalized as StudentLifecycleStatus)
+    ? (normalized as StudentLifecycleStatus)
+    : null;
+};
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -14,6 +31,18 @@ export async function GET(request: NextRequest) {
   const role = searchParams.get("role");
   const classId = searchParams.get("classId");
   const q = searchParams.get("q")?.toLowerCase() ?? "";
+  const includeInactive = searchParams.get("includeInactive") === "true";
+  const requestedStudentStatus = searchParams.get("studentLifecycleStatus");
+  const studentStatus = requestedStudentStatus
+    ? toStudentLifecycleStatus(requestedStudentStatus)
+    : null;
+  if (requestedStudentStatus && !studentStatus) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "studentLifecycleStatus tidak valid",
+      400
+    );
+  }
 
   const where: Prisma.UserWhereInput = {};
   if (role) where.role = role;
@@ -23,8 +52,18 @@ export async function GET(request: NextRequest) {
       { email: { contains: q, mode: "insensitive" } },
     ];
   }
-  if (classId) {
-    where.studentProfile = { classId };
+  const isStudentScopedQuery = role === "STUDENT" || Boolean(classId);
+  if (isStudentScopedQuery) {
+    const studentProfileWhere: Prisma.StudentProfileWhereInput = {};
+    if (classId) {
+      studentProfileWhere.classId = classId;
+    }
+    if (studentStatus) {
+      studentProfileWhere.status = studentStatus;
+    } else if (!includeInactive) {
+      studentProfileWhere.status = "ACTIVE";
+    }
+    where.studentProfile = studentProfileWhere;
   }
 
   const rows = await prisma.user.findMany({
@@ -45,6 +84,23 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   if (!body?.name || !body?.role) {
     return jsonError("VALIDATION_ERROR", "name and role are required");
+  }
+  const studentLifecycleStatus =
+    body.studentLifecycleStatus === undefined ||
+    body.studentLifecycleStatus === null ||
+    body.studentLifecycleStatus === ""
+      ? "ACTIVE"
+      : toStudentLifecycleStatus(body.studentLifecycleStatus);
+  if (
+    body.role === "STUDENT" &&
+    body.studentLifecycleStatus !== undefined &&
+    !studentLifecycleStatus
+  ) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "studentLifecycleStatus tidak valid",
+      400
+    );
   }
 
   const row = await prisma.$transaction(async (tx) => {
@@ -68,6 +124,7 @@ export async function POST(request: NextRequest) {
           userId: created.id,
           classId: targetClassId,
           gender: body.gender ?? null,
+          status: studentLifecycleStatus ?? "ACTIVE",
         },
       });
       if (targetClassId) {
