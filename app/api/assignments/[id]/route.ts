@@ -32,6 +32,32 @@ const subjectMatchesClasses = async (subjectId: string, classIds: string[]) => {
   return rows.length === classIds.length;
 };
 
+const GRADE_COMPONENT_VALUES = ["HOMEWORK", "QUIZ", "EXAM", "PRACTICAL"] as const;
+type GradeComponentValue = (typeof GRADE_COMPONENT_VALUES)[number];
+
+const parseGradeComponent = (value: unknown): GradeComponentValue | null => {
+  if (typeof value !== "string") return null;
+  const normalized = value.toUpperCase();
+  return GRADE_COMPONENT_VALUES.includes(normalized as GradeComponentValue)
+    ? (normalized as GradeComponentValue)
+    : null;
+};
+
+const toGradeComponent = (
+  value: unknown,
+  fallback: GradeComponentValue = "HOMEWORK"
+): GradeComponentValue => parseGradeComponent(value) ?? fallback;
+
+const inferGradeComponentFromKind = (
+  value: unknown
+): GradeComponentValue => {
+  const normalized = typeof value === "string" ? value.toUpperCase() : "";
+  if (normalized === "QUIZ") return "QUIZ";
+  if (normalized === "EXAM") return "EXAM";
+  if (normalized === "PROJECT") return "PRACTICAL";
+  return "HOMEWORK";
+};
+
 export async function GET(request: NextRequest, { params }: Params) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
@@ -57,6 +83,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       lateUntil: null,
       maxAttempts: null,
       gradingPolicy: "LATEST",
+      gradeComponent: inferGradeComponentFromKind(item.type),
     });
   }
 
@@ -114,6 +141,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     lateUntil: row.lateUntil,
     maxAttempts: row.maxAttempts,
     gradingPolicy: row.gradingPolicy,
+    gradeComponent: row.gradeComponent,
     createdAt: row.createdAt,
     kind: row.kind,
     deliveryType: row.deliveryType,
@@ -211,6 +239,32 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       400
     );
   }
+  const requestedGradeComponent =
+    body.gradeComponent === undefined ||
+    body.gradeComponent === null ||
+    body.gradeComponent === ""
+      ? null
+      : parseGradeComponent(body.gradeComponent);
+  if (
+    body.gradeComponent !== undefined &&
+    body.gradeComponent !== null &&
+    body.gradeComponent !== "" &&
+    !requestedGradeComponent
+  ) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "gradeComponent harus salah satu dari HOMEWORK, QUIZ, EXAM, PRACTICAL",
+      400
+    );
+  }
+  const nextGradeComponent =
+    requestedGradeComponent ??
+    (body.gradeComponent !== undefined
+      ? "HOMEWORK"
+      : toGradeComponent(
+          existing.gradeComponent,
+          inferGradeComponentFromKind(existing.kind)
+        ));
 
   if (auth.role === ROLES.TEACHER) {
     const hasSubjectAccess = await teacherCanManageSubject(
@@ -258,6 +312,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         body.maxAttempts !== undefined ? nextMaxAttempts : undefined,
       gradingPolicy:
         body.gradingPolicy !== undefined ? nextGradingPolicy : undefined,
+      gradeComponent:
+        body.gradeComponent !== undefined ? nextGradeComponent : undefined,
       kind: body.kind ?? undefined,
       deliveryType: body.deliveryType ?? body.type ?? undefined,
       status: body.status,

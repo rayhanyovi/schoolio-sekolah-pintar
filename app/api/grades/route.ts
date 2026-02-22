@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
     studentName: row.student.name,
     status: row.status,
     grade: row.grade ?? null,
+    gradeComponent: row.assignment.gradeComponent,
     submittedAt: row.submittedAt ?? undefined,
     createdAt: row.createdAt,
   }));

@@ -97,6 +97,13 @@ enum GradingPolicy {
   MANUAL
 }
 
+enum GradeComponent {
+  HOMEWORK
+  QUIZ
+  EXAM
+  PRACTICAL
+}
+
 enum SubmissionStatus {
   PENDING
   SUBMITTED
@@ -223,6 +230,7 @@ model Class {
   materials          Material[]
   forumThreads       ForumThread[]
   attendanceSessions AttendanceSession[]
+  gradeWeights       GradeWeight[]
 }
 
 model AcademicYear {
@@ -259,6 +267,7 @@ model Subject {
   attendanceSessions AttendanceSession[]
   questions          Question[]
   questionPackages   QuestionPackage[]
+  gradeWeights       GradeWeight[]
 }
 
 model SubjectTeacher {
@@ -368,6 +377,7 @@ model Assignment {
   lateUntil         DateTime?
   maxAttempts       Int?
   gradingPolicy     GradingPolicy      @default(LATEST)
+  gradeComponent    GradeComponent     @default(HOMEWORK)
   kind              AssignmentKind?
   deliveryType      AssignmentDeliveryType?
   status            AssignmentStatus  @default(ACTIVE)
@@ -419,6 +429,25 @@ model AssignmentSubmission {
   student    User       @relation(fields: [studentId], references: [id])
 
   @@unique([assignmentId, studentId])
+}
+
+model GradeWeight {
+  id              String   @id @default(cuid())
+  subjectId       String
+  classId         String
+  semester        Semester
+  homeworkWeight  Int      @default(25)
+  quizWeight      Int      @default(25)
+  examWeight      Int      @default(25)
+  practicalWeight Int      @default(25)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  class   Class   @relation(fields: [classId], references: [id])
+
+  @@unique([subjectId, classId, semester])
+  @@index([classId, semester])
 }
 
 model Material {

@@ -393,6 +393,7 @@ export const gradeSchema = z.object({
   studentName: z.string(),
   status: z.string(),
   grade: z.number().nullish(),
+  gradeComponent: z.string().default("HOMEWORK"),
   submittedAt: dateOptionalSchema,
   createdAt: dateSchema,
 });
@@ -404,9 +405,39 @@ export const gradeSummarySchema = z.object({
   studentName: z.string(),
   average: z.number(),
   assignments: zeroNumber,
+  componentAverages: z.object({
+    HOMEWORK: z.number().nullable(),
+    QUIZ: z.number().nullable(),
+    EXAM: z.number().nullable(),
+    PRACTICAL: z.number().nullable(),
+  }),
+  weights: z.object({
+    HOMEWORK: z.number(),
+    QUIZ: z.number(),
+    EXAM: z.number(),
+    PRACTICAL: z.number(),
+  }),
+  semester: z.string().nullable().optional(),
 });
 export const gradeSummaryListSchema = z.array(gradeSummarySchema);
 export type GradeSummaryRow = z.infer<typeof gradeSummarySchema>;
+
+export const gradeWeightSchema = z.object({
+  id: z.string(),
+  subjectId: z.string(),
+  subjectName: z.string(),
+  classId: z.string(),
+  className: z.string(),
+  semester: z.string(),
+  homeworkWeight: z.number(),
+  quizWeight: z.number(),
+  examWeight: z.number(),
+  practicalWeight: z.number(),
+  createdAt: dateSchema,
+  updatedAt: dateSchema,
+});
+export const gradeWeightListSchema = z.array(gradeWeightSchema);
+export type GradeWeightSummary = z.infer<typeof gradeWeightSchema>;
 
 export const materialAttachmentSchema = z.object({
   id: z.string(),
@@ -449,6 +480,7 @@ export const assignmentSchema = z.object({
   lateUntil: dateOptionalSchema,
   maxAttempts: z.number().int().positive().nullish(),
   gradingPolicy: z.string().default("LATEST"),
+  gradeComponent: z.string().default("HOMEWORK"),
   createdAt: dateSchema,
   kind: z.string().nullish(),
   deliveryType: z.string().nullish(),

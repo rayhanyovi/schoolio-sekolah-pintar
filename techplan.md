@@ -261,8 +261,8 @@ Implementasi TP-ASG-006:
 
 - [x] TP-GRD-001 Tambahkan guard grading: hanya actor authorized bisa publish/ubah nilai. DoD: unauthorized grade mutation ditolak.
 - [x] TP-GRD-002 Tambahkan grade change audit log (before/after, reason, actor). DoD: setiap perubahan nilai punya audit record.
-- [ ] TP-GRD-003 Definisikan komponen nilai minimal (`Homework`, `Quiz`, `Exam`, `Practical`). DoD: komponen tersimpan dan dipakai summary.
-- [ ] TP-GRD-004 Definisikan bobot nilai per subject/class/semester. DoD: summary grade bukan average mentah.
+- [x] TP-GRD-003 Definisikan komponen nilai minimal (`Homework`, `Quiz`, `Exam`, `Practical`). DoD: komponen tersimpan dan dipakai summary.
+- [x] TP-GRD-004 Definisikan bobot nilai per subject/class/semester. DoD: summary grade bukan average mentah.
 - [ ] TP-GRD-005 Tambahkan snapshot nilai final saat publish rapor. DoD: histori nilai final tidak berubah oleh recalculation belakangan.
 
 Implementasi TP-GRD-001:
@@ -271,6 +271,16 @@ Implementasi TP-GRD-001:
 
 Implementasi TP-GRD-002:
 - Grade mutation pada endpoint `PATCH /api/submissions/[id]` sudah menulis `AuditLog` (`GRADE_UPDATED`/`GRADE_PUBLISHED`) lengkap dengan actor, reason, serta snapshot `beforeData`/`afterData`.
+
+Implementasi TP-GRD-003:
+- Ditambahkan enum `GradeComponent` (`HOMEWORK`, `QUIZ`, `EXAM`, `PRACTICAL`) dan field `Assignment.gradeComponent` (default `HOMEWORK`) agar komponen nilai tersimpan per assignment.
+- Endpoint assignment (`/api/assignments`, `/api/assignments/[id]`) kini memvalidasi dan mempersist `gradeComponent`, dan endpoint grade (`/api/grades`) mengembalikan komponen ini.
+- Summary nilai (`/api/grades/summary`) kini menghitung rata-rata per komponen sebelum komputasi nilai akhir.
+
+Implementasi TP-GRD-004:
+- Ditambahkan model `GradeWeight` untuk bobot nilai per `subjectId + classId + semester` beserta endpoint kelola bobot `GET/PATCH /api/grades/weights`.
+- Endpoint summary nilai (`/api/grades/summary`) kini menggunakan bobot komponen aktif (`GradeWeight`) dengan fallback default 25/25/25/25, sehingga hasil bukan average mentah.
+- Ditambahkan integration test `tests/integration/grade-summary-weighted.integration.test.ts` untuk memastikan perhitungan weighted berjalan sesuai bobot.
 
 ### 6.10 WS-PARENT: Parent Flow & Data Scoping (P0-P1)
 
@@ -379,7 +389,7 @@ Implementasi TP-AUD-005:
 
 Implementasi TP-TEST-001:
 - Baseline test framework ditambahkan menggunakan Vitest (`vitest.config.ts`) beserta script `npm test` dan `npm run test:watch`.
-- Pipeline test lokal tervalidasi berjalan (`6` file test, `12` test pass).
+- Pipeline test lokal tervalidasi berjalan (`7` file test, `13` test pass).
 
 Implementasi TP-TEST-002:
 - Ditambahkan unit test `tests/unit/authz-policy.unit.test.ts` untuk branch policy authz utama pada helper `lib/authz.ts`:
