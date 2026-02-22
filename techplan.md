@@ -319,7 +319,7 @@ Implementasi TP-PRN-004:
 - [x] TP-LIFE-001 Tambahkan model histori perpindahan kelas (`StudentClassEnrollment` atau ekuivalen). DoD: riwayat kelas tidak overwrite data lama.
 - [x] TP-LIFE-002 Tambahkan status lifecycle siswa (`ACTIVE`, `INACTIVE`, `GRADUATED`, `TRANSFERRED_OUT`). DoD: query operasional default hanya active.
 - [x] TP-LIFE-003 Terapkan scoping query default ke academic year aktif. DoD: modul utama tidak mencampur data lintas tahun ajaran.
-- [ ] TP-LIFE-004 Buat workflow rollover tahun ajaran (minimal checklist service). DoD: proses pergantian tahun ajaran terdokumentasi + executable.
+- [x] TP-LIFE-004 Buat workflow rollover tahun ajaran (minimal checklist service). DoD: proses pergantian tahun ajaran terdokumentasi + executable.
 - [ ] TP-LIFE-005 Definisikan policy jadwal saat event khusus/libur (`SCHOOL_HOLIDAY`, `EXAM_PERIOD`, dsb). DoD: attendance seeding patuh aturan event.
 
 Implementasi TP-LIFE-001:
@@ -347,6 +347,15 @@ Implementasi TP-LIFE-003:
 - Kalender akademik: `GET /api/calendar/events`.
 - Saat tidak ada active academic year dan query tidak meminta `includeAllAcademicYears`, endpoint list operasional return data kosong agar tidak mencampur data lintas tahun.
 - Ditambahkan integration test `tests/integration/academic-year-scope.integration.test.ts` untuk validasi default scope active year, bypass `includeAllAcademicYears`, dan fallback saat active year belum ada.
+
+Implementasi TP-LIFE-004:
+- Ditambahkan script executable rollover tahun ajaran `scripts/academic-year-rollover.ts` dengan mode:
+- `FREEZE`: aktivasi tahun ajaran target.
+- `CLONE_CLASSES`: clone struktur kelas + relasi subject-class dari source year ke target year (dengan reset student counters).
+- Script mendukung guard operasional: `dryRun`, validasi target/source year, proteksi duplikasi class target, opsi `actorId` untuk jejak audit (`ACADEMIC_YEAR_ROLLOVER_EXECUTED`).
+- Ditambahkan wrapper command untuk environment `cmd`: `scripts/academic-year-rollover.cmd`.
+- Ditambahkan script npm `academic-year:rollover` untuk eksekusi lintas environment.
+- SOP operasional rollover terdokumentasi di `OPS_ACADEMIC_YEAR_ROLLOVER_SOP.md` mencakup prasyarat, langkah dry-run/execute, checklist verifikasi, SQL check, dan rollback.
 
 ### 6.12 WS-FILE: Real Upload Pipeline (P2)
 
