@@ -3,6 +3,7 @@ import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { toFileSizeLabel } from "@/lib/upload-intent";
+import { queueUploadScan } from "@/lib/upload-scan";
 
 type Params = {
   params: {
@@ -61,8 +62,6 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const scanStatus = "PENDING" as const;
-    const scanResult = "Scan queued";
     const attachment = await tx.materialAttachment.upsert({
       where: { uploadIntentId: current.id },
       update: {
@@ -73,7 +72,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         url: null,
         checksumSha256: current.uploadedChecksumSha256 ?? current.checksumSha256,
         etag: current.uploadedChecksumSha256 ?? current.checksumSha256,
-        scanStatus,
+        scanStatus: current.scanStatus,
       },
       create: {
         materialId: current.materialId,
@@ -84,15 +83,20 @@ export async function POST(request: NextRequest, { params }: Params) {
         url: null,
         checksumSha256: current.uploadedChecksumSha256 ?? current.checksumSha256,
         etag: current.uploadedChecksumSha256 ?? current.checksumSha256,
-        scanStatus,
+        scanStatus: current.scanStatus,
         uploadIntentId: current.id,
       },
+    });
+
+    const scanJob = await queueUploadScan(tx, {
+      intentId: current.id,
+      provider: "NOOP",
     });
 
     await tx.materialAttachment.update({
       where: { id: attachment.id },
       data: {
-        scanStatus,
+        scanStatus: scanJob.status,
       },
     });
 
@@ -102,8 +106,8 @@ export async function POST(request: NextRequest, { params }: Params) {
         status: "CONFIRMED",
         confirmedById: auth.userId,
         confirmedAt: new Date(),
-        scanStatus,
-        scanResult,
+        scanStatus: scanJob.status,
+        scanResult: scanJob.result ?? null,
       },
       select: {
         id: true,
@@ -117,7 +121,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       intent: confirmedIntent,
       attachment: {
         ...attachment,
-        scanStatus,
+        scanStatus: scanJob.status,
       },
     };
   });

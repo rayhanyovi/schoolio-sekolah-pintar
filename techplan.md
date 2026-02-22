@@ -372,11 +372,47 @@ Implementasi TP-LIFE-005:
 
 ### 6.12 WS-FILE: Real Upload Pipeline (P2)
 
-- [ ] TP-FILE-001 Desain flow upload intent + signed URL + confirm upload. DoD: arsitektur teknis disetujui.
-- [ ] TP-FILE-002 Implement endpoint create upload intent dengan validasi size/type. DoD: file invalid ditolak sebelum upload.
-- [ ] TP-FILE-003 Implement endpoint confirm upload dan persist attachment final. DoD: metadata terhubung ke object storage nyata.
-- [ ] TP-FILE-004 Tambahkan checksum/etag atau validasi integritas file. DoD: upload spoofing metadata-only tidak mungkin.
-- [ ] TP-FILE-005 Tambahkan hook antivirus scanning async (minimal extensible). DoD: pipeline siap untuk scanning policy.
+- [x] TP-FILE-001 Desain flow upload intent + signed URL + confirm upload. DoD: arsitektur teknis disetujui.
+- [x] TP-FILE-002 Implement endpoint create upload intent dengan validasi size/type. DoD: file invalid ditolak sebelum upload.
+- [x] TP-FILE-003 Implement endpoint confirm upload dan persist attachment final. DoD: metadata terhubung ke object storage nyata.
+- [x] TP-FILE-004 Tambahkan checksum/etag atau validasi integritas file. DoD: upload spoofing metadata-only tidak mungkin.
+- [x] TP-FILE-005 Tambahkan hook antivirus scanning async (minimal extensible). DoD: pipeline siap untuk scanning policy.
+
+Implementasi TP-FILE-001:
+- Arsitektur upload 3 tahap (`create intent -> upload content -> confirm`) didokumentasikan di `UPLOAD_PIPELINE_DESIGN.md`.
+- Kontrak endpoint v1:
+- `POST /api/uploads/intents` (create intent),
+- `PUT /api/uploads/intents/{id}/content?token=...` (binary upload via signed URL),
+- `POST /api/uploads/intents/{id}/confirm` (finalize attachment).
+- Data model pipeline ditambahkan: `UploadIntent`, `UploadScanJob`, serta perluasan `MaterialAttachment` untuk metadata integritas.
+
+Implementasi TP-FILE-002:
+- Endpoint `POST /api/uploads/intents` dibuat dengan validasi ketat:
+- role guard (`ADMIN`/`TEACHER`),
+- ownership material untuk teacher,
+- validasi MIME allowlist,
+- validasi `sizeBytes` dan batas maksimum (`MAX_UPLOAD_SIZE_BYTES`),
+- validasi format `checksumSha256`.
+- Upload intent menghasilkan signed upload URL berbasis token hash + TTL (`UPLOAD_INTENT_TTL_MINUTES`).
+- Ditambahkan integration test `tests/integration/upload-intent-validation.integration.test.ts`.
+
+Implementasi TP-FILE-003:
+- Endpoint `POST /api/uploads/intents/{id}/confirm` mempersist attachment final setelah upload tervalidasi.
+- Persist attachment kini terhubung ke object storage nyata melalui `storageKey` dan write binary pada filesystem object storage (`lib/object-storage.ts`, root default `.tmp/object-storage`).
+- Endpoint legacy `POST /api/materials/{id}/attachments` kini hanya menerima `uploadIntentId` yang sudah `CONFIRMED`, menutup flow metadata-only manual.
+
+Implementasi TP-FILE-004:
+- Validasi integritas end-to-end diterapkan:
+- saat upload binary: ukuran payload dan `checksumSha256` harus persis sesuai intent,
+- saat confirm: `uploadedSizeBytes`/`uploadedChecksumSha256` diverifikasi ulang terhadap intent awal.
+- Metadata integritas (`checksumSha256`, `etag`) dipersist pada `MaterialAttachment`.
+- Ditambahkan integration test `tests/integration/upload-content-integrity.integration.test.ts`.
+
+Implementasi TP-FILE-005:
+- Hook scanning async ditambahkan via service `lib/upload-scan.ts` dan model queue `UploadScanJob`.
+- Confirm upload otomatis enqueue scan job (`PENDING`) dan meng-update `scanStatus` attachment/intent.
+- Pipeline dibuat extensible untuk provider scanner eksternal; v1 memakai provider `NOOP` dengan opsi simulasi hasil scan (`UPLOAD_SCAN_MOCK_RESULT`).
+- Ditambahkan integration test `tests/integration/upload-confirm-scan.integration.test.ts`.
 
 ### 6.13 WS-NOTIF: Notification Backend (P2)
 
