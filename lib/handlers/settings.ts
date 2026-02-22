@@ -1,5 +1,6 @@
 import { apiGet, apiPatch } from "@/lib/api-client";
 import {
+  notificationPreferenceSchema,
   scheduleTemplateListSchema,
   schoolProfileSchema,
 } from "@/lib/schemas";
@@ -20,4 +21,17 @@ export const getScheduleTemplates = async () =>
 export const updateScheduleTemplates = async (templates: SettingsPayload[]) =>
   scheduleTemplateListSchema.parse(
     await apiPatch("/api/schedule-templates", { templates })
+  );
+
+export const getNotificationPreferences = async () =>
+  notificationPreferenceSchema.parse(await apiGet("/api/settings/notifications"));
+
+export const updateNotificationPreferences = async (payload: {
+  emailNotifications?: boolean;
+  assignmentReminders?: boolean;
+  attendanceAlerts?: boolean;
+  gradePublished?: boolean;
+}) =>
+  notificationPreferenceSchema.parse(
+    await apiPatch("/api/settings/notifications", payload)
   );

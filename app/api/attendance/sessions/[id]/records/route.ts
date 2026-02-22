@@ -5,6 +5,7 @@ import {
   canTeacherWriteAttendance,
   needsAdminAttendanceOverride,
 } from "@/lib/attendance-policy";
+import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
 import { AttendanceStatus } from "@prisma/client";
 
@@ -119,6 +120,34 @@ export async function POST(request: NextRequest, { params }: Params) {
         })
       )
     );
+
+    const absentStudentIds = Array.from(
+      new Set(
+        records
+          .filter((record) => record.status === "ABSENT")
+          .map((record) => String(record.studentId))
+      )
+    );
+    if (absentStudentIds.length) {
+      const parentLinks = await tx.parentStudent.findMany({
+        where: { studentId: { in: absentStudentIds } },
+        select: { parentId: true },
+      });
+      await createInAppNotifications(tx, {
+        recipientIds: [...absentStudentIds, ...parentLinks.map((link) => link.parentId)],
+        type: "ATTENDANCE_ALERT",
+        title: "Peringatan Kehadiran",
+        message: "Terdapat catatan ketidakhadiran (alpha) pada sesi terbaru.",
+        data: {
+          sessionId: id,
+          classId: session.classId,
+          subjectId: session.subjectId,
+          date: session.date.toISOString(),
+          studentIds: absentStudentIds,
+        },
+        triggeredById: auth.userId,
+      });
+    }
 
     if (mustUseAdminOverride) {
       await tx.auditLog.create({

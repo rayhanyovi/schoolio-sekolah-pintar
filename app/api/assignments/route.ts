@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { listLinkedStudentIds } from "@/lib/authz";
+import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
 import { mockAssignments } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
@@ -270,6 +271,43 @@ export async function POST(request: NextRequest) {
       data: classIds.map((cid) => ({ assignmentId: row.id, classId: cid })),
       skipDuplicates: true,
     });
+
+    const studentProfiles = await prisma.studentProfile.findMany({
+      where: { classId: { in: classIds } },
+      select: { userId: true },
+    });
+    const studentIds = studentProfiles.map((profile) => profile.userId);
+    if (studentIds.length) {
+      const dueDateLabel = dueDate.toISOString().slice(0, 10);
+      await createInAppNotifications(prisma, {
+        recipientIds: studentIds,
+        type: "ASSIGNMENT_NEW",
+        title: `Tugas Baru: ${row.title}`,
+        message: `Ada tugas baru dengan deadline ${dueDateLabel}.`,
+        data: {
+          assignmentId: row.id,
+          subjectId: row.subjectId,
+          dueDate: row.dueDate.toISOString(),
+        },
+        triggeredById: auth.userId,
+      });
+
+      const isDueSoon = row.dueDate.getTime() - Date.now() <= 48 * 60 * 60 * 1000;
+      if (isDueSoon) {
+        await createInAppNotifications(prisma, {
+          recipientIds: studentIds,
+          type: "ASSIGNMENT_DEADLINE",
+          title: `Reminder Deadline: ${row.title}`,
+          message: `Deadline tugas mendekat (${dueDateLabel}).`,
+          data: {
+            assignmentId: row.id,
+            subjectId: row.subjectId,
+            dueDate: row.dueDate.toISOString(),
+          },
+          triggeredById: auth.userId,
+        });
+      }
+    }
   }
 
   return jsonOk(row, { status: 201 });

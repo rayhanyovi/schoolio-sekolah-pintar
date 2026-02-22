@@ -24,8 +24,10 @@ import {
   listAcademicYears,
 } from "@/lib/handlers/academic-years";
 import {
+  getNotificationPreferences,
   getSchoolProfile,
   getScheduleTemplates,
+  updateNotificationPreferences,
   updateScheduleTemplates,
   updateSchoolProfile,
 } from "@/lib/handlers/settings";
@@ -54,7 +56,6 @@ export default function Settings() {
   });
   const [academicYears, setAcademicYears] = useState<AcademicYearSummary[]>([]);
   const [scheduleTemplate, setScheduleTemplate] = useState<ScheduleTemplateSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSavingScheduleTemplate, setIsSavingScheduleTemplate] = useState(false);
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
@@ -66,11 +67,11 @@ export default function Settings() {
   const isAdmin = role === "ADMIN";
 
   const loadData = async () => {
-    setIsLoading(true);
-    const [profileResult, yearResult, templateResult] = await Promise.allSettled([
+    const [profileResult, yearResult, templateResult, notificationResult] = await Promise.allSettled([
       getSchoolProfile(),
       listAcademicYears(),
       getScheduleTemplates(),
+      getNotificationPreferences(),
     ]);
     if (profileResult.status === "fulfilled") {
       setSchoolProfile(profileResult.value);
@@ -81,7 +82,9 @@ export default function Settings() {
     if (templateResult.status === "fulfilled") {
       setScheduleTemplate(templateResult.value);
     }
-    setIsLoading(false);
+    if (notificationResult.status === "fulfilled") {
+      setNotifications(notificationResult.value);
+    }
   };
 
   useEffect(() => {
@@ -95,7 +98,7 @@ export default function Settings() {
     try {
       await updateSchoolProfile(schoolProfile);
       toast({ title: "Berhasil", description: "Profil sekolah berhasil disimpan" });
-    } catch (error) {
+    } catch {
       toast({ title: "Gagal menyimpan", description: "Periksa data profil sekolah" });
     }
   };
@@ -105,7 +108,7 @@ export default function Settings() {
       await activateAcademicYear(yearId);
       await loadData();
       toast({ title: "Berhasil", description: "Tahun ajaran aktif berhasil diubah" });
-    } catch (error) {
+    } catch {
       toast({ title: "Gagal mengubah", description: "Tidak dapat mengubah tahun ajaran" });
     }
   };
@@ -148,8 +151,14 @@ export default function Settings() {
     }
   };
 
-  const handleSaveNotifications = () => {
-    toast({ title: "Berhasil", description: "Pengaturan notifikasi berhasil disimpan" });
+  const handleSaveNotifications = async () => {
+    try {
+      const saved = await updateNotificationPreferences(notifications);
+      setNotifications(saved);
+      toast({ title: "Berhasil", description: "Pengaturan notifikasi berhasil disimpan" });
+    } catch {
+      toast({ title: "Gagal menyimpan", description: "Pengaturan notifikasi belum tersimpan" });
+    }
   };
 
   if (!isAdmin) {

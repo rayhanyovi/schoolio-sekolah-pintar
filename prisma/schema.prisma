@@ -109,6 +109,14 @@ enum DifficultyLevel {
   HARD
 }
 
+enum NotificationType {
+  ASSIGNMENT_NEW
+  ASSIGNMENT_DEADLINE
+  GRADE_PUBLISHED
+  ATTENDANCE_ALERT
+  SYSTEM
+}
+
 model User {
   id             String   @id @default(cuid())
   authUserId     String?  @unique
@@ -148,6 +156,9 @@ model User {
   teacherAttendance  TeacherAttendance[]
   majorTeaching      MajorTeacher[]
   auditLogs          AuditLog[]           @relation("AuditActor")
+  notificationPreference NotificationPreference?
+  notificationsReceived  Notification[]   @relation("NotificationRecipient")
+  notificationsTriggered Notification[]   @relation("NotificationTriggerActor")
 }
 
 model StudentProfile {
@@ -610,6 +621,38 @@ model MajorTeacher {
 
   @@id([majorId, teacherId])
   @@index([teacherId])
+}
+
+model NotificationPreference {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  emailNotifications  Boolean  @default(true)
+  assignmentReminders Boolean  @default(true)
+  attendanceAlerts    Boolean  @default(true)
+  gradePublished      Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id            String           @id @default(cuid())
+  recipientId   String
+  type          NotificationType
+  title         String
+  message       String
+  data          Json?
+  isRead        Boolean          @default(false)
+  readAt        DateTime?
+  triggeredById String?
+  createdAt     DateTime         @default(now())
+
+  recipient   User  @relation("NotificationRecipient", fields: [recipientId], references: [id])
+  triggeredBy User? @relation("NotificationTriggerActor", fields: [triggeredById], references: [id])
+
+  @@index([recipientId, isRead, createdAt])
+  @@index([type, createdAt])
 }
 
 model AuditLog {

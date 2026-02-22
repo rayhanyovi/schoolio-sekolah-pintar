@@ -307,10 +307,29 @@ Implementasi TP-PRN-004:
 
 ### 6.13 WS-NOTIF: Notification Backend (P2)
 
-- [ ] TP-NOTIF-001 Tambahkan model data notifikasi (`Notification`, `NotificationPreference`). DoD: preferensi dan inbox dapat dipersist.
-- [ ] TP-NOTIF-002 Implement endpoint CRUD preference notifikasi di Settings. DoD: setting tidak lagi state lokal UI.
-- [ ] TP-NOTIF-003 Implement trigger notifikasi tugas baru/deadline/nilai/alpha. DoD: event utama menghasilkan notifikasi in-app.
-- [ ] TP-NOTIF-004 Implement endpoint list/mark-as-read notifikasi. DoD: user bisa melacak notifikasi terbaca/belum.
+- [x] TP-NOTIF-001 Tambahkan model data notifikasi (`Notification`, `NotificationPreference`). DoD: preferensi dan inbox dapat dipersist.
+- [x] TP-NOTIF-002 Implement endpoint CRUD preference notifikasi di Settings. DoD: setting tidak lagi state lokal UI.
+- [x] TP-NOTIF-003 Implement trigger notifikasi tugas baru/deadline/nilai/alpha. DoD: event utama menghasilkan notifikasi in-app.
+- [x] TP-NOTIF-004 Implement endpoint list/mark-as-read notifikasi. DoD: user bisa melacak notifikasi terbaca/belum.
+
+Implementasi TP-NOTIF-001:
+- Ditambahkan model `Notification` dan `NotificationPreference` di Prisma beserta enum `NotificationType`.
+- Relasi notifikasi ke user recipient/trigger actor ditambahkan sehingga inbox dan preferensi dapat dipersist.
+
+Implementasi TP-NOTIF-002:
+- Ditambahkan endpoint settings notifikasi `GET/PATCH /api/settings/notifications` untuk mengelola preference per user.
+- Halaman Settings kini load/save preference notifikasi langsung ke backend (`getNotificationPreferences`, `updateNotificationPreferences`), tidak lagi state lokal semata.
+
+Implementasi TP-NOTIF-003:
+- Trigger notifikasi in-app ditambahkan untuk event utama:
+- assignment baru + deadline dekat pada create assignment (`ASSIGNMENT_NEW`, `ASSIGNMENT_DEADLINE`),
+- publish nilai pada grading (`GRADE_PUBLISHED`),
+- catatan alpha/absen pada write attendance (`ATTENDANCE_ALERT`).
+- Service `lib/notification-service.ts` menangani dispatch notifikasi dengan menghormati preference user.
+
+Implementasi TP-NOTIF-004:
+- Ditambahkan endpoint inbox notifikasi `GET /api/notifications` dan mark-as-read (`POST /api/notifications/[id]/read`, `POST /api/notifications/read-all`).
+- Handler frontend notifikasi ditambahkan (`lib/handlers/notifications.ts`) untuk konsumsi list + aksi read status.
 
 ### 6.14 WS-AUDIT: Audit Log & Compliance (P1-P2)
 

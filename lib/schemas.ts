@@ -510,6 +510,29 @@ export const scheduleTemplateSchema = z.object({
 export const scheduleTemplateListSchema = z.array(scheduleTemplateSchema);
 export type ScheduleTemplateSummary = z.infer<typeof scheduleTemplateSchema>;
 
+export const notificationPreferenceSchema = z.object({
+  emailNotifications: z.boolean().default(true),
+  assignmentReminders: z.boolean().default(true),
+  attendanceAlerts: z.boolean().default(true),
+  gradePublished: z.boolean().default(true),
+});
+export type NotificationPreferenceSummary = z.infer<
+  typeof notificationPreferenceSchema
+>;
+
+export const notificationSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  title: z.string(),
+  message: z.string(),
+  isRead: z.boolean().default(false),
+  readAt: dateOptionalSchema,
+  createdAt: dateSchema,
+  data: z.any().nullish(),
+});
+export const notificationListSchema = z.array(notificationSchema);
+export type NotificationSummary = z.infer<typeof notificationSchema>;
+
 export const analyticsOverviewSchema = z.object({
   totalStudents: zeroNumber,
   totalTeachers: zeroNumber,

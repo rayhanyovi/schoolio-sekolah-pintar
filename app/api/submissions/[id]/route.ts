@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { canSubmitAssignmentAt } from "@/lib/assignment-policy";
+import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -203,6 +204,26 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           reason,
         },
       });
+
+      if (updated.status === "GRADED") {
+        const parentLinks = await tx.parentStudent.findMany({
+          where: { studentId: updated.studentId },
+          select: { parentId: true },
+        });
+        await createInAppNotifications(tx, {
+          recipientIds: [updated.studentId, ...parentLinks.map((link) => link.parentId)],
+          type: "GRADE_PUBLISHED",
+          title: "Nilai Dipublikasikan",
+          message: `Nilai terbaru telah dipublikasikan untuk submission ${updated.assignmentId}.`,
+          data: {
+            assignmentId: updated.assignmentId,
+            submissionId: updated.id,
+            studentId: updated.studentId,
+            grade: updated.grade,
+          },
+          triggeredById: auth.userId,
+        });
+      }
     }
 
     return updated;
