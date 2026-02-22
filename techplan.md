@@ -242,7 +242,7 @@ Implementasi TP-ASG-006:
 ### 6.9 WS-GRADE: Grade Policy & Auditability (P1-P2)
 
 - [x] TP-GRD-001 Tambahkan guard grading: hanya actor authorized bisa publish/ubah nilai. DoD: unauthorized grade mutation ditolak.
-- [ ] TP-GRD-002 Tambahkan grade change audit log (before/after, reason, actor). DoD: setiap perubahan nilai punya audit record.
+- [x] TP-GRD-002 Tambahkan grade change audit log (before/after, reason, actor). DoD: setiap perubahan nilai punya audit record.
 - [ ] TP-GRD-003 Definisikan komponen nilai minimal (`Homework`, `Quiz`, `Exam`, `Practical`). DoD: komponen tersimpan dan dipakai summary.
 - [ ] TP-GRD-004 Definisikan bobot nilai per subject/class/semester. DoD: summary grade bukan average mentah.
 - [ ] TP-GRD-005 Tambahkan snapshot nilai final saat publish rapor. DoD: histori nilai final tidak berubah oleh recalculation belakangan.
@@ -250,6 +250,9 @@ Implementasi TP-ASG-006:
 Implementasi TP-GRD-001:
 - Endpoint `PATCH /api/submissions/[id]` sekarang memblokir mutation grading (`grade`, `feedback`, atau `status=GRADED`) untuk actor `STUDENT` dengan `403`.
 - Validasi status submission ditambahkan server-side (`PENDING`, `SUBMITTED`, `GRADED`) dan request status invalid ditolak dengan `400 VALIDATION_ERROR`.
+
+Implementasi TP-GRD-002:
+- Grade mutation pada endpoint `PATCH /api/submissions/[id]` sudah menulis `AuditLog` (`GRADE_UPDATED`/`GRADE_PUBLISHED`) lengkap dengan actor, reason, serta snapshot `beforeData`/`afterData`.
 
 ### 6.10 WS-PARENT: Parent Flow & Data Scoping (P0-P1)
 
