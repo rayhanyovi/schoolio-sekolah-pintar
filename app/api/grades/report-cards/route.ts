@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { GradeComponent, Prisma, Semester } from "@prisma/client";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/constants";
@@ -132,7 +132,9 @@ export async function POST(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   if (!body?.classId || !body?.academicYearId) {
     return jsonError(
       "VALIDATION_ERROR",

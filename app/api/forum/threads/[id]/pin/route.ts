@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBodyAllowEmpty, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: { id: string } };
@@ -11,7 +11,9 @@ export async function POST(request: Request, { params }: Params) {
     return jsonError("FORBIDDEN", "Parent tidak memiliki akses ke forum", 403);
   }
 
-  const body = await request.json().catch(() => ({}));
+  const parsedRequestBody = await parseJsonRecordBodyAllowEmpty(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const existing = await prisma.forumThread.findUnique({
     where: { id: params.id },
     select: { isPinned: true },

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { canAccessOwnUser } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 
@@ -35,7 +35,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!id) {
     return jsonOk(null);
   }
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing) {
     return jsonError("NOT_FOUND", "User not found", 404);

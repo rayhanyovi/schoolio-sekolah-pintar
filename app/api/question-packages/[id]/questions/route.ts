@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: { id: string } };
@@ -11,7 +11,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const questionIds: string[] = body?.questionIds ?? [];
   if (!Array.isArray(questionIds)) {
     return jsonError("VALIDATION_ERROR", "questionIds array is required");

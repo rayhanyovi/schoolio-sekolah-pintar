@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockSchoolProfile } from "@/lib/mockData";
 
@@ -29,7 +29,9 @@ export async function PATCH(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   if (!body?.name || !body?.address || !body?.email) {
     return jsonError("VALIDATION_ERROR", "name, address, and email are required");
   }

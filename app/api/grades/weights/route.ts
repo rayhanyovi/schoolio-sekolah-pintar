@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/constants";
@@ -80,7 +80,9 @@ export async function PATCH(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   if (!body?.subjectId || !body?.classId || !body?.semester) {
     return jsonError(
       "VALIDATION_ERROR",

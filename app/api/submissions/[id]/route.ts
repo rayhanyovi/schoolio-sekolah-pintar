@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { canSubmitAssignmentAt } from "@/lib/assignment-policy";
 import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
@@ -14,7 +14,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (roleError) return roleError;
 
   const { id } = await params;
-  const body = (await request.json()) as Record<string, unknown>;
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const existing = await prisma.assignmentSubmission.findUnique({
     where: { id },
     include: {

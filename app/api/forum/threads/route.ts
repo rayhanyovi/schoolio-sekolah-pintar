@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockThreads } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
@@ -74,7 +74,9 @@ export async function POST(request: NextRequest) {
     return jsonError("FORBIDDEN", "Parent tidak memiliki akses ke forum", 403);
   }
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   if (!body?.title || !body?.content || !body?.subjectId) {
     return jsonError(
       "VALIDATION_ERROR",

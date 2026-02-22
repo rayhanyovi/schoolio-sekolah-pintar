@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockSubjects } from "@/lib/mockData";
 
@@ -56,7 +56,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const row = await prisma.subject.update({
     where: { id: params.id },
     data: {

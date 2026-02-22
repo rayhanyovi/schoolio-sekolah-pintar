@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: { id: string } };
@@ -28,7 +28,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "Anda tidak bisa mengubah reply ini", 403);
   }
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const data: {
     content?: string;
     isAcceptedAnswer?: boolean;

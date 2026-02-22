@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { StudentLifecycleStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: { id: string } };
@@ -106,7 +106,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const auth = await authorizeProfileAccess(request, params.id);
   if (auth instanceof Response) return auth;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const derivedName =
     typeof body.name === "string" && body.name.trim().length
       ? body.name.trim()

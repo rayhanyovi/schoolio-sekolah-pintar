@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseJsonBody, parseNumber, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonOk, parseJsonBody, parseNumber, requireAuth, requireRole } from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import {
   getStudentClassId,

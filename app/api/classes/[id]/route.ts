@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import {
   getStudentClassId,
   listLinkedClassIdsForParent,
@@ -78,7 +78,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!id) {
     return jsonError("VALIDATION_ERROR", "id is required");
   }
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   let academicYearId: string | null = body.academicYearId ?? null;
   if (!academicYearId && body.academicYear) {
     const year = await prisma.academicYear.findFirst({

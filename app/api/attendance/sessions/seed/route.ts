@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { DayOfWeek, Prisma } from "@prisma/client";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { resolveAttendanceSeedPolicy } from "@/lib/attendance-seeding-policy";
 import { buildAttendanceSessionKey } from "@/lib/attendance-session-key";
@@ -63,7 +63,9 @@ export async function POST(request: NextRequest) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const from = parseDateOnly(body?.dateFrom);
   const to = parseDateOnly(body?.dateTo);
   if (!from || !to) {

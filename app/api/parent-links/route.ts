@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 export async function POST(request: Request) {
@@ -8,7 +8,9 @@ export async function POST(request: Request) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   if (!body?.parentId || !body?.studentId) {
     return jsonError("VALIDATION_ERROR", "parentId and studentId are required");
   }
@@ -46,7 +48,9 @@ export async function DELETE(request: Request) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   if (!body?.parentId || !body?.studentId) {
     return jsonError("VALIDATION_ERROR", "parentId and studentId are required");
   }

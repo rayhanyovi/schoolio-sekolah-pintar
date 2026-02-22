@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import {
   canTeacherWriteAttendance,
   needsAdminAttendanceOverride,
@@ -18,7 +18,9 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (roleError) return roleError;
 
   const { id } = await params;
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const records = body?.records;
   if (!Array.isArray(records)) {
     return jsonError("VALIDATION_ERROR", "records array is required");

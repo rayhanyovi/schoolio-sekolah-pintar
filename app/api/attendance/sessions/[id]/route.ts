@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { canTeacherManageSubjectClass } from "@/lib/authz";
 import {
   canTeacherWriteAttendance,
@@ -86,7 +86,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     },
   });
   if (!existing) return jsonError("NOT_FOUND", "Attendance session not found", 404);
-  const body = (await request.json()) as Record<string, unknown>;
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const requestedStatus = typeof body.status === "string" ? body.status : undefined;
   if (
     requestedStatus !== undefined &&

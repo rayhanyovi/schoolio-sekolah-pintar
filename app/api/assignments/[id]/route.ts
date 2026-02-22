@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 import { mockAssignments } from "@/lib/mockData";
@@ -168,7 +168,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "Anda tidak bisa mengubah tugas ini", 403);
   }
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const nextSubjectId =
     typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
   const nextClassIds = Array.isArray(body.classIds)

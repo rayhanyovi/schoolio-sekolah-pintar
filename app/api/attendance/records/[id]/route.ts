@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import {
   canTeacherWriteAttendance,
   needsAdminAttendanceOverride,
@@ -54,7 +54,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
-  const body = (await request.json()) as Record<string, unknown>;
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const nextStatus =
     typeof body.status === "string" ? body.status : undefined;
   if (

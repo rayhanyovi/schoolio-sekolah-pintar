@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import {
   canTeacherManageSubjectClass,
   getStudentClassId,
@@ -104,7 +104,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const nextClassId =
     typeof body.classId === "string" ? body.classId : existing.classId;
   const nextDayOfWeek =

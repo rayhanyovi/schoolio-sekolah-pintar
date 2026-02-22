@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import {
   canTeacherManageSubjectClass,
   getStudentClassId,
@@ -68,7 +68,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "Anda tidak bisa mengubah materi ini", 403);
   }
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   if (auth.role === ROLES.TEACHER) {
     const nextSubjectId =
       typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;

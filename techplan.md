@@ -131,7 +131,7 @@ Implementasi TP-AUTHZ-007:
 ### 6.4 WS-API: DTO Typing, Validation, dan Handler Quality (P0-P1)
 
 - [x] TP-API-001 Hapus field actor identity dari payload sensitif (`authorId`, `studentId`, `teacherId`). DoD: actor identity hanya dari session.
-- [ ] TP-API-002 Standarkan input validation Zod untuk seluruh endpoint write (POST/PATCH/PUT). DoD: invalid payload return 400 + code konsisten.
+- [x] TP-API-002 Standarkan input validation Zod untuk seluruh endpoint write (POST/PATCH/PUT). DoD: invalid payload return 400 + code konsisten.
 - [x] TP-API-003 Implement standard error code (`UNAUTHORIZED`, `FORBIDDEN`, `VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`). DoD: response error seragam lintas route.
 - [x] TP-API-004 Refactor `listClassSubjects` response/payload jadi typed schema. DoD: tidak ada `Record<string, unknown>` pada flow utama.
 - [x] TP-API-005 Refactor `setClassSubjects` payload typed schema. DoD: payload tervalidasi penuh.
@@ -156,16 +156,12 @@ Implementasi TP-API-003:
 - Kode error lintas route API diseragamkan ke set standar (`UNAUTHORIZED`, `FORBIDDEN`, `VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`), termasuk normalisasi endpoint login (`UNAUTHORIZED`) dan health metrics (`CONFLICT` dengan status `503`).
 - Ditambahkan unit guard `tests/unit/api-error-codes.unit.test.ts` yang memverifikasi seluruh pemanggilan `jsonError()` di `app/api` hanya memakai kode standar tersebut.
 
-Progress TP-API-002:
-- Ditambahkan helper validasi Zod terstandar `parseJsonBody()` di `lib/api.ts` untuk memastikan invalid payload konsisten mengembalikan `400 VALIDATION_ERROR`.
-- Migrasi validasi write endpoint ke Zod sudah diterapkan untuk endpoint core:
-- `POST /api/academic-years`
-- `POST /api/classes`
-- `POST /api/users`
-- `POST /api/assignments`
-- `POST /api/attendance/sessions`
-- `POST /api/uploads/intents`
-- Item tetap terbuka sampai seluruh endpoint write (`POST/PATCH/PUT`) di `app/api` tervalidasi dengan pola yang sama.
+Implementasi TP-API-002:
+- Ditambahkan helper validasi Zod terstandar `parseJsonBody()`, `parseJsonRecordBody()`, dan `parseJsonRecordArrayBody()` di `lib/api.ts` untuk memastikan invalid payload konsisten mengembalikan `400 VALIDATION_ERROR`.
+- Seluruh endpoint write (`POST/PATCH/PUT`) pada `app/api` kini memakai parser terstandar tersebut (baik schema-spesifik maupun record parser sebagai payload gate awal), sehingga tidak ada route write yang memanggil `request.json()` mentah.
+- Migrasi ini mencakup domain utama: akademik (`academic-years`, `classes`, `subjects`, `majors`), operasional (`schedules`, `attendance`, `teacher-attendance`, `calendar`, `settings`), pembelajaran (`materials`, `assignments`, `submissions`, `questions`, `question-packages`), forum/notes, parent-link, serta upload intent flow.
+- Ditinggalkan script utilitas `scripts/codemod-parse-json-record.mjs` untuk menjaga konsistensi pola saat penambahan route write baru.
+- Pengecualian terkontrol: endpoint auth login tetap melakukan parsing khusus karena membutuhkan fallback kompatibilitas format kredensial lama (`username`/`identifier`).
 
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 

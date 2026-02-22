@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -20,7 +20,9 @@ export async function PUT(request: Request, { params }: Params) {
     return jsonError("FORBIDDEN", "Anda tidak bisa mengubah kelas tugas ini", 403);
   }
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const classIds: string[] = body?.classIds ?? [];
   if (!Array.isArray(classIds)) {
     return jsonError("VALIDATION_ERROR", "classIds array is required");

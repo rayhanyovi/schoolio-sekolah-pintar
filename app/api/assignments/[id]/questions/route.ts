@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -20,7 +20,9 @@ export async function PUT(request: Request, { params }: Params) {
     return jsonError("FORBIDDEN", "Anda tidak bisa mengubah soal tugas ini", 403);
   }
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const questionIds: string[] | undefined = body?.questionIds;
   const questionPackageId: string | null = body?.questionPackageId ?? null;
 

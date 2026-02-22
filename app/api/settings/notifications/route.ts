@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { ensureNotificationPreference } from "@/lib/notification-service";
 
@@ -42,7 +42,9 @@ export async function PATCH(request: NextRequest) {
   ]);
   if (roleError) return roleError;
 
-  const body = (await request.json()) as Record<string, unknown>;
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const row = await prisma.notificationPreference.upsert({
     where: { userId: auth.userId },
     update: {

@@ -59,3 +59,41 @@ export const parseJsonBody = async <T>(
   }
   return parsed.data;
 };
+
+export const parseJsonRecordBody = (
+  request: Request
+): Promise<Record<string, unknown> | NextResponse> =>
+  parseJsonBody(request, z.record(z.unknown()));
+
+export const parseJsonRecordBodyAllowEmpty = async (
+  request: Request
+): Promise<Record<string, unknown> | NextResponse> => {
+  let rawBody: string;
+  try {
+    rawBody = await request.text();
+  } catch {
+    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400);
+  }
+
+  if (!rawBody.trim()) {
+    return {};
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400);
+  }
+
+  const parsed = z.record(z.unknown()).safeParse(payload);
+  if (!parsed.success) {
+    return jsonError("VALIDATION_ERROR", toValidationMessage(parsed.error), 400);
+  }
+  return parsed.data;
+};
+
+export const parseJsonRecordArrayBody = (
+  request: Request
+): Promise<Record<string, unknown>[] | NextResponse> =>
+  parseJsonBody(request, z.array(z.record(z.unknown())));

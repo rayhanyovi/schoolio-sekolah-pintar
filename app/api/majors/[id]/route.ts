@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -29,7 +29,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
   if (!id) return jsonError("VALIDATION_ERROR", "id is required");
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const code =
     typeof body?.code === "string" && body.code.trim()
       ? body.code.trim().toUpperCase()

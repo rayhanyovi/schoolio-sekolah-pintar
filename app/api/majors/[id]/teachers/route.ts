@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockMajorTeachers, mockTeachers } from "@/lib/mockData";
 
@@ -38,7 +38,9 @@ export async function PUT(request: Request, { params }: Params) {
   const { id } = await params;
   if (!id) return jsonError("VALIDATION_ERROR", "id is required");
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const teacherIds: string[] = body?.teacherIds ?? [];
   if (!Array.isArray(teacherIds)) {
     return jsonError("VALIDATION_ERROR", "teacherIds array is required");

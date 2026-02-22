@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import {
   getStudentClassId,
   listLinkedClassIdsForParent,
@@ -63,7 +63,9 @@ export async function PUT(request: Request, { params }: Params) {
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const subjectIds: string[] = body?.subjectIds ?? [];
   if (!Array.isArray(subjectIds)) {
     return jsonError("VALIDATION_ERROR", "subjectIds array is required");

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockReplies } from "@/lib/mockData";
 
@@ -58,7 +58,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "Thread ini sedang dikunci", 403);
   }
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   if (!body?.content || typeof body.content !== "string") {
     return jsonError("VALIDATION_ERROR", "content is required");
   }

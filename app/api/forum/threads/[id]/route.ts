@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, requireAuth } from "@/lib/api";
+import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockThreads } from "@/lib/mockData";
 
@@ -56,7 +56,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const auth = await guardForumAccess(request);
   if (auth instanceof Response) return auth;
 
-  const body = await request.json();
+  const parsedRequestBody = await parseJsonRecordBody(request);
+  if (parsedRequestBody instanceof Response) return parsedRequestBody;
+  const body = parsedRequestBody;
   const row = await prisma.forumThread.update({
     where: { id: params.id },
     data: {
