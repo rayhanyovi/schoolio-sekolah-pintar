@@ -131,6 +131,20 @@ enum NotificationType {
   SYSTEM
 }
 
+enum UploadIntentStatus {
+  PENDING
+  UPLOADED
+  CONFIRMED
+  EXPIRED
+}
+
+enum UploadScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  FAILED
+}
+
 model User {
   id             String   @id @default(cuid())
   authUserId     String?  @unique
@@ -175,6 +189,8 @@ model User {
   notificationsReceived  Notification[]   @relation("NotificationRecipient")
   notificationsTriggered Notification[]   @relation("NotificationTriggerActor")
   publishedReportCards   ReportCardSnapshot[] @relation("ReportCardPublisher")
+  uploadIntentsCreated   UploadIntent[]   @relation("UploadIntentCreator")
+  uploadIntentsConfirmed UploadIntent[]   @relation("UploadIntentConfirmer")
 }
 
 model StudentProfile {
@@ -495,6 +511,7 @@ model Material {
   class       Class?  @relation(fields: [classId], references: [id])
   teacher     User    @relation(fields: [teacherId], references: [id])
   attachments MaterialAttachment[]
+  uploadIntents UploadIntent[]
 }
 
 model MaterialAttachment {
@@ -505,9 +522,62 @@ model MaterialAttachment {
   sizeLabel  String?
   url        String?
   storageKey String?
+  checksumSha256 String?
+  etag       String?
+  scanStatus UploadScanStatus?
+  uploadIntentId String? @unique
   createdAt  DateTime @default(now())
 
   material Material @relation(fields: [materialId], references: [id])
+  uploadIntent UploadIntent? @relation(fields: [uploadIntentId], references: [id])
+}
+
+model UploadIntent {
+  id                     String           @id @default(cuid())
+  materialId             String
+  uploadedById           String
+  confirmedById          String?
+  fileName               String
+  fileType               String
+  sizeBytes              Int
+  checksumSha256         String
+  storageKey             String
+  uploadTokenHash        String
+  uploadedSizeBytes      Int?
+  uploadedChecksumSha256 String?
+  status                 UploadIntentStatus @default(PENDING)
+  scanStatus             UploadScanStatus @default(PENDING)
+  scanResult             String?
+  expiresAt              DateTime
+  uploadedAt             DateTime?
+  confirmedAt            DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  material    Material           @relation(fields: [materialId], references: [id])
+  uploadedBy  User               @relation("UploadIntentCreator", fields: [uploadedById], references: [id])
+  confirmedBy User?              @relation("UploadIntentConfirmer", fields: [confirmedById], references: [id])
+  attachment  MaterialAttachment?
+  scanJob     UploadScanJob?
+
+  @@index([materialId, status])
+  @@index([expiresAt, status])
+}
+
+model UploadScanJob {
+  id         String           @id @default(cuid())
+  intentId   String           @unique
+  status     UploadScanStatus @default(PENDING)
+  provider   String?
+  result     String?
+  queuedAt   DateTime         @default(now())
+  completedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  intent UploadIntent @relation(fields: [intentId], references: [id])
+
+  @@index([status, queuedAt])
 }
 
 model Question {
