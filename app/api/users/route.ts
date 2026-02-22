@@ -47,36 +47,57 @@ export async function POST(request: NextRequest) {
     return jsonError("VALIDATION_ERROR", "name and role are required");
   }
 
-  const row = await prisma.user.create({
-    data: {
-      name: body.name,
-      email: body.email ?? null,
-      role: body.role,
-      phone: body.phone ?? null,
-      address: body.address ?? null,
-      bio: body.bio ?? null,
-      avatarUrl: body.avatarUrl ?? null,
-      birthDate: body.birthDate ? new Date(body.birthDate) : null,
-    },
-  });
-
-  if (body.role === "STUDENT") {
-    await prisma.studentProfile.create({
+  const row = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
       data: {
-        userId: row.id,
-        classId: body.classId ?? null,
-        gender: body.gender ?? null,
+        name: body.name,
+        email: body.email ?? null,
+        role: body.role,
+        phone: body.phone ?? null,
+        address: body.address ?? null,
+        bio: body.bio ?? null,
+        avatarUrl: body.avatarUrl ?? null,
+        birthDate: body.birthDate ? new Date(body.birthDate) : null,
       },
     });
-  }
 
-  if (body.role === "TEACHER") {
-    await prisma.teacherProfile.create({ data: { userId: row.id } });
-  }
+    if (body.role === "STUDENT") {
+      await tx.studentProfile.create({
+        data: {
+          userId: created.id,
+          classId: body.classId ?? null,
+          gender: body.gender ?? null,
+        },
+      });
+    }
 
-  if (body.role === "PARENT") {
-    await prisma.parentProfile.create({ data: { userId: row.id } });
-  }
+    if (body.role === "TEACHER") {
+      await tx.teacherProfile.create({ data: { userId: created.id } });
+    }
+
+    if (body.role === "PARENT") {
+      await tx.parentProfile.create({ data: { userId: created.id } });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        actorId: auth.userId,
+        actorRole: auth.role,
+        action: "USER_CREATED",
+        entityType: "User",
+        entityId: created.id,
+        beforeData: null,
+        afterData: {
+          id: created.id,
+          name: created.name,
+          email: created.email,
+          role: created.role,
+        },
+      },
+    });
+
+    return created;
+  });
 
   return jsonOk(row, { status: 201 });
 }

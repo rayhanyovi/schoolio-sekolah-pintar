@@ -36,18 +36,52 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return jsonOk(null);
   }
   const body = await request.json();
-  const row = await prisma.user.update({
-    where: { id },
-    data: {
-      name: body.name,
-      email: body.email,
-      role: body.role,
-      phone: body.phone,
-      address: body.address,
-      bio: body.bio,
-      avatarUrl: body.avatarUrl,
-      birthDate: body.birthDate ? new Date(body.birthDate) : undefined,
-    },
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (!existing) {
+    return jsonError("NOT_FOUND", "User not found", 404);
+  }
+
+  const row = await prisma.$transaction(async (tx) => {
+    const updated = await tx.user.update({
+      where: { id },
+      data: {
+        name: body.name,
+        email: body.email,
+        role: body.role,
+        phone: body.phone,
+        address: body.address,
+        bio: body.bio,
+        avatarUrl: body.avatarUrl,
+        birthDate: body.birthDate ? new Date(body.birthDate) : undefined,
+      },
+    });
+    const action = existing.role !== updated.role ? "USER_ROLE_CHANGED" : "USER_UPDATED";
+    await tx.auditLog.create({
+      data: {
+        actorId: auth.userId,
+        actorRole: auth.role,
+        action,
+        entityType: "User",
+        entityId: updated.id,
+        beforeData: {
+          name: existing.name,
+          email: existing.email,
+          role: existing.role,
+          phone: existing.phone,
+          address: existing.address,
+          bio: existing.bio,
+        },
+        afterData: {
+          name: updated.name,
+          email: updated.email,
+          role: updated.role,
+          phone: updated.phone,
+          address: updated.address,
+          bio: updated.bio,
+        },
+      },
+    });
+    return updated;
   });
   return jsonOk(row);
 }
@@ -62,6 +96,28 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (!id) {
     return jsonOk(null);
   }
-  await prisma.user.delete({ where: { id } });
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (!existing) {
+    return jsonError("NOT_FOUND", "User not found", 404);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.delete({ where: { id } });
+    await tx.auditLog.create({
+      data: {
+        actorId: auth.userId,
+        actorRole: auth.role,
+        action: "USER_DELETED",
+        entityType: "User",
+        entityId: id,
+        beforeData: {
+          name: existing.name,
+          email: existing.email,
+          role: existing.role,
+        },
+        afterData: null,
+      },
+    });
+  });
   return jsonOk({ id });
 }
