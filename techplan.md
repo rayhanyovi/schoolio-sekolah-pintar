@@ -585,6 +585,7 @@ Implementasi TP-ROLE-006:
 - [x] TP-REL-003 Tidak ada bug severity kritikal pada authz/integritas data.
 - [x] TP-REL-004 Test integration authz + data integrity lulus di CI.
 - [ ] TP-REL-005 SOP operasional dan eskalasi insiden disetujui stakeholder.
+- [x] TP-REL-006 Sediakan endpoint status governance readiness untuk monitoring stakeholder. DoD: status blocker REL/DEC dapat diakses via API terproteksi.
 
 Progress TP-REL-001:
 - Ditambahkan readiness checker `scripts/release-readiness-report.mjs` dengan command `npm run release:readiness` dan `npm run release:readiness:strict`.
@@ -613,6 +614,11 @@ Progress TP-REL-005:
 - Ditambahkan workflow governance refresh (`npm run governance:refresh`) untuk sinkronisasi checklist + regenerasi readiness report setelah approval diupdate.
 - Item tetap terbuka sampai seluruh approver utama menandatangani approval record.
 
+Implementasi TP-REL-006:
+- Ditambahkan endpoint backend `GET /api/governance/readiness` (admin-only) di `app/api/governance/readiness/route.ts`.
+- Endpoint menggunakan utility `lib/governance-readiness.ts` untuk menghitung status gate `TP-REL-001`, `TP-REL-005`, dan decision gate `TP-DEC-*` langsung dari dokumen governance.
+- Kontrak endpoint didokumentasikan di `GOVERNANCE_STATUS_API.md`.
+
 ## 7. Checklist Keputusan Produk (Wajib Diputuskan)
 
 - [ ] TP-DEC-001 Putuskan model auth final (internal credential / SSO / hybrid).
@@ -636,6 +642,7 @@ Keputusan TP-DEC-002:
 
 - [x] TP-SCOPE-000 Inisialisasi baseline tech plan v1.0 pada 21-02-2026.
 - [x] TP-SCOPE-001 Template perubahan scope berikutnya. Format catatan: `Tanggal | ID baru | Alasan perubahan | Dampak modul | Keputusan`.
+- [x] TP-SCOPE-002 2026-02-22 | TP-REL-006 | Tambah endpoint governance readiness untuk visibilitas stakeholder | Dampak modul (API/OPS) | Keputusan (Approved + Engineering)
 
 Template TP-SCOPE-001:
 - `YYYY-MM-DD | TP-XXX-YYY | Alasan perubahan | Dampak modul (API/UI/DB/OPS) | Keputusan (Approved/Deferred/Rejected + PIC)`
