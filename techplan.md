@@ -99,6 +99,7 @@ Progress TP-AUTHZ-001:
 - Draft authorization matrix eksplisit per resource/action sudah dibuat di `AUTHZ_MATRIX.md`.
 - Approval packet + checklist sign-off formal disiapkan di `AUTHZ_APPROVAL_PACKET.md`.
 - Ditambahkan automasi update approval `npm run governance:approve` + sinkronisasi checklist `npm run governance:sync-techplan` (lihat `GOVERNANCE_AUTOMATION.md`).
+- Histori perubahan approval governance kini tercatat otomatis di `GOVERNANCE_APPROVAL_HISTORY.md` untuk menjaga jejak audit keputusan.
 - Status approval Product + Engineering masih pending, sehingga item tetap terbuka.
 
 Implementasi TP-SEC-003:
@@ -644,6 +645,7 @@ Keputusan TP-DEC-002:
 - [x] TP-SCOPE-000 Inisialisasi baseline tech plan v1.0 pada 21-02-2026.
 - [x] TP-SCOPE-001 Template perubahan scope berikutnya. Format catatan: `Tanggal | ID baru | Alasan perubahan | Dampak modul | Keputusan`.
 - [x] TP-SCOPE-002 2026-02-22 | TP-REL-006 | Tambah endpoint governance readiness untuk visibilitas stakeholder | Dampak modul (API/OPS) | Keputusan (Approved + Engineering)
+- [x] TP-SCOPE-003 2026-02-22 | TP-AUTHZ-001/TP-REL-005/TP-DEC-* | Tambah audit trail histori approval governance otomatis | Dampak modul (OPS/DOC) | Keputusan (Approved + Engineering)
 
 Template TP-SCOPE-001:
 - `YYYY-MM-DD | TP-XXX-YYY | Alasan perubahan | Dampak modul (API/UI/DB/OPS) | Keputusan (Approved/Deferred/Rejected + PIC)`

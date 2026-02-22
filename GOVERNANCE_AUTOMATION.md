@@ -37,6 +37,7 @@ Parameter utama:
 - `--name` (opsional, isi kolom nama approver)
 - `--decision` (`Approved`, `Pending`, `Deferred`, `Rejected`)
 - `--date` (opsional, default tanggal hari ini)
+- `--actor` (opsional, default `SYSTEM`)
 - `--note` (opsional)
 
 ### Ops packet (`OPS_SIGNOFF_PACKET.md`)
@@ -54,6 +55,7 @@ Parameter utama:
 - `--name` (opsional, ditulis ke catatan)
 - `--decision`
 - `--date` (opsional)
+- `--actor` (opsional)
 - `--note` (opsional)
 
 ### Decision packet (`PRODUCT_DECISION_PACKET.md`)
@@ -72,7 +74,10 @@ Parameter utama:
 - `--owner` (opsional)
 - `--due-date` (opsional)
 - `--date` (opsional)
+- `--actor` (opsional)
 - `--note` (opsional)
+
+Setiap update approval non-dry-run akan otomatis mencatat histori ke `GOVERNANCE_APPROVAL_HISTORY.md`.
 
 ## 2) Sinkronisasi Checklist Techplan
 
