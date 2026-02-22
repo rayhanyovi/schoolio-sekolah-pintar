@@ -267,7 +267,7 @@ Implementasi TP-ASG-006:
 - [x] TP-GRD-002 Tambahkan grade change audit log (before/after, reason, actor). DoD: setiap perubahan nilai punya audit record.
 - [x] TP-GRD-003 Definisikan komponen nilai minimal (`Homework`, `Quiz`, `Exam`, `Practical`). DoD: komponen tersimpan dan dipakai summary.
 - [x] TP-GRD-004 Definisikan bobot nilai per subject/class/semester. DoD: summary grade bukan average mentah.
-- [ ] TP-GRD-005 Tambahkan snapshot nilai final saat publish rapor. DoD: histori nilai final tidak berubah oleh recalculation belakangan.
+- [x] TP-GRD-005 Tambahkan snapshot nilai final saat publish rapor. DoD: histori nilai final tidak berubah oleh recalculation belakangan.
 
 Implementasi TP-GRD-001:
 - Endpoint `PATCH /api/submissions/[id]` sekarang memblokir mutation grading (`grade`, `feedback`, atau `status=GRADED`) untuk actor `STUDENT` dengan `403`.
@@ -285,6 +285,11 @@ Implementasi TP-GRD-004:
 - Ditambahkan model `GradeWeight` untuk bobot nilai per `subjectId + classId + semester` beserta endpoint kelola bobot `GET/PATCH /api/grades/weights`.
 - Endpoint summary nilai (`/api/grades/summary`) kini menggunakan bobot komponen aktif (`GradeWeight`) dengan fallback default 25/25/25/25, sehingga hasil bukan average mentah.
 - Ditambahkan integration test `tests/integration/grade-summary-weighted.integration.test.ts` untuk memastikan perhitungan weighted berjalan sesuai bobot.
+
+Implementasi TP-GRD-005:
+- Ditambahkan model immutable `ReportCardSnapshot` untuk menyimpan snapshot nilai final saat proses publish rapor.
+- Ditambahkan endpoint `POST /api/grades/report-cards` (publish snapshot) dan `GET /api/grades/report-cards` (riwayat snapshot), sehingga nilai final yang sudah dipublish tidak terpengaruh recalculation berikutnya.
+- Ditambahkan integration test `tests/integration/report-card-snapshot.integration.test.ts` untuk memastikan setiap publish menghasilkan snapshot baru (histori tidak ter-overwrite).
 
 ### 6.10 WS-PARENT: Parent Flow & Data Scoping (P0-P1)
 
@@ -393,7 +398,7 @@ Implementasi TP-AUD-005:
 
 Implementasi TP-TEST-001:
 - Baseline test framework ditambahkan menggunakan Vitest (`vitest.config.ts`) beserta script `npm test` dan `npm run test:watch`.
-- Pipeline test lokal tervalidasi berjalan (`8` file test, `14` test pass).
+- Pipeline test lokal tervalidasi berjalan (`9` file test, `15` test pass).
 
 Implementasi TP-TEST-002:
 - Ditambahkan unit test `tests/unit/authz-policy.unit.test.ts` untuk branch policy authz utama pada helper `lib/authz.ts`:

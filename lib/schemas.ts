@@ -439,6 +439,61 @@ export const gradeWeightSchema = z.object({
 export const gradeWeightListSchema = z.array(gradeWeightSchema);
 export type GradeWeightSummary = z.infer<typeof gradeWeightSchema>;
 
+const componentScoreSchema = z.object({
+  HOMEWORK: z.number().nullable(),
+  QUIZ: z.number().nullable(),
+  EXAM: z.number().nullable(),
+  PRACTICAL: z.number().nullable(),
+});
+
+const componentWeightSchema = z.object({
+  HOMEWORK: z.number(),
+  QUIZ: z.number(),
+  EXAM: z.number(),
+  PRACTICAL: z.number(),
+});
+
+export const reportCardSubjectSnapshotSchema = z.object({
+  subjectId: z.string(),
+  subjectName: z.string(),
+  assignments: z.number(),
+  finalGrade: z.number(),
+  componentAverages: componentScoreSchema,
+  weights: componentWeightSchema,
+});
+
+export const reportCardStudentSnapshotSchema = z.object({
+  studentId: z.string(),
+  studentName: z.string(),
+  overallAverage: z.number(),
+  subjects: z.array(reportCardSubjectSnapshotSchema),
+});
+
+export const reportCardSnapshotSchema = z.object({
+  id: z.string(),
+  classId: z.string(),
+  academicYearId: z.string(),
+  semester: z.string(),
+  publishedById: z.string(),
+  publishedAt: dateSchema,
+  studentCount: z.number(),
+  snapshot: z
+    .object({
+      generatedAt: z.string(),
+      classId: z.string(),
+      academicYearId: z.string(),
+      semester: z.string(),
+      students: z.array(reportCardStudentSnapshotSchema),
+    })
+    .passthrough(),
+});
+export const reportCardSnapshotListSchema = z.array(
+  reportCardSnapshotSchema
+);
+export type ReportCardSnapshotSummary = z.infer<
+  typeof reportCardSnapshotSchema
+>;
+
 export const materialAttachmentSchema = z.object({
   id: z.string(),
   name: z.string(),

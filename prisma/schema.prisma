@@ -166,6 +166,7 @@ model User {
   notificationPreference NotificationPreference?
   notificationsReceived  Notification[]   @relation("NotificationRecipient")
   notificationsTriggered Notification[]   @relation("NotificationTriggerActor")
+  publishedReportCards   ReportCardSnapshot[] @relation("ReportCardPublisher")
 }
 
 model StudentProfile {
@@ -231,6 +232,7 @@ model Class {
   forumThreads       ForumThread[]
   attendanceSessions AttendanceSession[]
   gradeWeights       GradeWeight[]
+  reportCardSnapshots ReportCardSnapshot[]
 }
 
 model AcademicYear {
@@ -244,6 +246,7 @@ model AcademicYear {
   updatedAt DateTime @updatedAt
 
   classes Class[]
+  reportCardSnapshots ReportCardSnapshot[]
 }
 
 model Subject {
@@ -702,4 +705,20 @@ model AuditLog {
   @@index([actorId])
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+model ReportCardSnapshot {
+  id             String   @id @default(cuid())
+  classId        String
+  academicYearId String
+  semester       Semester
+  publishedById  String
+  publishedAt    DateTime @default(now())
+  snapshot       Json
+
+  class        Class        @relation(fields: [classId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  publishedBy  User         @relation("ReportCardPublisher", fields: [publishedById], references: [id])
+
+  @@index([classId, academicYearId, semester, publishedAt])
 }

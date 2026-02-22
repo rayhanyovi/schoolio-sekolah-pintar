@@ -1,9 +1,11 @@
-import { apiGet, apiPatch } from "@/lib/api-client";
+import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import {
   gradeListSchema,
   gradeSummaryListSchema,
   gradeWeightListSchema,
   gradeWeightSchema,
+  reportCardSnapshotListSchema,
+  reportCardSnapshotSchema,
 } from "@/lib/schemas";
 
 export type GradePayload = Record<string, unknown>;
@@ -39,3 +41,21 @@ export const upsertGradeWeight = async (payload: {
   examWeight: number;
   practicalWeight: number;
 }) => gradeWeightSchema.parse(await apiPatch("/api/grades/weights", payload));
+
+export const listReportCardSnapshots = async (params?: {
+  classId?: string;
+  academicYearId?: string;
+  semester?: string;
+  includeSnapshot?: boolean;
+}) =>
+  reportCardSnapshotListSchema.parse(
+    await apiGet("/api/grades/report-cards", params)
+  );
+
+export const publishReportCardSnapshot = async (payload: {
+  classId: string;
+  academicYearId: string;
+}) =>
+  reportCardSnapshotSchema.parse(
+    await apiPost("/api/grades/report-cards", payload)
+  );
