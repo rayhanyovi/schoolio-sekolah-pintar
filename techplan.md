@@ -283,7 +283,7 @@ Implementasi TP-PRN-003:
 - [ ] TP-AUD-002 Log aksi sensitif users/profiles/role change. DoD: perubahan identitas/akses selalu tercatat.
 - [ ] TP-AUD-003 Log aksi sensitif attendance override. DoD: semua override absensi punya jejak.
 - [x] TP-AUD-004 Log aksi sensitif grade change/publish. DoD: perubahan nilai bisa diinvestigasi.
-- [ ] TP-AUD-005 Log aksi sensitif parent-student relink dan activate academic year. DoD: aksi governance tercatat.
+- [x] TP-AUD-005 Log aksi sensitif parent-student relink dan activate academic year. DoD: aksi governance tercatat.
 
 Implementasi TP-AUD-001:
 - Model `AuditLog` ditambahkan di Prisma dengan field inti actor/action/entity/beforeData/afterData/timestamp (`createdAt`), termasuk relasi actor ke `User`.
@@ -292,6 +292,10 @@ Implementasi TP-AUD-001:
 Implementasi TP-AUD-004:
 - Endpoint `PATCH /api/submissions/[id]` sekarang menulis `AuditLog` otomatis untuk perubahan grading (`GRADE_UPDATED`/`GRADE_PUBLISHED`) dengan snapshot `beforeData` dan `afterData`.
 - Metadata audit menyertakan `assignmentId` dan `studentId`, serta actor dari session (`actorId`, `actorRole`) untuk kebutuhan investigasi.
+
+Implementasi TP-AUD-005:
+- Endpoint `/api/parent-links` (`POST`/`DELETE`) sekarang mencatat aksi governance relink/unlink parent-student ke `AuditLog` (`PARENT_STUDENT_LINK_CREATED`/`PARENT_STUDENT_LINK_REMOVED`).
+- Endpoint `/api/academic-years/[id]/activate` sekarang mencatat aktivasi tahun ajaran ke `AuditLog` (`ACADEMIC_YEAR_ACTIVATED`) dengan snapshot daftar active year sebelum/sesudah.
 
 ### 6.15 WS-TEST: Testing Pyramid & Quality Gate (P1-P3)
 
