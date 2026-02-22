@@ -522,15 +522,22 @@ function StudentAssignmentsView({
         ]);
         setAssignments(assignmentData);
         setStudents(studentData);
-        if (!selectedStudentId && studentData.length > 0) {
-          setSelectedStudentId(studentData[0].id);
-        }
       } finally {
         setIsLoading(false);
       }
     };
     loadBase();
-  }, [selectedStudentId]);
+  }, []);
+
+  useEffect(() => {
+    if (!students.length) {
+      setSelectedStudentId("");
+      return;
+    }
+    if (!selectedStudentId || !students.some((student) => student.id === selectedStudentId)) {
+      setSelectedStudentId(students[0].id);
+    }
+  }, [students, selectedStudentId]);
 
   useEffect(() => {
     const loadSubmissions = async () => {

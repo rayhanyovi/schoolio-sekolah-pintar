@@ -286,15 +286,22 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
         ]);
         setStudents(studentsData);
         setSchedules(schedulesData);
-        if (!selectedStudentId && studentsData.length > 0) {
-          setSelectedStudentId(studentsData[0].id);
-        }
       } finally {
         setIsLoading(false);
       }
     };
     loadBase();
-  }, [selectedStudentId]);
+  }, []);
+
+  useEffect(() => {
+    if (!students.length) {
+      setSelectedStudentId("");
+      return;
+    }
+    if (!selectedStudentId || !students.some((student) => student.id === selectedStudentId)) {
+      setSelectedStudentId(students[0].id);
+    }
+  }, [students, selectedStudentId]);
 
   useEffect(() => {
     const loadGrades = async () => {
