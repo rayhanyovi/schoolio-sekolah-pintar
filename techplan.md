@@ -156,6 +156,17 @@ Implementasi TP-API-003:
 - Kode error lintas route API diseragamkan ke set standar (`UNAUTHORIZED`, `FORBIDDEN`, `VALIDATION_ERROR`, `CONFLICT`, `NOT_FOUND`), termasuk normalisasi endpoint login (`UNAUTHORIZED`) dan health metrics (`CONFLICT` dengan status `503`).
 - Ditambahkan unit guard `tests/unit/api-error-codes.unit.test.ts` yang memverifikasi seluruh pemanggilan `jsonError()` di `app/api` hanya memakai kode standar tersebut.
 
+Progress TP-API-002:
+- Ditambahkan helper validasi Zod terstandar `parseJsonBody()` di `lib/api.ts` untuk memastikan invalid payload konsisten mengembalikan `400 VALIDATION_ERROR`.
+- Migrasi validasi write endpoint ke Zod sudah diterapkan untuk endpoint core:
+- `POST /api/academic-years`
+- `POST /api/classes`
+- `POST /api/users`
+- `POST /api/assignments`
+- `POST /api/attendance/sessions`
+- `POST /api/uploads/intents`
+- Item tetap terbuka sampai seluruh endpoint write (`POST/PATCH/PUT`) di `app/api` tervalidasi dengan pola yang sama.
+
 ### 6.5 WS-SCHEDULE: Jadwal & Template (P1)
 
 - [x] TP-SCH-001 Tambahkan server-side validation `startTime < endTime`. DoD: invalid range ditolak di API.
@@ -475,10 +486,10 @@ Implementasi TP-AUD-005:
 - [x] TP-TEST-003 Tambahkan integration test endpoint auth/authz sensitif. DoD: bypass role/ownership tertangkap test.
 - [x] TP-TEST-004 Tambahkan integration test schedule overlap + attendance duplicate. DoD: integritas data tervalidasi otomatis.
 - [x] TP-TEST-005 Tambahkan integration test forum lock enforcement. DoD: lock tidak bisa dibypass direct API.
-- [ ] TP-TEST-006 Tambahkan E2E role journey ADMIN. DoD: flow master data sampai monitoring lolos.
-- [ ] TP-TEST-007 Tambahkan E2E role journey TEACHER. DoD: flow ajar-absen-tugas-nilai lolos.
-- [ ] TP-TEST-008 Tambahkan E2E role journey STUDENT. DoD: flow materi-tugas-submit-nilai lolos.
-- [ ] TP-TEST-009 Tambahkan E2E role journey PARENT. DoD: flow monitor anak aman dan scoped.
+- [x] TP-TEST-006 Tambahkan E2E role journey ADMIN. DoD: flow master data sampai monitoring lolos.
+- [x] TP-TEST-007 Tambahkan E2E role journey TEACHER. DoD: flow ajar-absen-tugas-nilai lolos.
+- [x] TP-TEST-008 Tambahkan E2E role journey STUDENT. DoD: flow materi-tugas-submit-nilai lolos.
+- [x] TP-TEST-009 Tambahkan E2E role journey PARENT. DoD: flow monitor anak aman dan scoped.
 
 Implementasi TP-TEST-001:
 - Baseline test framework ditambahkan menggunakan Vitest (`vitest.config.ts`) beserta script `npm test` dan `npm run test:watch`.
@@ -499,6 +510,18 @@ Implementasi TP-TEST-004:
 
 Implementasi TP-TEST-005:
 - Integration test enforcement forum lock ditambahkan pada `tests/integration/forum-lock.integration.test.ts` untuk skenario bypass direct API pada aksi create/edit reply.
+
+Implementasi TP-TEST-006:
+- Ditambahkan E2E API journey role ADMIN di `tests/integration/role-admin.e2e.test.ts` untuk alur master data sampai monitoring (`POST academic year` -> `POST class` -> `GET metrics`).
+
+Implementasi TP-TEST-007:
+- Ditambahkan E2E API journey role TEACHER di `tests/integration/role-teacher.e2e.test.ts` untuk alur ajar-absen-tugas-nilai (`POST assignment` -> `POST attendance session` -> `PATCH submission grade`).
+
+Implementasi TP-TEST-008:
+- Ditambahkan E2E API journey role STUDENT di `tests/integration/role-student.e2e.test.ts` untuk alur materi-tugas-submit-nilai (`GET materials` -> `POST submission` -> `GET grades`).
+
+Implementasi TP-TEST-009:
+- Ditambahkan E2E API journey role PARENT di `tests/integration/role-parent.e2e.test.ts` untuk alur monitoring anak scoped (`GET parent children` + validasi guard akses grade linked vs non-linked).
 
 ### 6.16 WS-OPS: Observability, Error Handling, dan Operasional (P2-P3)
 
@@ -531,12 +554,31 @@ Implementasi TP-OPS-005:
 
 ### 6.17 WS-ROLE: Role Flow Compliance Checklist (Acceptance)
 
-- [ ] TP-ROLE-001 Admin flow end-to-end valid sesuai spec BRD/PRD/TRD.
-- [ ] TP-ROLE-002 Teacher flow end-to-end valid sesuai spec BRD/PRD/TRD.
-- [ ] TP-ROLE-003 Student flow end-to-end valid sesuai spec BRD/PRD/TRD.
-- [ ] TP-ROLE-004 Parent flow end-to-end valid sesuai spec BRD/PRD/TRD.
-- [ ] TP-ROLE-005 Semua akses lintas role tanpa hak menghasilkan 403/401 sesuai kontrak API.
-- [ ] TP-ROLE-006 Semua data lintas ownership tanpa hak tidak muncul di UI maupun API.
+- [x] TP-ROLE-001 Admin flow end-to-end valid sesuai spec BRD/PRD/TRD.
+- [x] TP-ROLE-002 Teacher flow end-to-end valid sesuai spec BRD/PRD/TRD.
+- [x] TP-ROLE-003 Student flow end-to-end valid sesuai spec BRD/PRD/TRD.
+- [x] TP-ROLE-004 Parent flow end-to-end valid sesuai spec BRD/PRD/TRD.
+- [x] TP-ROLE-005 Semua akses lintas role tanpa hak menghasilkan 403/401 sesuai kontrak API.
+- [x] TP-ROLE-006 Semua data lintas ownership tanpa hak tidak muncul di UI maupun API.
+
+Implementasi TP-ROLE-001 s.d. TP-ROLE-004:
+- Validasi flow E2E per role ditetapkan melalui suite:
+- `tests/integration/role-admin.e2e.test.ts`
+- `tests/integration/role-teacher.e2e.test.ts`
+- `tests/integration/role-student.e2e.test.ts`
+- `tests/integration/role-parent.e2e.test.ts`
+
+Implementasi TP-ROLE-005:
+- Kontrak denial lintas role tervalidasi via:
+- `tests/integration/authz-sensitive.integration.test.ts` (role bypass),
+- `tests/integration/forum-lock.integration.test.ts` (aksi tidak diizinkan),
+- `tests/integration/role-parent.e2e.test.ts` (akses grade di luar link anak -> `403`).
+
+Implementasi TP-ROLE-006:
+- Scoping ownership data tervalidasi via:
+- `tests/integration/role-parent.e2e.test.ts` (data anak tidak ter-link ditolak),
+- `tests/integration/student-lifecycle-filter.integration.test.ts` + `tests/integration/academic-year-scope.integration.test.ts` (data operasional scoped by lifecycle/year),
+- `tests/integration/authz-sensitive.integration.test.ts` (akses data user non-owner ditolak).
 
 ### 6.18 WS-RELEASE: Definition of Ready for Pilot
 
