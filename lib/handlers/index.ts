@@ -16,3 +16,4 @@ export * from "./settings";
 export * from "./majors";
 export * from "./notifications";
 export * from "./uploads";
+export * from "./governance";

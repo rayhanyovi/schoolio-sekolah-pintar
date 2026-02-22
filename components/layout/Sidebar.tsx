@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
 import { RoleBadge } from "@/components/RoleBadge";
-import { Role, ROLES } from "@/lib/constants";
+import { Role } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -27,6 +27,7 @@ import {
   StickyNote,
   User,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -44,6 +45,7 @@ const menuItems: Record<Role, Array<{ icon: typeof LayoutDashboard; label: strin
     { icon: Calendar, label: "Jadwal", href: "/dashboard/schedules" },
     { icon: CalendarDays, label: "Kalender Akademik", href: "/dashboard/calendar" },
     { icon: ClipboardCheck, label: "Absensi", href: "/dashboard/attendance" },
+    { icon: ShieldCheck, label: "Governance", href: "/dashboard/governance" },
     { icon: Settings, label: "Pengaturan", href: "/dashboard/settings" },
   ],
   TEACHER: [

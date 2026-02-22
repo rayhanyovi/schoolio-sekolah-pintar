@@ -730,3 +730,21 @@ export const analyticsDemographicsSchema = z.object({
   }),
 });
 export type AnalyticsDemographics = z.infer<typeof analyticsDemographicsSchema>;
+
+export const governanceReadinessSectionSchema = z.object({
+  ready: z.boolean(),
+  blockers: z
+    .array(z.string())
+    .nullish()
+    .transform((value) => value ?? []),
+});
+export const governanceReadinessSnapshotSchema = z.object({
+  generatedAt: dateSchema,
+  overallReady: z.boolean(),
+  rel001: governanceReadinessSectionSchema,
+  rel005: governanceReadinessSectionSchema,
+  decisionGate: governanceReadinessSectionSchema,
+});
+export type GovernanceReadinessSnapshot = z.infer<
+  typeof governanceReadinessSnapshotSchema
+>;
