@@ -134,6 +134,7 @@ model User {
   attendanceRecords  AttendanceRecord[]
   teacherAttendance  TeacherAttendance[]
   majorTeaching      MajorTeacher[]
+  auditLogs          AuditLog[]           @relation("AuditActor")
 }
 
 model StudentProfile {
@@ -584,4 +585,24 @@ model MajorTeacher {
 
   @@id([majorId, teacherId])
   @@index([teacherId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorRole  Role?
+  action     String
+  entityType String
+  entityId   String?
+  beforeData Json?
+  afterData  Json?
+  metadata   Json?
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }
