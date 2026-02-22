@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const ALLOWED_DECISIONS = new Set(["Approved", "Pending", "Deferred", "Rejected"]);
@@ -44,6 +44,7 @@ const note = String(args.note ?? "").trim();
 const owner = String(args.owner ?? "").trim();
 const dueDate = String(args["due-date"] ?? "").trim();
 const date = String(args.date ?? new Date().toISOString().slice(0, 10)).trim();
+const actor = String(args.actor ?? "SYSTEM").trim();
 const dryRun = Boolean(args["dry-run"]);
 
 if (!ALLOWED_DECISIONS.has(decision)) {
@@ -131,6 +132,40 @@ const targetPath = path.resolve(process.cwd(), packetPathByType[packet]);
 const originalMarkdown = readFileSync(targetPath, "utf8");
 let updatedMarkdown = originalMarkdown;
 
+const ensureHistoryFile = () => {
+  const historyPath = path.resolve(process.cwd(), "GOVERNANCE_APPROVAL_HISTORY.md");
+  if (existsSync(historyPath)) return historyPath;
+  writeFileSync(
+    historyPath,
+    [
+      "# Governance Approval History",
+      "",
+      "| Tanggal | Packet | Target | Decision | Actor | Catatan |",
+      "|---|---|---|---|---|---|",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  return historyPath;
+};
+
+const appendHistoryEntry = ({
+  packetType,
+  target,
+  decisionValue,
+  actorValue,
+  noteValue,
+  dateValue,
+}) => {
+  const historyPath = ensureHistoryFile();
+  const nextMarkdown = `${readFileSync(historyPath, "utf8").trimEnd()}\n| ${
+    dateValue || "-"
+  } | ${packetType} | ${target} | ${decisionValue} | ${actorValue || "-"} | ${
+    noteValue || "-"
+  } |\n`;
+  writeFileSync(historyPath, nextMarkdown, "utf8");
+};
+
 if (packet === "authz") {
   updatedMarkdown = updateTableRow({
     markdown: updatedMarkdown,
@@ -207,3 +242,12 @@ console.log(
     packet === "decision" ? id : subject
   } -> ${decision}`
 );
+
+appendHistoryEntry({
+  packetType: packet.toUpperCase(),
+  target: packet === "decision" ? id : subject,
+  decisionValue: decision,
+  actorValue: actor,
+  noteValue: note,
+  dateValue: date,
+});
