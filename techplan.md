@@ -320,7 +320,7 @@ Implementasi TP-PRN-004:
 - [x] TP-LIFE-002 Tambahkan status lifecycle siswa (`ACTIVE`, `INACTIVE`, `GRADUATED`, `TRANSFERRED_OUT`). DoD: query operasional default hanya active.
 - [x] TP-LIFE-003 Terapkan scoping query default ke academic year aktif. DoD: modul utama tidak mencampur data lintas tahun ajaran.
 - [x] TP-LIFE-004 Buat workflow rollover tahun ajaran (minimal checklist service). DoD: proses pergantian tahun ajaran terdokumentasi + executable.
-- [ ] TP-LIFE-005 Definisikan policy jadwal saat event khusus/libur (`SCHOOL_HOLIDAY`, `EXAM_PERIOD`, dsb). DoD: attendance seeding patuh aturan event.
+- [x] TP-LIFE-005 Definisikan policy jadwal saat event khusus/libur (`SCHOOL_HOLIDAY`, `EXAM_PERIOD`, dsb). DoD: attendance seeding patuh aturan event.
 
 Implementasi TP-LIFE-001:
 - Ditambahkan model historis `StudentClassEnrollment` untuk menyimpan perpindahan kelas siswa beserta periode aktif (`startedAt`/`endedAt`) tanpa menimpa histori lama.
@@ -356,6 +356,19 @@ Implementasi TP-LIFE-004:
 - Ditambahkan wrapper command untuk environment `cmd`: `scripts/academic-year-rollover.cmd`.
 - Ditambahkan script npm `academic-year:rollover` untuk eksekusi lintas environment.
 - SOP operasional rollover terdokumentasi di `OPS_ACADEMIC_YEAR_ROLLOVER_SOP.md` mencakup prasyarat, langkah dry-run/execute, checklist verifikasi, SQL check, dan rollback.
+
+Implementasi TP-LIFE-005:
+- Ditambahkan policy resolver event untuk attendance seeding di `lib/attendance-seeding-policy.ts` dengan kode kebijakan:
+- `NORMAL_DAY` (seed),
+- `SCHOOL_HOLIDAY` (skip saat event `type=HOLIDAY`),
+- `EXAM_PERIOD` (skip saat keyword periode ujian terdeteksi di title/description).
+- Ditambahkan endpoint seeding server-side `POST /api/attendance/sessions/seed` (admin-only) untuk generate sesi absensi dari jadwal secara batch (maksimal 31 hari), dengan enforcement policy event per tanggal+kelas.
+- Endpoint seeding hanya memproses jadwal pada academic year target (default active year, atau `academicYearId` eksplisit) dan menghasilkan ringkasan hasil (`candidateSlots`, `createdSessions`, `skippedExisting`, `skippedByPolicy`, `policyBreakdown`).
+- Ditambahkan handler client `seedAttendanceSessions` di `lib/handlers/attendance.ts`.
+- Policy dan aturan operasional didokumentasikan di `ATTENDANCE_EVENT_POLICY.md`.
+- Ditambahkan integration test `tests/integration/attendance-seeding-policy.integration.test.ts` untuk memverifikasi:
+- sesi tidak dibuat saat `SCHOOL_HOLIDAY`,
+- sesi dibuat normal saat `NORMAL_DAY`.
 
 ### 6.12 WS-FILE: Real Upload Pipeline (P2)
 

@@ -112,6 +112,13 @@ export const createAttendanceSession = (payload: Record<string, unknown>) =>
     )
   );
 
+export const seedAttendanceSessions = (payload: {
+  dateFrom: string;
+  dateTo: string;
+  classId?: string;
+  academicYearId?: string;
+}) => apiPost("/api/attendance/sessions/seed", payload);
+
 export const updateAttendanceSession = (
   id: string,
   payload: Record<string, unknown>
