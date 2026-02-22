@@ -15,6 +15,7 @@ Dokumen ini menjelaskan automasi untuk mempercepat update approval packet dan si
 
 - `npm run governance:approve`
 - `npm run governance:sync-techplan`
+- `npm run governance:check-sync`
 - `npm run governance:refresh`
 - `npm run release:readiness`
 - `npm run release:readiness:strict`
@@ -88,7 +89,17 @@ Aturan sinkronisasi:
 - Item `TP-DEC-*` target otomatis `[x]` jika status di ringkasan `PRODUCT_DECISION_PACKET.md` adalah `Approved`.
 - `TP-REL-001` otomatis `[x]` jika seluruh syarat P0 di `techplan.md` sudah terpenuhi (termasuk `TP-AUTHZ-001` hasil sinkronisasi).
 
-## 3) Regenerasi Readiness Report
+## 3) Validasi Drift (CI/Local)
+
+Untuk memastikan `techplan.md` tidak tertinggal dari approval packet:
+
+```bash
+npm run governance:check-sync
+```
+
+Command ini exit non-zero jika ada status yang seharusnya berubah tetapi belum disinkronkan.
+
+## 4) Regenerasi Readiness Report
 
 Setelah sinkronisasi:
 
