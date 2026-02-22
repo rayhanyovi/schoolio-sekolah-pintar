@@ -55,6 +55,9 @@ const normalizeMaterial = (value: UnknownRecord) => {
               type: fileValue.fileType,
               url: fileValue.url ?? undefined,
               storageKey: fileValue.storageKey ?? undefined,
+              checksumSha256: fileValue.checksumSha256 ?? undefined,
+              etag: fileValue.etag ?? undefined,
+              scanStatus: fileValue.scanStatus ?? undefined,
             };
           })
         : [],

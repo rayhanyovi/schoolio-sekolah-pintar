@@ -21,20 +21,41 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   const body = await request.json();
-  if (!body?.fileName || !body?.fileType) {
-    return jsonError("VALIDATION_ERROR", "fileName and fileType are required");
+  const uploadIntentId =
+    typeof body?.uploadIntentId === "string"
+      ? body.uploadIntentId.trim()
+      : "";
+  if (!uploadIntentId) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "uploadIntentId wajib diisi (gunakan flow upload intent + confirm)",
+      400
+    );
   }
 
-  const row = await prisma.materialAttachment.create({
-    data: {
-      materialId: params.id,
-      fileName: body.fileName,
-      fileType: body.fileType,
-      sizeLabel: body.sizeLabel ?? null,
-      url: body.url ?? null,
-      storageKey: body.storageKey ?? null,
+  const intent = await prisma.uploadIntent.findUnique({
+    where: { id: uploadIntentId },
+    include: {
+      attachment: true,
     },
   });
+  if (!intent || intent.materialId !== params.id) {
+    return jsonError("NOT_FOUND", "Upload intent tidak ditemukan", 404);
+  }
+  if (intent.status !== "CONFIRMED") {
+    return jsonError(
+      "CONFLICT",
+      "Upload intent belum dikonfirmasi",
+      409
+    );
+  }
+  if (!intent.attachment) {
+    return jsonError(
+      "CONFLICT",
+      "Attachment final belum tersedia pada upload intent ini",
+      409
+    );
+  }
 
-  return jsonOk(row, { status: 201 });
+  return jsonOk(intent.attachment, { status: 201 });
 }

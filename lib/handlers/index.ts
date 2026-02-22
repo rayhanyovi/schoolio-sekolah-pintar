@@ -15,3 +15,4 @@ export * from "./analytics";
 export * from "./settings";
 export * from "./majors";
 export * from "./notifications";
+export * from "./uploads";

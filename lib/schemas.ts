@@ -522,6 +522,9 @@ export const materialAttachmentSchema = z.object({
   type: z.string(),
   url: z.string().nullish(),
   storageKey: z.string().nullish(),
+  checksumSha256: z.string().nullish(),
+  etag: z.string().nullish(),
+  scanStatus: z.string().nullish(),
 });
 export const materialSchema = z.object({
   id: z.string(),
@@ -541,6 +544,45 @@ export const materialSchema = z.object({
 });
 export const materialListSchema = z.array(materialSchema);
 export type MaterialSummary = z.infer<typeof materialSchema>;
+
+export const uploadIntentSchema = z.object({
+  id: z.string(),
+  materialId: z.string(),
+  fileName: z.string(),
+  fileType: z.string(),
+  sizeBytes: z.number(),
+  checksumSha256: z.string(),
+  storageKey: z.string(),
+  status: z.string(),
+  method: z.string(),
+  uploadUrl: z.string(),
+  expiresAt: dateSchema,
+  createdAt: dateSchema,
+});
+export type UploadIntentSummary = z.infer<typeof uploadIntentSchema>;
+
+export const uploadConfirmResultSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  scanStatus: z.string().nullish(),
+  scanResult: z.string().nullish(),
+  attachment: z
+    .object({
+      id: z.string(),
+      materialId: z.string(),
+      fileName: z.string(),
+      fileType: z.string(),
+      sizeLabel: z.string().nullish(),
+      url: z.string().nullish(),
+      storageKey: z.string().nullish(),
+      checksumSha256: z.string().nullish(),
+      etag: z.string().nullish(),
+      scanStatus: z.string().nullish(),
+      uploadIntentId: z.string().nullish(),
+    })
+    .passthrough(),
+});
+export type UploadConfirmResult = z.infer<typeof uploadConfirmResultSchema>;
 
 export const assignmentSchema = z.object({
   id: z.string(),
