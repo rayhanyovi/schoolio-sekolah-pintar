@@ -14,6 +14,7 @@ Dokumen ini menjelaskan automasi untuk mempercepat update approval packet dan si
 ## Script yang Tersedia
 
 - `npm run governance:approve`
+- `npm run governance:approve-refresh`
 - `npm run governance:sync-techplan`
 - `npm run governance:check-sync`
 - `npm run governance:refresh`
@@ -78,6 +79,12 @@ Parameter utama:
 - `--note` (opsional)
 
 Setiap update approval non-dry-run akan otomatis mencatat histori ke `GOVERNANCE_APPROVAL_HISTORY.md`.
+
+Jika ingin langsung `approve + sync checklist + regenerate readiness report`:
+
+```bash
+npm run governance:approve-refresh -- --packet authz --subject "Product Lead" --decision Approved --name "Rina PM"
+```
 
 ## 2) Sinkronisasi Checklist Techplan
 

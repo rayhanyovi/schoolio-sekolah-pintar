@@ -613,6 +613,7 @@ Progress TP-REL-005:
 - Paket sign-off SOP operasional dan eskalasi insiden disiapkan di `OPS_SIGNOFF_PACKET.md` dengan matrix approval lintas stakeholder.
 - Readiness checker menghasilkan laporan status terkini di `RELEASE_READINESS_STATUS.md` agar approver dapat melihat blocker sign-off yang tersisa secara objektif.
 - Ditambahkan workflow governance refresh (`npm run governance:refresh`) untuk sinkronisasi checklist + regenerasi readiness report setelah approval diupdate.
+- Ditambahkan wrapper `npm run governance:approve-refresh -- ...` untuk alur satu langkah: update approval -> sync techplan -> refresh readiness report.
 - Item tetap terbuka sampai seluruh approver utama menandatangani approval record.
 
 Implementasi TP-REL-006:
