@@ -92,6 +92,34 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       },
     });
 
+    const shouldLogSubmissionLifecycle =
+      existing.status !== updated.status ||
+      (existing.submittedAt?.getTime() ?? null) !==
+        (updated.submittedAt?.getTime() ?? null);
+    if (shouldLogSubmissionLifecycle) {
+      await tx.auditLog.create({
+        data: {
+          actorId: auth.userId,
+          actorRole: auth.role,
+          action: "SUBMISSION_STATUS_CHANGED",
+          entityType: "AssignmentSubmission",
+          entityId: updated.id,
+          beforeData: {
+            status: existing.status,
+            submittedAt: existing.submittedAt,
+          },
+          afterData: {
+            status: updated.status,
+            submittedAt: updated.submittedAt,
+          },
+          metadata: {
+            assignmentId: updated.assignmentId,
+            studentId: updated.studentId,
+          },
+        },
+      });
+    }
+
     const shouldLogGradeAudit =
       !isStudentActor &&
       (existing.grade !== updated.grade ||

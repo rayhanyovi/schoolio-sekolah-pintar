@@ -72,25 +72,74 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const body = await request.json();
-  const row = await prisma.assignmentSubmission.upsert({
-    where: {
-      assignmentId_studentId: {
+  const row = await prisma.$transaction(async (tx) => {
+    const existing = await tx.assignmentSubmission.findUnique({
+      where: {
+        assignmentId_studentId: {
+          assignmentId: id,
+          studentId: auth.userId,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        submittedAt: true,
+      },
+    });
+
+    const saved = await tx.assignmentSubmission.upsert({
+      where: {
+        assignmentId_studentId: {
+          assignmentId: id,
+          studentId: auth.userId,
+        },
+      },
+      update: {
+        status: body.status ?? "SUBMITTED",
+        submittedAt: body.submittedAt ? new Date(body.submittedAt) : new Date(),
+        response: body.response ?? null,
+      },
+      create: {
         assignmentId: id,
         studentId: auth.userId,
+        status: body.status ?? "SUBMITTED",
+        submittedAt: body.submittedAt ? new Date(body.submittedAt) : new Date(),
+        response: body.response ?? null,
       },
-    },
-    update: {
-      status: body.status ?? "SUBMITTED",
-      submittedAt: body.submittedAt ? new Date(body.submittedAt) : new Date(),
-      response: body.response ?? null,
-    },
-    create: {
-      assignmentId: id,
-      studentId: auth.userId,
-      status: body.status ?? "SUBMITTED",
-      submittedAt: body.submittedAt ? new Date(body.submittedAt) : new Date(),
-      response: body.response ?? null,
-    },
+    });
+
+    const shouldLogLifecycle =
+      !existing ||
+      existing.status !== saved.status ||
+      (existing.submittedAt?.getTime() ?? null) !==
+        (saved.submittedAt?.getTime() ?? null);
+    if (shouldLogLifecycle) {
+      await tx.auditLog.create({
+        data: {
+          actorId: auth.userId,
+          actorRole: auth.role,
+          action: existing ? "SUBMISSION_STATUS_CHANGED" : "SUBMISSION_CREATED",
+          entityType: "AssignmentSubmission",
+          entityId: saved.id,
+          beforeData: existing
+            ? {
+                status: existing.status,
+                submittedAt: existing.submittedAt,
+              }
+            : null,
+          afterData: {
+            status: saved.status,
+            submittedAt: saved.submittedAt,
+          },
+          metadata: {
+            assignmentId: saved.assignmentId,
+            studentId: saved.studentId,
+          },
+        },
+      });
+    }
+
+    return saved;
   });
 
   return jsonOk(row, { status: 200 });
