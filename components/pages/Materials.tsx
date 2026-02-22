@@ -50,7 +50,7 @@ import {
 } from "@/lib/handlers/materials";
 import { listSchedules } from "@/lib/handlers/schedules";
 import { listSubjects } from "@/lib/handlers/subjects";
-import { listTeachers, listStudents } from "@/lib/handlers/users";
+import { listParentChildren, listTeachers, listStudents } from "@/lib/handlers/users";
 import {
   MaterialSummary,
   ScheduleSummary,
@@ -355,10 +355,11 @@ function StudentMaterialsView({
     const loadBase = async () => {
       setIsLoading(true);
       try {
+        const studentPromise = allowStudentSelect ? listParentChildren() : listStudents();
         const [materialData, subjectData, studentData] = await Promise.all([
           listMaterials(),
           listSubjects(),
-          listStudents(),
+          studentPromise,
         ]);
         setMaterials(materialData);
         setSubjects(subjectData);
@@ -368,7 +369,7 @@ function StudentMaterialsView({
       }
     };
     loadBase();
-  }, []);
+  }, [allowStudentSelect]);
 
   useEffect(() => {
     if (!students.length) {

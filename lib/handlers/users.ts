@@ -82,6 +82,9 @@ export const unlinkParentStudent = (parentId: string, studentId: string) =>
 export const listStudents = async (params?: { classId?: string; q?: string }) =>
   userListSchema.parse(await apiGet("/api/students", params));
 
+export const listParentChildren = async (params?: { classId?: string; q?: string }) =>
+  userListSchema.parse(await apiGet("/api/parents/me/children", params));
+
 export const listTeachers = async (params?: { q?: string }) =>
   userListSchema.parse(await apiGet("/api/teachers", params));
 

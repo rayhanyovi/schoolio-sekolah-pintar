@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from "recharts";
 import { listSchedules } from "@/lib/handlers/schedules";
 import { getGradesSummary, listGrades } from "@/lib/handlers/grades";
-import { listStudents } from "@/lib/handlers/users";
+import { listParentChildren, listStudents } from "@/lib/handlers/users";
 import {
   GradeSummary,
   GradeSummaryRow,
@@ -280,8 +280,9 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
     const loadBase = async () => {
       setIsLoading(true);
       try {
+        const studentPromise = allowStudentSelect ? listParentChildren() : listStudents();
         const [studentsData, schedulesData] = await Promise.all([
-          listStudents(),
+          studentPromise,
           listSchedules(),
         ]);
         setStudents(studentsData);
@@ -291,7 +292,7 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
       }
     };
     loadBase();
-  }, []);
+  }, [allowStudentSelect]);
 
   useEffect(() => {
     if (!students.length) {

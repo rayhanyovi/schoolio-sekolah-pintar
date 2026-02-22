@@ -69,7 +69,7 @@ import { listClasses } from "@/lib/handlers/classes";
 import { listGrades } from "@/lib/handlers/grades";
 import { listQuestions, listQuestionPackages } from "@/lib/handlers/questions";
 import { listSubjects } from "@/lib/handlers/subjects";
-import { listStudents, listTeachers } from "@/lib/handlers/users";
+import { listParentChildren, listStudents, listTeachers } from "@/lib/handlers/users";
 import {
   AssignmentSubmissionSummary,
   AssignmentSummary,
@@ -516,9 +516,10 @@ function StudentAssignmentsView({
     const loadBase = async () => {
       setIsLoading(true);
       try {
+        const studentPromise = allowStudentSelect ? listParentChildren() : listStudents();
         const [assignmentData, studentData] = await Promise.all([
           listAssignments(),
-          listStudents(),
+          studentPromise,
         ]);
         setAssignments(assignmentData);
         setStudents(studentData);
@@ -527,7 +528,7 @@ function StudentAssignmentsView({
       }
     };
     loadBase();
-  }, []);
+  }, [allowStudentSelect]);
 
   useEffect(() => {
     if (!students.length) {

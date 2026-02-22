@@ -55,7 +55,7 @@ import {
 } from "@/lib/handlers/attendance";
 import { listSchedules } from "@/lib/handlers/schedules";
 import { listClassStudents } from "@/lib/handlers/classes";
-import { getUser, listParents, listStudents, listTeachers } from "@/lib/handlers/users";
+import { listParentChildren, listStudents, listTeachers } from "@/lib/handlers/users";
 import {
   AttendanceRecordSummary,
   AttendanceSessionSummary,
@@ -762,25 +762,13 @@ function StudentAttendanceView({
     const loadStudents = async () => {
       setIsLoading(true);
       try {
-        if (role === ROLES.PARENT && userId) {
-          const parents = await listParents();
-          const parent = parents.find((item) => item.id === userId);
-          const childIds =
-            parent?.parentLinks?.map((link) => link.studentId) ?? [];
-          if (!childIds.length) {
-            if (isActive) setStudents([]);
-            return;
-          }
-          const allStudents = await listStudents();
-          const filtered = allStudents.filter((student) =>
-            childIds.includes(student.id),
-          );
-          if (isActive) setStudents(filtered);
+        if (role === ROLES.PARENT) {
+          const data = await listParentChildren();
+          if (isActive) setStudents(data);
           return;
         }
-        if (role === ROLES.STUDENT && userId) {
-          const student = await getUser(userId);
-          if (isActive) setStudents(student ? [student] : []);
+        if (role === ROLES.STUDENT && !userId) {
+          if (isActive) setStudents([]);
           return;
         }
         const data = await listStudents();
