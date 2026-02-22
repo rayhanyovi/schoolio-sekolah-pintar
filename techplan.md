@@ -98,6 +98,7 @@ Implementasi TP-SEC-004:
 Progress TP-AUTHZ-001:
 - Draft authorization matrix eksplisit per resource/action sudah dibuat di `AUTHZ_MATRIX.md`.
 - Approval packet + checklist sign-off formal disiapkan di `AUTHZ_APPROVAL_PACKET.md`.
+- Ditambahkan automasi update approval `npm run governance:approve` + sinkronisasi checklist `npm run governance:sync-techplan` (lihat `GOVERNANCE_AUTOMATION.md`).
 - Status approval Product + Engineering masih pending, sehingga item tetap terbuka.
 
 Implementasi TP-SEC-003:
@@ -608,6 +609,7 @@ Implementasi TP-REL-004:
 Progress TP-REL-005:
 - Paket sign-off SOP operasional dan eskalasi insiden disiapkan di `OPS_SIGNOFF_PACKET.md` dengan matrix approval lintas stakeholder.
 - Readiness checker menghasilkan laporan status terkini di `RELEASE_READINESS_STATUS.md` agar approver dapat melihat blocker sign-off yang tersisa secara objektif.
+- Ditambahkan workflow governance refresh (`npm run governance:refresh`) untuk sinkronisasi checklist + regenerasi readiness report setelah approval diupdate.
 - Item tetap terbuka sampai seluruh approver utama menandatangani approval record.
 
 ## 7. Checklist Keputusan Produk (Wajib Diputuskan)
@@ -622,6 +624,7 @@ Progress TP-REL-005:
 Progress TP-DEC-001, TP-DEC-003, TP-DEC-004, TP-DEC-005, TP-DEC-006:
 - Decision packet opsi + rekomendasi teknis disiapkan di `PRODUCT_DECISION_PACKET.md`.
 - Status pending decision sekarang ikut dipantau otomatis di `RELEASE_READINESS_STATUS.md` melalui checker `scripts/release-readiness-report.mjs`.
+- Update status keputusan per-ID dapat diotomasi via `npm run governance:approve -- --packet decision --id TP-DEC-XXX ...` lalu disinkronkan ke checklist.
 - Item-item keputusan tetap terbuka sampai ada keputusan final lintas stakeholder dan dicatat pada approval record.
 
 Keputusan TP-DEC-002:
