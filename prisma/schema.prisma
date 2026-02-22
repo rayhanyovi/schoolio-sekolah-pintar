@@ -349,6 +349,7 @@ model Assignment {
   dueDate           DateTime
   allowLateSubmission Boolean          @default(false)
   lateUntil         DateTime?
+  maxAttempts       Int?
   kind              AssignmentKind?
   deliveryType      AssignmentDeliveryType?
   status            AssignmentStatus  @default(ACTIVE)
@@ -388,6 +389,7 @@ model AssignmentSubmission {
   assignmentId String
   studentId    String
   status       SubmissionStatus @default(PENDING)
+  attemptCount Int              @default(0)
   submittedAt  DateTime?
   grade        Int?
   feedback     String?

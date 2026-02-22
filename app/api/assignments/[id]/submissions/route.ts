@@ -80,6 +80,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       dueDate: true,
       allowLateSubmission: true,
       lateUntil: true,
+      maxAttempts: true,
     },
   });
   if (!assignment) {
@@ -105,9 +106,18 @@ export async function POST(request: NextRequest, { params }: Params) {
       select: {
         id: true,
         status: true,
+        attemptCount: true,
         submittedAt: true,
       },
     });
+    const nextAttemptCount = (existing?.attemptCount ?? 0) + 1;
+    if (
+      assignment.maxAttempts !== null &&
+      assignment.maxAttempts !== undefined &&
+      nextAttemptCount > assignment.maxAttempts
+    ) {
+      return null;
+    }
 
     const saved = await tx.assignmentSubmission.upsert({
       where: {
@@ -118,6 +128,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       },
       update: {
         status: body.status ?? "SUBMITTED",
+        attemptCount: nextAttemptCount,
         submittedAt: body.submittedAt ? new Date(body.submittedAt) : new Date(),
         response: body.response ?? null,
       },
@@ -125,6 +136,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         assignmentId: id,
         studentId: auth.userId,
         status: body.status ?? "SUBMITTED",
+        attemptCount: nextAttemptCount,
         submittedAt: body.submittedAt ? new Date(body.submittedAt) : new Date(),
         response: body.response ?? null,
       },
@@ -146,11 +158,13 @@ export async function POST(request: NextRequest, { params }: Params) {
           beforeData: existing
             ? {
                 status: existing.status,
+                attemptCount: existing.attemptCount,
                 submittedAt: existing.submittedAt,
               }
             : null,
           afterData: {
             status: saved.status,
+            attemptCount: saved.attemptCount,
             submittedAt: saved.submittedAt,
           },
           metadata: {
@@ -163,6 +177,14 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     return saved;
   });
+
+  if (!row) {
+    return jsonError(
+      "CONFLICT",
+      "Jumlah percobaan submit telah melebihi batas maxAttempts",
+      409
+    );
+  }
 
   return jsonOk(row, { status: 200 });
 }

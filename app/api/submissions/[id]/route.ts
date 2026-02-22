@@ -23,6 +23,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           dueDate: true,
           allowLateSubmission: true,
           lateUntil: true,
+          maxAttempts: true,
         },
       },
     },
@@ -70,7 +71,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       : auth.role === ROLES.STUDENT
         ? "SUBMITTED"
         : undefined;
-  if (auth.role === ROLES.STUDENT && status === "SUBMITTED") {
+  const isStudentSubmissionAttempt =
+    auth.role === ROLES.STUDENT && status === "SUBMITTED";
+  if (isStudentSubmissionAttempt) {
     const submitWindow = canSubmitAssignmentAt({
       dueDate: existing.assignment.dueDate,
       allowLateSubmission: existing.assignment.allowLateSubmission,
@@ -78,6 +81,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     });
     if (!submitWindow.allowed) {
       return jsonError("CONFLICT", submitWindow.reason ?? "Submission ditolak", 409);
+    }
+    const maxAttempts = existing.assignment.maxAttempts;
+    const nextAttemptCount = existing.attemptCount + 1;
+    if (maxAttempts !== null && maxAttempts !== undefined && nextAttemptCount > maxAttempts) {
+      return jsonError(
+        "CONFLICT",
+        "Jumlah percobaan submit telah melebihi batas maxAttempts",
+        409
+      );
     }
   }
   const submittedAt =
@@ -103,6 +115,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         feedback: isStudentActor ? undefined : body.feedback,
         response: body.response,
         submittedAt,
+        attemptCount:
+          isStudentSubmissionAttempt ? existing.attemptCount + 1 : undefined,
       },
     });
 
@@ -120,10 +134,12 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           entityId: updated.id,
           beforeData: {
             status: existing.status,
+            attemptCount: existing.attemptCount,
             submittedAt: existing.submittedAt,
           },
           afterData: {
             status: updated.status,
+            attemptCount: updated.attemptCount,
             submittedAt: updated.submittedAt,
           },
           metadata: {

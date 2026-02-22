@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
         type: item.type,
         allowLateSubmission: false,
         lateUntil: null,
+        maxAttempts: null,
       }))
     );
   }
@@ -143,6 +144,7 @@ export async function GET(request: NextRequest) {
     dueDate: row.dueDate,
     allowLateSubmission: row.allowLateSubmission,
     lateUntil: row.lateUntil,
+    maxAttempts: row.maxAttempts,
     createdAt: row.createdAt,
     kind: row.kind,
     deliveryType: row.deliveryType,
@@ -189,6 +191,20 @@ export async function POST(request: NextRequest) {
       400
     );
   }
+  const maxAttempts =
+    body.maxAttempts === undefined || body.maxAttempts === null || body.maxAttempts === ""
+      ? null
+      : Number(body.maxAttempts);
+  if (
+    maxAttempts !== null &&
+    (!Number.isInteger(maxAttempts) || maxAttempts <= 0)
+  ) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "maxAttempts harus berupa bilangan bulat positif",
+      400
+    );
+  }
   const classIds: string[] = Array.isArray(body.classIds) ? body.classIds : [];
 
   const teacherId =
@@ -228,6 +244,7 @@ export async function POST(request: NextRequest) {
       dueDate,
       allowLateSubmission,
       lateUntil: allowLateSubmission ? lateUntil : null,
+      maxAttempts,
       kind: body.kind ?? null,
       deliveryType: body.deliveryType ?? body.type ?? null,
       status: body.status ?? "ACTIVE",

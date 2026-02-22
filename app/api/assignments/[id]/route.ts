@@ -55,6 +55,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       type: item.type,
       allowLateSubmission: false,
       lateUntil: null,
+      maxAttempts: null,
     });
   }
 
@@ -110,6 +111,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     dueDate: row.dueDate,
     allowLateSubmission: row.allowLateSubmission,
     lateUntil: row.lateUntil,
+    maxAttempts: row.maxAttempts,
     createdAt: row.createdAt,
     kind: row.kind,
     deliveryType: row.deliveryType,
@@ -178,6 +180,22 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       400
     );
   }
+  const nextMaxAttempts =
+    body.maxAttempts !== undefined
+      ? body.maxAttempts === null || body.maxAttempts === ""
+        ? null
+        : Number(body.maxAttempts)
+      : existing.maxAttempts;
+  if (
+    nextMaxAttempts !== null &&
+    (!Number.isInteger(nextMaxAttempts) || nextMaxAttempts <= 0)
+  ) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "maxAttempts harus berupa bilangan bulat positif",
+      400
+    );
+  }
 
   if (auth.role === ROLES.TEACHER) {
     const hasSubjectAccess = await teacherCanManageSubject(
@@ -221,6 +239,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           : body.lateUntil !== undefined
             ? nextLateUntil
             : undefined,
+      maxAttempts:
+        body.maxAttempts !== undefined ? nextMaxAttempts : undefined,
       kind: body.kind ?? undefined,
       deliveryType: body.deliveryType ?? body.type ?? undefined,
       status: body.status,
