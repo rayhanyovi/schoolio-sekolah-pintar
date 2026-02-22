@@ -585,6 +585,10 @@ Implementasi TP-ROLE-006:
 - [x] TP-REL-004 Test integration authz + data integrity lulus di CI.
 - [ ] TP-REL-005 SOP operasional dan eskalasi insiden disetujui stakeholder.
 
+Progress TP-REL-001:
+- Ditambahkan readiness checker `scripts/release-readiness-report.mjs` dengan command `npm run release:readiness` dan `npm run release:readiness:strict`.
+- Checker mengevaluasi blocker otomatis untuk syarat P0 (`TP-SEC-*`, `TP-AUTHZ-*`, `TP-API-001`, `TP-PRN-001`) dan approval authz packet (Product + Engineering) untuk mempercepat verifikasi sebelum checklist diubah menjadi `[x]`.
+
 Implementasi TP-REL-002:
 - Rekap progres workstream P1 menunjukkan threshold `>=90%` tercapai; mayoritas item P1 pada WS-SCHEDULE, WS-ATT, WS-FORUM, WS-ASSIGN, WS-GRADE, WS-PARENT, WS-AUD, dan WS-TEST sudah selesai.
 - Sisa task non-selesai yang dominan berada pada keputusan/approval lintas stakeholder (bukan implementasi core P1 runtime path).
@@ -602,6 +606,7 @@ Implementasi TP-REL-004:
 
 Progress TP-REL-005:
 - Paket sign-off SOP operasional dan eskalasi insiden disiapkan di `OPS_SIGNOFF_PACKET.md` dengan matrix approval lintas stakeholder.
+- Readiness checker menghasilkan laporan status terkini di `RELEASE_READINESS_STATUS.md` agar approver dapat melihat blocker sign-off yang tersisa secara objektif.
 - Item tetap terbuka sampai seluruh approver utama menandatangani approval record.
 
 ## 7. Checklist Keputusan Produk (Wajib Diputuskan)
@@ -615,6 +620,7 @@ Progress TP-REL-005:
 
 Progress TP-DEC-001, TP-DEC-003, TP-DEC-004, TP-DEC-005, TP-DEC-006:
 - Decision packet opsi + rekomendasi teknis disiapkan di `PRODUCT_DECISION_PACKET.md`.
+- Status pending decision sekarang ikut dipantau otomatis di `RELEASE_READINESS_STATUS.md` melalui checker `scripts/release-readiness-report.mjs`.
 - Item-item keputusan tetap terbuka sampai ada keputusan final lintas stakeholder dan dicatat pada approval record.
 
 Keputusan TP-DEC-002:

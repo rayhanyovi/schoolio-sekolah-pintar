@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:release-authz-integrity": "node scripts/release-gate-authz-integrity.mjs",
+    "release:readiness": "node scripts/release-readiness-report.mjs --warn-only --write",
+    "release:readiness:strict": "node scripts/release-readiness-report.mjs --write",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
