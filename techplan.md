@@ -388,11 +388,15 @@ Implementasi TP-OPS-005:
 ## 7. Checklist Keputusan Produk (Wajib Diputuskan)
 
 - [ ] TP-DEC-001 Putuskan model auth final (internal credential / SSO / hybrid).
-- [ ] TP-DEC-002 Putuskan policy detail visibilitas parent terhadap submission anak.
+- [x] TP-DEC-002 Putuskan policy detail visibilitas parent terhadap submission anak.
 - [ ] TP-DEC-003 Putuskan policy co-teaching/substitute untuk grading authority.
 - [ ] TP-DEC-004 Putuskan policy late submission/remedial/resubmission.
 - [ ] TP-DEC-005 Putuskan policy rollover tahun ajaran (freeze, clone, promotion).
 - [ ] TP-DEC-006 Putuskan data retention dan export policy compliance.
+
+Keputusan TP-DEC-002:
+- Parent dapat melihat status submission, timestamp submit, nilai, dan feedback anak.
+- Parent tidak dapat melihat detail jawaban mentah (`response`) anak (masking server-side).
 
 ## 8. Scope Change Log (Jangan Hapus Histori)
 
