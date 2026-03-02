@@ -13,6 +13,10 @@ vi.mock("@/lib/prisma", () => ({
     class: {
       create: vi.fn(),
     },
+    uploadScanJob: {
+      count: vi.fn(),
+      findFirst: vi.fn(),
+    },
     $queryRaw: vi.fn(),
   },
 }));
@@ -36,6 +40,8 @@ describe("E2E role journey - ADMIN", () => {
     const mockedRequireRole = vi.mocked(requireRole);
     const mockedCreateYear = vi.mocked(prisma.academicYear.create);
     const mockedCreateClass = vi.mocked(prisma.class.create);
+    const mockedUploadScanJobCount = vi.mocked(prisma.uploadScanJob.count);
+    const mockedUploadScanJobFindFirst = vi.mocked(prisma.uploadScanJob.findFirst);
     const mockedQueryRaw = vi.mocked(prisma.$queryRaw);
 
     mockedRequireAuth.mockResolvedValue({
@@ -65,6 +71,8 @@ describe("E2E role journey - ADMIN", () => {
       maleCount: 0,
       femaleCount: 0,
     } as never);
+    mockedUploadScanJobCount.mockResolvedValue(0 as never);
+    mockedUploadScanJobFindFirst.mockResolvedValue(null as never);
     mockedQueryRaw.mockResolvedValue([{ "?column?": 1 }] as never);
 
     const yearRequest = new Request("http://localhost/api/academic-years", {

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { resolveGovernanceDocPath } from "./governance-doc-paths.mjs";
 
 const ALLOWED_DECISIONS = new Set(["Approved", "Pending", "Deferred", "Rejected"]);
 
@@ -128,12 +129,20 @@ const updateTableRow = ({
   return lines.join("\n");
 };
 
-const targetPath = path.resolve(process.cwd(), packetPathByType[packet]);
+const rootDir = process.cwd();
+const targetPath = resolveGovernanceDocPath(
+  rootDir,
+  packetPathByType[packet]
+);
 const originalMarkdown = readFileSync(targetPath, "utf8");
 let updatedMarkdown = originalMarkdown;
 
 const ensureHistoryFile = () => {
-  const historyPath = path.resolve(process.cwd(), "GOVERNANCE_APPROVAL_HISTORY.md");
+  const historyPath = resolveGovernanceDocPath(
+    rootDir,
+    "GOVERNANCE_APPROVAL_HISTORY.md",
+    { requireExists: false }
+  );
   if (existsSync(historyPath)) return historyPath;
   writeFileSync(
     historyPath,

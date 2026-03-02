@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
+import { resolveGovernanceDocPath } from "./governance-doc-paths.mjs";
 
 const args = new Set(process.argv.slice(2));
 const checkOnly = args.has("--check");
@@ -47,10 +47,11 @@ const setChecklistValue = (markdown, id, checked) => {
   return markdown.replace(regex, `$1${checked ? "x" : " "}$2`);
 };
 
-const techplanPath = path.resolve(process.cwd(), "techplan.md");
-const authzPath = path.resolve(process.cwd(), "AUTHZ_APPROVAL_PACKET.md");
-const opsPath = path.resolve(process.cwd(), "OPS_SIGNOFF_PACKET.md");
-const decisionPath = path.resolve(process.cwd(), "PRODUCT_DECISION_PACKET.md");
+const rootDir = process.cwd();
+const techplanPath = resolveGovernanceDocPath(rootDir, "techplan.md");
+const authzPath = resolveGovernanceDocPath(rootDir, "AUTHZ_APPROVAL_PACKET.md");
+const opsPath = resolveGovernanceDocPath(rootDir, "OPS_SIGNOFF_PACKET.md");
+const decisionPath = resolveGovernanceDocPath(rootDir, "PRODUCT_DECISION_PACKET.md");
 
 const techplanOriginal = readFileSync(techplanPath, "utf8");
 const authzMarkdown = readFileSync(authzPath, "utf8");

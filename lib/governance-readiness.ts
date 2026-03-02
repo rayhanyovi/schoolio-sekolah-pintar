@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
 export type GovernanceReadinessSection = {
@@ -51,6 +51,26 @@ const parseSectionTableRows = (markdown: string, heading: string): string[][] =>
 };
 
 const unique = (values: string[]) => [...new Set(values)];
+
+const resolveGovernanceDocPath = async (rootDir: string, filename: string) => {
+  const docsPath = path.resolve(rootDir, "docs", filename);
+  try {
+    await access(docsPath);
+    return docsPath;
+  } catch {
+    // fallback to legacy root location
+  }
+
+  const legacyPath = path.resolve(rootDir, filename);
+  try {
+    await access(legacyPath);
+    return legacyPath;
+  } catch {
+    throw new Error(
+      `Governance file not found di docs/ atau root: ${filename}`
+    );
+  }
+};
 
 export const buildGovernanceReadinessSnapshot = ({
   techplanMarkdown,
@@ -137,12 +157,19 @@ export const buildGovernanceReadinessSnapshot = ({
 export const loadGovernanceReadinessSnapshot = async (
   rootDir = process.cwd()
 ): Promise<GovernanceReadinessSnapshot> => {
+  const [techplanPath, authzPath, opsPath, decisionPath] = await Promise.all([
+    resolveGovernanceDocPath(rootDir, "techplan.md"),
+    resolveGovernanceDocPath(rootDir, "AUTHZ_APPROVAL_PACKET.md"),
+    resolveGovernanceDocPath(rootDir, "OPS_SIGNOFF_PACKET.md"),
+    resolveGovernanceDocPath(rootDir, "PRODUCT_DECISION_PACKET.md"),
+  ]);
+
   const [techplanMarkdown, authzPacketMarkdown, opsPacketMarkdown, decisionPacketMarkdown] =
     await Promise.all([
-      readFile(path.resolve(rootDir, "techplan.md"), "utf8"),
-      readFile(path.resolve(rootDir, "AUTHZ_APPROVAL_PACKET.md"), "utf8"),
-      readFile(path.resolve(rootDir, "OPS_SIGNOFF_PACKET.md"), "utf8"),
-      readFile(path.resolve(rootDir, "PRODUCT_DECISION_PACKET.md"), "utf8"),
+      readFile(techplanPath, "utf8"),
+      readFile(authzPath, "utf8"),
+      readFile(opsPath, "utf8"),
+      readFile(decisionPath, "utf8"),
     ]);
 
   return buildGovernanceReadinessSnapshot({

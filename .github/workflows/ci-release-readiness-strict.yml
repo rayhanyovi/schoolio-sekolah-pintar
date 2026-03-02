@@ -1,16 +1,14 @@
-name: CI Release Readiness Report
+name: CI Release Readiness Strict Gate
 
 on:
   push:
-    branches:
-      - main
-      - master
-  pull_request:
-  schedule:
-    - cron: "0 1 * * *"
+    tags:
+      - "v*"
+      - "release-*"
+  workflow_dispatch:
 
 jobs:
-  release-readiness-report:
+  release-readiness-strict:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -26,13 +24,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate readiness report (non-blocking gate)
-        run: npm run release:readiness
+      - name: Run strict release readiness gate
+        run: npm run release:readiness:strict
 
       - name: Upload readiness report artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-readiness-status
+          name: release-readiness-status-strict
           path: |
             docs/RELEASE_READINESS_STATUS.md
             RELEASE_READINESS_STATUS.md

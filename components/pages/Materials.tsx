@@ -38,19 +38,28 @@ import {
   Calendar,
   Clock,
   User,
+  Upload,
+  Loader2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import {
+  addMaterialAttachment,
   createMaterial,
   deleteMaterial,
+  getMaterial,
   listMaterials,
   updateMaterial,
 } from "@/lib/handlers/materials";
+import {
+  confirmUploadIntent,
+  createUploadIntent,
+  uploadContentWithSignedUrl,
+} from "@/lib/handlers/uploads";
 import { listSchedules } from "@/lib/handlers/schedules";
 import { listSubjects } from "@/lib/handlers/subjects";
 import { listParentChildren, listTeachers, listStudents } from "@/lib/handlers/users";
+import { useToast } from "@/hooks/use-toast";
 import {
   MaterialSummary,
   ScheduleSummary,
@@ -93,6 +102,7 @@ export default function Materials() {
 }
 
 function TeacherMaterialsView() {
+  const { toast } = useToast();
   const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
   const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
   const [teachers, setTeachers] = useState<UserSummary[]>([]);
@@ -102,6 +112,8 @@ function TeacherMaterialsView() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialSummary | null>(null);
   const [detailMaterial, setDetailMaterial] = useState<MaterialSummary | null>(null);
+  const [selectedAttachmentFile, setSelectedAttachmentFile] = useState<File | null>(null);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const selectedSchedule = schedules.find((schedule) => schedule.id === selectedScheduleId);
@@ -173,6 +185,71 @@ function TeacherMaterialsView() {
     setIsDialogOpen(false);
     setEditingMaterial(null);
     await loadMaterials();
+  };
+
+  useEffect(() => {
+    if (!detailMaterial) {
+      setSelectedAttachmentFile(null);
+    }
+  }, [detailMaterial]);
+
+  const toSha256Hex = async (file: File) => {
+    const payload = await file.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", payload);
+    return Array.from(new Uint8Array(digest))
+      .map((value) => value.toString(16).padStart(2, "0"))
+      .join("");
+  };
+
+  const handleUploadAttachment = async () => {
+    if (!detailMaterial || !selectedAttachmentFile) {
+      return;
+    }
+
+    setIsUploadingAttachment(true);
+    try {
+      const checksumSha256 = await toSha256Hex(selectedAttachmentFile);
+      const fileType =
+        selectedAttachmentFile.type?.trim() || "application/octet-stream";
+      const intent = await createUploadIntent({
+        materialId: detailMaterial.id,
+        fileName: selectedAttachmentFile.name,
+        fileType,
+        sizeBytes: selectedAttachmentFile.size,
+        checksumSha256,
+      });
+      await uploadContentWithSignedUrl({
+        uploadUrl: intent.uploadUrl,
+        fileType: intent.fileType,
+        data: selectedAttachmentFile,
+      });
+      await confirmUploadIntent(intent.id);
+      await addMaterialAttachment(detailMaterial.id, {
+        uploadIntentId: intent.id,
+      });
+
+      const latestMaterial = await getMaterial(detailMaterial.id);
+      setDetailMaterial(latestMaterial);
+      setMaterials((prev) =>
+        prev.map((item) => (item.id === latestMaterial.id ? latestMaterial : item))
+      );
+      setSelectedAttachmentFile(null);
+      toast({
+        title: "Upload berhasil",
+        description: "Lampiran materi berhasil ditambahkan.",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Upload lampiran gagal. Coba lagi.";
+      toast({
+        title: "Upload gagal",
+        description: message,
+      });
+    } finally {
+      setIsUploadingAttachment(false);
+    }
   };
 
   return (
@@ -291,6 +368,44 @@ function TeacherMaterialsView() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Lampiran</h4>
+                  <div className="space-y-3 mb-4 rounded-lg border border-dashed p-3">
+                    <Label htmlFor="material-attachment" className="text-xs text-muted-foreground">
+                      Tambah lampiran (flow intent/upload/confirm)
+                    </Label>
+                    <Input
+                      id="material-attachment"
+                      type="file"
+                      onChange={(event) =>
+                        setSelectedAttachmentFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs text-muted-foreground truncate">
+                        {selectedAttachmentFile
+                          ? `${selectedAttachmentFile.name} (${Math.round(
+                              selectedAttachmentFile.size / 1024
+                            )} KB)`
+                          : "Belum ada file dipilih"}
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={handleUploadAttachment}
+                        disabled={!selectedAttachmentFile || isUploadingAttachment}
+                      >
+                        {isUploadingAttachment ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Upload...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     {detailMaterial.attachments.map((file) => (
                       <div

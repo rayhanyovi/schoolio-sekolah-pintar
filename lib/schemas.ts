@@ -731,6 +731,41 @@ export const analyticsDemographicsSchema = z.object({
 });
 export type AnalyticsDemographics = z.infer<typeof analyticsDemographicsSchema>;
 
+export const uploadScanQueueAlertSchema = z.object({
+  code: z.string(),
+  level: z.enum(["WARNING", "CRITICAL"]),
+  message: z.string(),
+  value: z.number(),
+  threshold: z.number(),
+});
+export type UploadScanQueueAlert = z.infer<typeof uploadScanQueueAlertSchema>;
+
+export const uploadScanQueueMetricsSchema = z.object({
+  totalJobs: z.number(),
+  pendingJobs: z.number(),
+  failedJobs: z.number(),
+  infectedJobs: z.number(),
+  cleanJobs: z.number(),
+  oldestPendingMinutes: z.number().nullable(),
+  alertState: z.enum(["NORMAL", "WARNING", "CRITICAL"]),
+  alerts: z
+    .array(uploadScanQueueAlertSchema)
+    .nullish()
+    .transform((value) => value ?? []),
+});
+export type UploadScanQueueMetricsSummary = z.infer<
+  typeof uploadScanQueueMetricsSchema
+>;
+
+export const systemMetricsSchema = z.object({
+  status: z.string(),
+  timestamp: dateSchema,
+  uptimeSeconds: z.number(),
+  database: z.string(),
+  uploadScanQueue: uploadScanQueueMetricsSchema,
+});
+export type SystemMetricsSummary = z.infer<typeof systemMetricsSchema>;
+
 export const governanceReadinessSectionSchema = z.object({
   ready: z.boolean(),
   blockers: z
@@ -747,4 +782,113 @@ export const governanceReadinessSnapshotSchema = z.object({
 });
 export type GovernanceReadinessSnapshot = z.infer<
   typeof governanceReadinessSnapshotSchema
+>;
+
+export const governanceTrackerTaskPacketSchema = z.enum([
+  "AUTHZ",
+  "OPS",
+  "DECISION",
+]);
+export type GovernanceTrackerTaskPacket = z.infer<
+  typeof governanceTrackerTaskPacketSchema
+>;
+
+export const governanceTrackerTaskSchema = z.object({
+  id: z.string(),
+  packet: governanceTrackerTaskPacketSchema,
+  target: z.string(),
+  owner: z.string(),
+  decision: z.string(),
+  decisionDate: z.string().nullable(),
+  dueDate: z.string().nullable(),
+  note: z.string().nullable(),
+  isApproved: z.boolean(),
+  isOverdue: z.boolean(),
+});
+export type GovernanceTrackerTaskSummary = z.infer<
+  typeof governanceTrackerTaskSchema
+>;
+
+export const governanceTrackerPendingByPicSchema = z.object({
+  pic: z.string(),
+  pending: z.number(),
+  overdue: z.number(),
+  targets: z.array(z.string()).default([]),
+});
+export type GovernanceTrackerPendingByPicSummary = z.infer<
+  typeof governanceTrackerPendingByPicSchema
+>;
+
+export const governanceTrackerHistoryEntrySchema = z.object({
+  date: z.string().nullable(),
+  packet: z.string(),
+  target: z.string(),
+  decision: z.string(),
+  actor: z.string().nullable(),
+  note: z.string().nullable(),
+});
+export type GovernanceTrackerHistoryEntrySummary = z.infer<
+  typeof governanceTrackerHistoryEntrySchema
+>;
+
+export const governanceTrackerSnapshotSchema = z.object({
+  generatedAt: dateSchema,
+  totals: z.object({
+    total: z.number(),
+    approved: z.number(),
+    pending: z.number(),
+    overdue: z.number(),
+  }),
+  tasks: z.array(governanceTrackerTaskSchema).default([]),
+  overdueTasks: z.array(governanceTrackerTaskSchema).default([]),
+  pendingByPic: z.array(governanceTrackerPendingByPicSchema).default([]),
+  recentHistory: z.array(governanceTrackerHistoryEntrySchema).default([]),
+});
+export type GovernanceTrackerSnapshot = z.infer<
+  typeof governanceTrackerSnapshotSchema
+>;
+
+export const governanceApprovalDecisionSchema = z.enum([
+  "Approved",
+  "Pending",
+  "Deferred",
+  "Rejected",
+]);
+export type GovernanceApprovalDecision = z.infer<
+  typeof governanceApprovalDecisionSchema
+>;
+export const governanceApprovalPacketSchema = z.enum([
+  "authz",
+  "ops",
+  "decision",
+]);
+export type GovernanceApprovalPacket = z.infer<
+  typeof governanceApprovalPacketSchema
+>;
+export const governanceApprovalMutationPayloadSchema = z.object({
+  packet: governanceApprovalPacketSchema,
+  subject: z.string().optional(),
+  id: z.string().optional(),
+  decision: governanceApprovalDecisionSchema,
+  name: z.string().optional(),
+  note: z.string().optional(),
+  owner: z.string().optional(),
+  dueDate: z.string().optional(),
+  date: z.string().optional(),
+  actor: z.string().optional(),
+});
+export type GovernanceApprovalMutationPayload = z.infer<
+  typeof governanceApprovalMutationPayloadSchema
+>;
+
+export const governanceApprovalMutationResultSchema = z.object({
+  changed: z.boolean(),
+  packet: governanceApprovalPacketSchema,
+  target: z.string(),
+  decision: governanceApprovalDecisionSchema,
+  date: z.string(),
+  snapshot: governanceReadinessSnapshotSchema,
+});
+export type GovernanceApprovalMutationResult = z.infer<
+  typeof governanceApprovalMutationResultSchema
 >;

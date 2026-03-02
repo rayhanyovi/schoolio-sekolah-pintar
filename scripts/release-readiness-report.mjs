@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
+import { resolveGovernanceDocPath } from "./governance-doc-paths.mjs";
 
 const args = new Set(process.argv.slice(2));
 const warnOnly = args.has("--warn-only");
@@ -8,7 +8,7 @@ const shouldWriteReport = args.has("--write");
 const ROOT = process.cwd();
 
 const readFile = (relativePath) =>
-  readFileSync(path.resolve(ROOT, relativePath), "utf8");
+  readFileSync(resolveGovernanceDocPath(ROOT, relativePath), "utf8");
 
 const toIsoDate = () => new Date().toISOString().slice(0, 10);
 
@@ -164,12 +164,15 @@ const report = reportLines.join("\n");
 console.log(report);
 
 if (shouldWriteReport) {
+  const reportPath = resolveGovernanceDocPath(ROOT, "RELEASE_READINESS_STATUS.md", {
+    requireExists: false,
+  });
   writeFileSync(
-    path.resolve(ROOT, "RELEASE_READINESS_STATUS.md"),
+    reportPath,
     `${report}\n`,
     "utf8"
   );
-  console.log("[release-readiness] report ditulis ke RELEASE_READINESS_STATUS.md");
+  console.log(`[release-readiness] report ditulis ke ${reportPath}`);
 }
 
 if (!overallReady && !warnOnly) {
