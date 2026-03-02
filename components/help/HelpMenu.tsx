@@ -22,6 +22,7 @@ type HelpStep = {
 
 type HelpFeature = {
   name: string;
+  roles?: string[];
   steps: HelpStep[];
 };
 
@@ -35,20 +36,36 @@ type HelpData = HelpRoute[];
 
 const normalizeRoute = (value: string) => value.replace(/\/+$/, "") || "/";
 
+const splitRouteSegments = (value: string) =>
+  normalizeRoute(value).split("/").filter(Boolean);
+
+const isDynamicSegment = (segment: string) =>
+  segment.startsWith("[") && segment.endsWith("]");
+
+const isPrefixRouteMatch = (routePattern: string, pathname: string) => {
+  const routeSegments = splitRouteSegments(routePattern);
+  const pathSegments = splitRouteSegments(pathname);
+
+  if (routeSegments.length === 0) return pathSegments.length === 0;
+  if (routeSegments.length > pathSegments.length) return false;
+
+  return routeSegments.every((segment, index) => {
+    if (isDynamicSegment(segment)) return true;
+    return segment === pathSegments[index];
+  });
+};
+
 const pickRouteMatch = (routes: HelpRoute[], pathname: string) => {
-  const normalizedPath = normalizeRoute(pathname);
-  const exact = routes.find(
-    (item) => normalizeRoute(item.route) === normalizedPath,
-  );
-  if (exact) return exact;
-  const prefixMatches = routes
-    .filter((item) =>
-      normalizedPath.startsWith(normalizeRoute(item.route)),
-    )
-    .sort(
-      (a, b) => normalizeRoute(b.route).length - normalizeRoute(a.route).length,
-    );
-  return prefixMatches[0] ?? null;
+  const matches = routes
+    .filter((item) => isPrefixRouteMatch(item.route, pathname))
+    .sort((a, b) => {
+      const segmentDiff =
+        splitRouteSegments(b.route).length - splitRouteSegments(a.route).length;
+      if (segmentDiff !== 0) return segmentDiff;
+      return normalizeRoute(b.route).length - normalizeRoute(a.route).length;
+    });
+
+  return matches[0] ?? null;
 };
 
 type HelpMenuProps = {
@@ -104,24 +121,39 @@ export function HelpMenu({ role }: HelpMenuProps) {
     return activeRoute.roles.includes(role) ? activeRoute : null;
   }, [activeRoute, role]);
 
+  const roleFilteredFeatures = useMemo(() => {
+    if (!roleFilteredRoute) return [];
+    return roleFilteredRoute.features.filter((feature) => {
+      if (!feature.roles || feature.roles.length === 0) return true;
+      if (!role) return false;
+      return feature.roles.includes(role);
+    });
+  }, [roleFilteredRoute, role]);
+
   useEffect(() => {
-    if (!roleFilteredRoute) {
+    if (!roleFilteredRoute || roleFilteredFeatures.length === 0) {
       setSelectedFeature("");
       return;
     }
-    const first = roleFilteredRoute.features[0]?.name ?? "";
-    setSelectedFeature((prev) => (prev ? prev : first));
-  }, [roleFilteredRoute]);
+    const first = roleFilteredFeatures[0]?.name ?? "";
+    setSelectedFeature((prev) => {
+      if (!prev) return first;
+      return roleFilteredFeatures.some((feature) => feature.name === prev)
+        ? prev
+        : first;
+    });
+  }, [roleFilteredFeatures, roleFilteredRoute]);
 
   const visibleFeature = useMemo(() => {
     if (!roleFilteredRoute) return null;
-    if (!selectedFeature) return roleFilteredRoute.features[0] ?? null;
+    if (roleFilteredFeatures.length === 0) return null;
+    if (!selectedFeature) return roleFilteredFeatures[0] ?? null;
     return (
-      roleFilteredRoute.features.find((f) => f.name === selectedFeature) ??
-      roleFilteredRoute.features[0] ??
+      roleFilteredFeatures.find((f) => f.name === selectedFeature) ??
+      roleFilteredFeatures[0] ??
       null
     );
-  }, [roleFilteredRoute, selectedFeature]);
+  }, [roleFilteredFeatures, roleFilteredRoute, selectedFeature]);
 
   return (
     <>
@@ -159,7 +191,7 @@ export function HelpMenu({ role }: HelpMenuProps) {
           {!isLoading && !loadError && roleFilteredRoute && (
             <div className="grid gap-6 md:grid-cols-[180px_minmax(0,1fr)]">
               <div className="flex flex-col gap-2">
-                {roleFilteredRoute.features.map((feature) => (
+                {roleFilteredFeatures.map((feature) => (
                   <button
                     key={feature.name}
                     type="button"
@@ -174,6 +206,11 @@ export function HelpMenu({ role }: HelpMenuProps) {
                     {feature.name}
                   </button>
                 ))}
+                {roleFilteredFeatures.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-1">
+                    Belum ada panduan untuk role ini.
+                  </p>
+                )}
               </div>
               <div className="space-y-3">
                 {visibleFeature ? (

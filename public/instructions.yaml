@@ -1,37 +1,652 @@
 - route: /dashboard
   roles: [ADMIN, TEACHER, STUDENT, PARENT]
   features:
-    - name: Navigasi Utama
+    - name: Dashboard Analytics Cepat
+      roles: [ADMIN]
       steps:
-        - title: Pilih Menu
-          description: Gunakan sidebar di kiri untuk berpindah halaman.
-        - title: Cari Cepat
-          description: Gunakan kolom pencarian di atas untuk menemukan data.
-    - name: Notifikasi & Bantuan
+        - title: Cek kartu indikator utama
+          description: Lihat total siswa, rata-rata nilai, tingkat kehadiran, dan jumlah tugas aktif di bagian atas dashboard.
+        - title: Buka tab analitik sesuai kebutuhan
+          description: Pindah ke ringkasan kehadiran, nilai, atau demografi untuk analisis lebih detail.
+    - name: Dashboard Harian Pengguna
+      roles: [TEACHER, STUDENT, PARENT]
       steps:
-        - title: Notifikasi
-          description: Klik ikon lonceng untuk melihat pemberitahuan terbaru.
-        - title: Bantuan
-          description: Klik ikon bantuan di samping lonceng untuk melihat panduan fitur.
+        - title: Tinjau jadwal dan tugas terbaru
+          description: Periksa kartu jadwal hari ini dan tugas terbaru untuk menentukan prioritas aktivitas.
+        - title: Pantau ringkasan kehadiran mingguan
+          description: Gunakan kartu ringkasan kehadiran untuk melihat tren cepat tanpa harus pindah halaman.
+    - name: Navigasi Modul dari Sidebar
+      steps:
+        - title: Pilih modul dari menu kiri
+          description: Gunakan sidebar untuk berpindah ke absensi, tugas, materi, nilai, kalender, dan modul lain sesuai role.
+        - title: Masuk ke profil pengguna
+          description: Klik nama pengguna atau tombol Profil Saya di bagian bawah sidebar.
+    - name: Bantuan Kontekstual Halaman
+      steps:
+        - title: Klik ikon bantuan di top bar
+          description: Buka panduan fitur untuk halaman aktif melalui ikon bantuan di kanan atas.
+        - title: Pilih fitur yang ingin dipelajari
+          description: Gunakan daftar fitur di panel kiri bantuan untuk melihat langkah yang paling relevan.
+
+- route: /dashboard/analytics
+  roles: [ADMIN]
+  features:
+    - name: Tab Kehadiran
+      steps:
+        - title: Buka tab Kehadiran
+          description: Lihat rekap status hadir, izin, sakit, dan alpa dari data sistem.
+        - title: Analisis distribusi kehadiran
+          description: Gunakan grafik distribusi untuk membandingkan proporsi status absensi.
+    - name: Tab Nilai
+      steps:
+        - title: Buka tab Nilai
+          description: Tinjau rata-rata nilai per mata pelajaran dan progres pengumpulan tugas.
+        - title: Pantau siswa berisiko
+          description: Prioritaskan tindak lanjut pada daftar siswa dengan performa rendah.
+    - name: Tab Demografi
+      steps:
+        - title: Buka tab Demografi
+          description: Lihat distribusi populasi berdasarkan kelas, gender, dan indikator demografi lain.
+        - title: Gunakan data untuk kebijakan sekolah
+          description: Padukan data demografi dengan data nilai dan kehadiran saat mengambil keputusan operasional.
+
+- route: /dashboard/users
+  roles: [ADMIN]
+  features:
+    - name: Kelola Daftar Pengguna
+      steps:
+        - title: Pilih tab pengguna
+          description: Gunakan tab Siswa, Guru, dan Orang Tua untuk fokus pada tipe akun tertentu.
+        - title: Gunakan pencarian dan aksi cepat
+          description: Temukan akun lalu jalankan aksi edit, hubungkan akun, atau hapus sesuai kebutuhan.
+    - name: Form Pengguna (UserFormDialog)
+      roles: [ADMIN]
+      steps:
+        - title: Buka dialog tambah atau edit
+          description: Klik Tambah Pengguna atau ikon edit pada baris data pengguna.
+        - title: Lengkapi data akun sesuai role
+          description: Isi data dasar pengguna, lalu sesuaikan field tambahan seperti kelas siswa atau relasi orang tua.
+        - title: Simpan perubahan
+          description: Klik simpan untuk membuat akun baru atau memperbarui akun yang dipilih.
+    - name: Hubungkan Akun (LinkUserDialog)
+      roles: [ADMIN]
+      steps:
+        - title: Buka dialog hubungkan akun
+          description: Gunakan aksi Link pada pengguna untuk membuka dialog hubungan data.
+        - title: Tentukan relasi yang tepat
+          description: Hubungkan orang tua ke siswa atau atur relasi akun lain sesuai skenario operasional.
+        - title: Simpan relasi
+          description: Pastikan relasi tersimpan agar data monitoring lintas role berjalan benar.
+    - name: Konfirmasi Hapus (AlertDialog)
+      roles: [ADMIN]
+      steps:
+        - title: Jalankan aksi hapus pengguna
+          description: Klik tombol hapus pada akun yang tidak lagi digunakan.
+        - title: Verifikasi konfirmasi
+          description: Baca ringkasan dampak penghapusan sebelum melanjutkan.
+        - title: Konfirmasi penghapusan
+          description: Pilih aksi konfirmasi untuk menghapus akun secara permanen.
+
+- route: /dashboard/classes
+  roles: [ADMIN]
+  features:
+    - name: Manajemen Data Kelas
+      steps:
+        - title: Tinjau statistik kelas
+          description: Gunakan kartu ringkasan untuk melihat total kelas, total siswa, dan rata-rata siswa per kelas.
+        - title: Filter kelas per tingkat
+          description: Pilih tingkat kelas untuk mempersempit daftar dan mempercepat pengelolaan data.
+    - name: Form Kelas (ClassFormDialog)
+      roles: [ADMIN]
+      steps:
+        - title: Buka dialog tambah atau edit kelas
+          description: Klik Tambah Kelas atau ikon edit pada kartu kelas.
+        - title: Lengkapi informasi kelas
+          description: Isi nama kelas, tingkat, wali kelas, dan parameter lain yang dibutuhkan.
+        - title: Simpan data kelas
+          description: Klik simpan untuk membuat kelas baru atau memperbarui kelas terpilih.
+    - name: Detail Kelas (ClassDetailSheet)
+      roles: [ADMIN]
+      steps:
+        - title: Buka sheet detail kelas
+          description: Klik kartu kelas untuk membuka detail siswa, mata pelajaran, dan atribut kelas.
+        - title: Tinjau relasi kelas
+          description: Gunakan panel detail untuk memastikan komposisi siswa dan mapel sudah sesuai.
+
+- route: /dashboard/majors
+  roles: [ADMIN]
+  features:
+    - name: Kelola Jurusan
+      steps:
+        - title: Tinjau daftar jurusan aktif
+          description: Gunakan filter jurusan untuk melihat distribusi siswa dan guru per jurusan.
+        - title: Pantau kapasitas jurusan
+          description: Periksa ringkasan jumlah kelas dan siswa agar distribusi jurusan tetap seimbang.
+    - name: Tambah Jurusan (Dialog)
+      roles: [ADMIN]
+      steps:
+        - title: Buka dialog tambah jurusan
+          description: Klik tombol Tambah Jurusan di bagian header halaman.
+        - title: Isi kode dan nama jurusan
+          description: Gunakan kode unik dan nama jurusan resmi sesuai standar sekolah.
+        - title: Simpan jurusan baru
+          description: Konfirmasi simpan agar jurusan langsung tersedia untuk pengelolaan kelas.
+    - name: Atur Guru Jurusan (Dialog)
+      roles: [ADMIN]
+      steps:
+        - title: Buka dialog pengaturan guru jurusan
+          description: Klik tombol Atur Guru Jurusan untuk menentukan guru pengampu.
+        - title: Pilih guru yang relevan
+          description: Centang guru yang bertanggung jawab pada jurusan terpilih.
+        - title: Simpan assignment guru
+          description: Simpan perubahan agar mapping jurusan-guru diterapkan ke modul terkait.
+
+- route: /dashboard/subjects
+  roles: [ADMIN]
+  features:
+    - name: Kelola Mata Pelajaran
+      steps:
+        - title: Tinjau daftar mapel
+          description: Pantau total mata pelajaran dan distribusinya untuk setiap tingkat kelas.
+        - title: Kelola data mapel
+          description: Gunakan aksi edit atau hapus pada kartu mapel untuk perawatan data.
+    - name: Form Mapel (SubjectFormDialog)
+      roles: [ADMIN]
+      steps:
+        - title: Buka dialog tambah atau edit mapel
+          description: Klik Tambah Mata Pelajaran atau ikon edit pada item yang dipilih.
+        - title: Isi data mapel
+          description: Lengkapi nama mapel, kode, dan metadata pendukung sebelum menyimpan.
+        - title: Simpan perubahan mapel
+          description: Konfirmasi simpan agar mapel bisa langsung dipakai di jadwal dan tugas.
+    - name: Assign Guru ke Mapel (AssignTeacherDialog)
+      roles: [ADMIN]
+      steps:
+        - title: Buka dialog assign guru
+          description: Jalankan aksi atur guru pada mapel yang ingin ditugaskan.
+        - title: Pilih guru pengampu
+          description: Centang satu atau lebih guru sesuai kebijakan pengajaran mapel.
+        - title: Simpan assignment
+          description: Simpan agar relasi guru-mapel dipakai di jadwal, materi, dan penilaian.
+
+- route: /dashboard/schedules
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Lihat Kalender Jadwal Pelajaran
+      steps:
+        - title: Pilih tanggal pada kalender
+          description: Klik tanggal untuk melihat sesi pelajaran yang berjalan pada hari tersebut.
+        - title: Gunakan filter kelas bila diperlukan
+          description: Pilih kelas tertentu agar daftar jadwal lebih fokus dan mudah dibaca.
+    - name: Tambah Jadwal Pelajaran (Dialog)
+      roles: [ADMIN]
+      steps:
+        - title: Buka dialog tambah jadwal
+          description: Klik tombol Tambah Jadwal Pelajaran di bagian header.
+        - title: Isi kelas, mapel, guru, hari, dan jam
+          description: Lengkapi form secara berurutan, termasuk template jam agar jadwal valid.
+        - title: Cek bentrok lalu simpan
+          description: Pastikan tidak ada konflik jadwal sebelum menekan Simpan Jadwal.
+    - name: Assign Guru Pengganti
+      roles: [ADMIN]
+      steps:
+        - title: Buka panel sesi yang butuh pengganti
+          description: Lihat daftar sesi terdampak ketidakhadiran guru pada bagian assignment guru pengganti.
+        - title: Pilih guru pengganti
+          description: Tentukan guru pengganti untuk setiap sesi yang membutuhkan coverage.
+        - title: Simpan assignment pengganti
+          description: Simpan perubahan agar sesi tetap berjalan sesuai jadwal.
+    - name: Detail Jadwal Harian (Sheet)
+      roles: [ADMIN, TEACHER, STUDENT, PARENT]
+      steps:
+        - title: Buka sheet detail tanggal
+          description: Klik tanggal aktif untuk membuka rincian jadwal hari tersebut.
+        - title: Tinjau sesi dan tugas aktif
+          description: Periksa jam pelajaran, guru, ruangan, dan tugas aktif yang terkait.
+
+- route: /dashboard/calendar
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Lihat Event Kalender Akademik
+      steps:
+        - title: Pilih tanggal pada kalender
+          description: Klik tanggal untuk menampilkan daftar event pada hari yang dipilih.
+        - title: Cek ringkasan event
+          description: Tinjau jenis event, waktu, dan keterangan untuk perencanaan kegiatan.
+    - name: Tambah atau Edit Event (EventFormDialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Buka dialog event
+          description: Klik tombol tambah event atau pilih event yang ingin diperbarui.
+        - title: Isi detail event
+          description: Tentukan judul, tanggal, waktu, tipe event, dan deskripsi event.
+        - title: Simpan perubahan event
+          description: Konfirmasi simpan agar event tampil di kalender semua pengguna yang berhak.
+    - name: Mode Lihat Kalender
+      roles: [STUDENT, PARENT]
+      steps:
+        - title: Gunakan kalender sebagai referensi akademik
+          description: Pantau jadwal kegiatan sekolah tanpa mengubah data event.
+        - title: Fokus pada event penting
+          description: Prioritaskan event ujian, tenggat tugas, dan agenda sekolah utama.
+
 - route: /dashboard/attendance
   roles: [ADMIN, TEACHER, STUDENT, PARENT]
   features:
-    - name: Absensi Guru
+    - name: Absensi Siswa per Sesi
+      roles: [TEACHER]
       steps:
-        - title: Mulai Jam Pelajaran
-          description: Klik untuk membuka absensi siswa pada sesi terpilih.
-        - title: Tidak Hadir
-          description: Jika berhalangan, isi status sakit/izin beserta alasan.
-    - name: Absensi Siswa
+        - title: Pilih tanggal, kelas, dan sesi
+          description: Pastikan sesi yang dipilih benar agar daftar siswa sesuai kelas yang diajar.
+        - title: Isi status kehadiran siswa
+          description: Tandai hadir, izin, sakit, atau alpa untuk setiap siswa.
+        - title: Simpan absensi sesi
+          description: Klik simpan setelah semua status terisi untuk menghindari data parsial.
+    - name: Catat Ketidakhadiran Guru
+      roles: [TEACHER]
       steps:
-        - title: Pilih Sesi
-          description: Pilih tanggal dan sesi agar daftar siswa muncul.
-        - title: Simpan Absensi
-          description: Pastikan semua siswa terisi sebelum menyimpan.
+        - title: Buka form tidak hadir
+          description: Gunakan aksi tidak hadir saat guru berhalangan mengajar.
+        - title: Isi status dan alasan
+          description: Lengkapi tipe ketidakhadiran seperti sakit atau izin beserta catatan pendukung.
+        - title: Simpan laporan ketidakhadiran
+          description: Simpan agar admin dapat menindaklanjuti assignment guru pengganti.
+    - name: Monitoring Kehadiran Sekolah
+      roles: [ADMIN]
+      steps:
+        - title: Pilih mode tampilan rekap
+          description: Tinjau absensi per kelas, per siswa, atau per guru sesuai kebutuhan monitoring.
+        - title: Analisis pola ketidakhadiran
+          description: Gunakan metrik dan daftar detail untuk menemukan area yang perlu intervensi.
+    - name: Kehadiran Pribadi
+      roles: [STUDENT]
+      steps:
+        - title: Lihat ringkasan kehadiran pribadi
+          description: Tinjau riwayat status hadir untuk memantau konsistensi kehadiran.
+        - title: Periksa detail harian
+          description: Buka tanggal tertentu untuk melihat status kehadiran pada tiap sesi.
+    - name: Kehadiran Anak
+      roles: [PARENT]
+      steps:
+        - title: Pilih anak yang dipantau
+          description: Pastikan anak yang dipilih benar sebelum membaca rekap kehadiran.
+        - title: Tinjau tren kehadiran anak
+          description: Gunakan ringkasan bulanan dan harian untuk evaluasi bersama anak.
+
+- route: /dashboard/materials
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Jelajah Materi Pembelajaran
+      steps:
+        - title: Gunakan filter jadwal atau mapel
+          description: Pilih kelas, jadwal, atau mata pelajaran agar daftar materi lebih relevan.
+        - title: Cari materi berdasarkan kata kunci
+          description: Gunakan kolom pencarian untuk menemukan materi tertentu lebih cepat.
+    - name: Tambah atau Edit Materi (Dialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Buka dialog materi
+          description: Klik Tambah Materi Baru atau aksi edit pada materi yang sudah ada.
+        - title: Isi data inti materi
+          description: Tentukan judul, deskripsi, mata pelajaran, kelas, dan jadwal terkait.
+        - title: Simpan materi
+          description: Konfirmasi simpan agar materi langsung tersedia untuk siswa terkait.
+    - name: Detail Materi dan Lampiran (Sheet)
+      roles: [ADMIN, TEACHER, STUDENT, PARENT]
+      steps:
+        - title: Buka sheet detail materi
+          description: Klik Lihat Detail pada kartu materi untuk membaca isi lengkap.
+        - title: Tinjau daftar lampiran
+          description: Periksa file lampiran yang tersedia sebelum melakukan unduh.
+    - name: Kelola Lampiran Materi
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Upload lampiran ke materi
+          description: Gunakan area upload pada sheet detail untuk menambahkan file pendukung.
+        - title: Verifikasi metadata file
+          description: Pastikan nama file dan tipe file sesuai kebutuhan pembelajaran.
+    - name: Materi untuk Anak
+      roles: [PARENT]
+      steps:
+        - title: Pilih anak dan mapel
+          description: Tentukan anak terlebih dahulu agar materi yang muncul sesuai kelas anak.
+        - title: Tinjau materi dan lampiran
+          description: Buka detail materi untuk mendampingi anak belajar di rumah.
+
 - route: /dashboard/assignments
   roles: [ADMIN, TEACHER, STUDENT, PARENT]
   features:
-    - name: Tugas
+    - name: Pantau Daftar Tugas
       steps:
-        - title: Pantau Status
-          description: Lihat progres pengumpulan tugas dan status penilaian.
+        - title: Gunakan filter tugas dan jadwal
+          description: Sesuaikan filter untuk melihat tugas aktif, selesai, atau terlambat.
+        - title: Tinjau status cepat
+          description: Baca indikator status pada kartu tugas untuk melihat progres pengumpulan.
+    - name: Pilih Sumber Soal (SelectQuestionSourceDialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Buka dialog sumber soal
+          description: Klik Buat Tugas Baru untuk memilih sumber soal dari paket atau bank soal.
+        - title: Tentukan mode pembuatan
+          description: Pilih sumber yang sesuai dengan tujuan tugas sebelum lanjut ke form utama.
+    - name: Pilih Paket Soal (SelectPackageDialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Buka dialog paket soal
+          description: Setelah memilih sumber paket, pilih paket soal yang relevan.
+        - title: Konfirmasi paket terpilih
+          description: Pastikan jumlah soal dan mapel pada paket sudah sesuai kebutuhan tugas.
+    - name: Pilih Soal Individual (SelectQuestionsDialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Buka dialog pemilihan soal
+          description: Gunakan mode bank soal untuk memilih soal satu per satu.
+        - title: Simpan daftar soal terpilih
+          description: Konfirmasi seleksi agar soal masuk ke form pembuatan tugas.
+    - name: Buat atau Edit Tugas (Dialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Lengkapi data tugas
+          description: Isi judul, deskripsi, kelas, mapel, guru, tipe, dan deadline tugas.
+        - title: Periksa aturan pengumpulan
+          description: Pastikan tipe jawaban seperti file, esai, atau pilihan ganda sudah benar.
+        - title: Simpan tugas
+          description: Klik Simpan Tugas untuk menerbitkan tugas atau memperbarui tugas lama.
+    - name: Detail Tugas (Sheet)
+      roles: [ADMIN, TEACHER, STUDENT, PARENT]
+      steps:
+        - title: Buka sheet detail
+          description: Klik item tugas untuk melihat deskripsi, deadline, dan status pengumpulan.
+        - title: Tinjau progres pengumpulan
+          description: Gunakan detail status untuk melihat siapa yang sudah submit atau belum.
+    - name: Kerjakan Tugas sebagai Siswa
+      roles: [STUDENT]
+      steps:
+        - title: Buka halaman kerja tugas
+          description: Dari detail tugas, klik Kerjakan untuk masuk ke halaman pengumpulan.
+        - title: Lengkapi jawaban sesuai tipe tugas
+          description: Isi jawaban teks atau unggah file sesuai metode pengumpulan yang diminta.
+    - name: Monitoring Tugas Anak
+      roles: [PARENT]
+      steps:
+        - title: Pilih anak yang dipantau
+          description: Pastikan anak terpilih agar status tugas yang tampil sesuai data anak.
+        - title: Tinjau deadline dan status
+          description: Pantau tugas yang belum dikumpulkan agar pendampingan bisa tepat waktu.
+
+- route: /dashboard/assignments/[assignmentId]/work
+  roles: [STUDENT]
+  features:
+    - name: Baca Detail Pengerjaan
+      roles: [STUDENT]
+      steps:
+        - title: Tinjau informasi tugas
+          description: Periksa judul, deskripsi, mapel, dan deadline sebelum mulai mengerjakan.
+        - title: Pilih strategi pengerjaan
+          description: Sesuaikan format jawaban dengan tipe tugas yang ditentukan guru.
+    - name: Isi Jawaban atau Upload File
+      roles: [STUDENT]
+      steps:
+        - title: Lengkapi jawaban sesuai tipe delivery
+          description: Untuk tugas esai, isi jawaban teks. Untuk tugas file, unggah dokumen yang diminta.
+        - title: Validasi sebelum kirim
+          description: Pastikan jawaban tidak kosong dan file sudah benar sebelum submit.
+    - name: Kirim Tugas
+      roles: [STUDENT]
+      steps:
+        - title: Tekan tombol Kumpulkan
+          description: Klik Kumpulkan saat jawaban final sudah siap dikirim.
+        - title: Cek status pengiriman
+          description: Setelah berhasil, kembali ke halaman tugas untuk memastikan status berubah menjadi terkirim.
+
+- route: /dashboard/question-bank
+  roles: [ADMIN, TEACHER]
+  features:
+    - name: Kelola Soal (Tab Questions)
+      steps:
+        - title: Buka tab Soal
+          description: Lihat, cari, dan filter soal berdasarkan mapel, tipe, dan tingkat kesulitan.
+        - title: Gunakan aksi pada kartu soal
+          description: Jalankan edit, duplikasi, atau hapus soal sesuai kebutuhan bank soal.
+    - name: Kelola Paket Soal (Tab Packages)
+      steps:
+        - title: Buka tab Paket Soal
+          description: Tinjau paket yang tersedia beserta jumlah soal di setiap paket.
+        - title: Kelola struktur paket
+          description: Edit atau duplikasi paket untuk menyiapkan variasi penugasan dan evaluasi.
+    - name: Form Soal (QuestionFormDialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Buka dialog soal
+          description: Klik Tambah Soal Baru atau aksi edit pada soal yang dipilih.
+        - title: Isi konten soal
+          description: Tentukan pertanyaan, opsi jawaban, kunci jawaban, mapel, dan level kesulitan.
+        - title: Simpan soal
+          description: Konfirmasi simpan agar soal tersedia untuk paket atau tugas langsung.
+    - name: Form Paket (PackageFormDialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Buka dialog paket
+          description: Klik Buat Paket Baru atau edit paket yang sudah ada.
+        - title: Pilih soal anggota paket
+          description: Tambahkan soal yang relevan agar komposisi paket sesuai tujuan asesmen.
+        - title: Simpan paket
+          description: Simpan paket agar bisa dipilih pada proses pembuatan tugas.
+    - name: Konfirmasi Hapus Soal atau Paket (AlertDialog)
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Jalankan aksi hapus
+          description: Klik tombol hapus pada soal atau paket yang sudah tidak dipakai.
+        - title: Verifikasi konfirmasi
+          description: Pastikan item yang akan dihapus sudah benar karena aksi ini permanen.
+        - title: Konfirmasi penghapusan
+          description: Pilih aksi konfirmasi untuk menyelesaikan proses hapus.
+
+- route: /dashboard/grades
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Input dan Perbarui Nilai
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Pilih jadwal atau mapel
+          description: Tentukan konteks penilaian terlebih dahulu agar daftar siswa muncul dengan benar.
+        - title: Isi nilai siswa
+          description: Masukkan nilai per tugas atau asesmen sesuai format yang berlaku.
+        - title: Simpan pembaruan nilai
+          description: Simpan agar nilai langsung tercermin pada ringkasan siswa dan orang tua.
+    - name: Analisis Ringkasan Penilaian
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Tinjau statistik kelas
+          description: Gunakan ringkasan nilai rata-rata, tertinggi, terendah, dan distribusi performa.
+        - title: Fokus pada siswa yang butuh intervensi
+          description: Prioritaskan pembinaan untuk siswa dengan tren nilai menurun.
+    - name: Nilai Saya
+      roles: [STUDENT]
+      steps:
+        - title: Lihat ringkasan nilai per mapel
+          description: Pantau capaian belajar dari tiap mata pelajaran yang diikuti.
+        - title: Periksa detail tugas terbaru
+          description: Gunakan daftar nilai terbaru untuk mengecek item yang sudah dinilai.
+    - name: Nilai Anak
+      roles: [PARENT]
+      steps:
+        - title: Pilih anak yang ingin dipantau
+          description: Pastikan anak terpilih agar ringkasan nilai sesuai data anak tersebut.
+        - title: Tinjau progres nilai
+          description: Gunakan ringkasan mapel dan nilai terbaru untuk evaluasi berkala bersama anak.
+
+- route: /dashboard/forum
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Jelajah Diskusi
+      roles: [ADMIN, TEACHER, STUDENT]
+      steps:
+        - title: Cari thread dengan kata kunci
+          description: Gunakan kolom cari untuk menemukan topik diskusi yang relevan.
+        - title: Filter berdasarkan mapel
+          description: Gunakan tab mapel agar diskusi yang tampil lebih fokus.
+    - name: Buat Diskusi Baru (ThreadFormDialog)
+      roles: [ADMIN, TEACHER, STUDENT]
+      steps:
+        - title: Buka dialog buat diskusi
+          description: Klik Buat Diskusi pada header halaman forum.
+        - title: Isi judul, isi diskusi, dan mapel
+          description: Tulis topik dengan jelas agar thread mudah dipahami peserta lain.
+        - title: Publikasikan thread
+          description: Kirim form untuk menerbitkan diskusi baru ke forum.
+    - name: Detail Thread dan Balasan (ThreadDetailSheet)
+      roles: [ADMIN, TEACHER, STUDENT]
+      steps:
+        - title: Buka sheet detail thread
+          description: Klik kartu thread untuk membaca isi lengkap dan balasan.
+        - title: Kirim balasan diskusi
+          description: Tulis tanggapan yang konstruktif sesuai konteks pembelajaran.
+    - name: Moderasi Thread
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Gunakan aksi pin atau lock
+          description: Tandai thread penting dengan pin atau kunci thread bila diskusi perlu dihentikan.
+        - title: Jaga kualitas diskusi
+          description: Terapkan moderasi untuk menjaga forum tetap fokus dan aman.
+    - name: Status Akses Orang Tua
+      roles: [PARENT]
+      steps:
+        - title: Pahami status akses terbatas
+          description: Role orang tua hanya melihat informasi pembatasan akses pada halaman forum.
+        - title: Gunakan modul lain untuk monitoring
+          description: Pantau perkembangan anak melalui modul tugas, nilai, dan absensi.
+
+- route: /dashboard/notes
+  roles: [ADMIN, TEACHER, STUDENT]
+  features:
+    - name: Kelola Catatan Pribadi dan Kelas
+      steps:
+        - title: Pilih tab Catatan Saya atau Catatan Kelas
+          description: Gunakan tab untuk memisahkan catatan pribadi dan catatan yang dibagikan ke kelas.
+        - title: Gunakan pencarian catatan
+          description: Cari catatan berdasarkan judul agar akses informasi lebih cepat.
+    - name: Buat atau Edit Catatan (Dialog)
+      roles: [ADMIN, TEACHER, STUDENT]
+      steps:
+        - title: Buka dialog catatan
+          description: Klik Buat Catatan atau edit catatan yang sudah ada.
+        - title: Isi judul, isi, mapel, dan warna catatan
+          description: Lengkapi konten catatan agar mudah dipahami saat dibaca ulang.
+        - title: Simpan catatan
+          description: Klik simpan untuk menyimpan catatan baru atau pembaruan catatan lama.
+    - name: Atur Visibilitas Catatan
+      roles: [ADMIN, TEACHER]
+      steps:
+        - title: Pilih visibilitas di form catatan
+          description: Gunakan opsi visibilitas untuk membedakan catatan PRIVATE dan CLASS.
+        - title: Pastikan konteks catatan sesuai visibilitas
+          description: Catatan kelas gunakan untuk informasi pembelajaran bersama, catatan private untuk kebutuhan pribadi.
+    - name: Kelola Pin dan Aksi Catatan
+      roles: [ADMIN, TEACHER, STUDENT]
+      steps:
+        - title: Gunakan aksi pin, edit, atau hapus
+          description: Hover kartu catatan lalu pilih aksi yang dibutuhkan.
+        - title: Prioritaskan catatan penting
+          description: Gunakan pin pada catatan kritikal agar muncul di urutan teratas.
+
+- route: /dashboard/profile
+  roles: [ADMIN, TEACHER, STUDENT, PARENT]
+  features:
+    - name: Edit Biodata Profil
+      steps:
+        - title: Aktifkan mode edit profil
+          description: Klik tombol Edit Profil untuk membuka mode perubahan data pribadi.
+        - title: Perbarui data utama
+          description: Lengkapi nama, email, nomor telepon, tanggal lahir, alamat, dan bio.
+        - title: Simpan perubahan profil
+          description: Klik Simpan Perubahan dan verifikasi notifikasi sukses.
+    - name: Ubah Password Akun
+      steps:
+        - title: Buka tab Security
+          description: Masuk ke tab keamanan untuk mengelola kata sandi akun.
+        - title: Isi password lama dan password baru
+          description: Lengkapi password saat ini, password baru, dan konfirmasi password baru.
+        - title: Simpan perubahan password
+          description: Klik Ubah Password setelah semua field valid.
+    - name: Kontrol Visibilitas Password
+      steps:
+        - title: Gunakan ikon tampilkan atau sembunyikan
+          description: Klik ikon mata di setiap field password untuk memeriksa input.
+        - title: Verifikasi sebelum submit
+          description: Pastikan password baru sudah benar sebelum menyimpan perubahan.
+
+- route: /dashboard/settings
+  roles: [ADMIN]
+  features:
+    - name: Profil Sekolah
+      roles: [ADMIN]
+      steps:
+        - title: Buka tab profil sekolah
+          description: Lengkapi data sekolah seperti nama, kepala sekolah, alamat, kontak, dan website.
+        - title: Simpan pembaruan profil
+          description: Klik simpan agar data profil sekolah dipakai di modul terkait.
+    - name: Tahun Ajaran
+      roles: [ADMIN]
+      steps:
+        - title: Buka tab tahun ajaran
+          description: Tinjau daftar tahun ajaran yang tersedia beserta status aktifnya.
+        - title: Set tahun ajaran aktif
+          description: Pilih tahun ajaran yang berjalan lalu jalankan aksi Set Aktif.
+    - name: Template Jam Pelajaran
+      roles: [ADMIN]
+      steps:
+        - title: Buka tab template jadwal
+          description: Kelola slot jam pelajaran standar yang dipakai di modul jadwal.
+        - title: Ubah waktu mulai dan selesai
+          description: Pastikan setiap slot punya durasi valid dan urutan waktu yang benar.
+        - title: Simpan template
+          description: Simpan perubahan sebelum membuat atau mengubah jadwal kelas.
+    - name: Notifikasi Sistem
+      roles: [ADMIN]
+      steps:
+        - title: Buka tab notifikasi
+          description: Aktifkan atau nonaktifkan notifikasi email, pengingat tugas, peringatan kehadiran, dan publikasi nilai.
+        - title: Simpan preferensi notifikasi
+          description: Klik simpan agar kebijakan notifikasi diterapkan ke sistem.
+
+- route: /dashboard/governance
+  roles: [ADMIN]
+  features:
+    - name: Snapshot Governance
+      roles: [ADMIN]
+      steps:
+        - title: Muat status governance terbaru
+          description: Gunakan tombol refresh untuk mengambil snapshot governance, metrics, dan tracker terbaru.
+        - title: Tinjau alert aktif
+          description: Prioritaskan penanganan pada alert yang berstatus kritikal atau overdue.
+    - name: Approval Action
+      roles: [ADMIN]
+      steps:
+        - title: Pilih packet approval
+          description: Tentukan packet seperti authz, ops, atau decision sebelum mengisi form approval.
+        - title: Lengkapi keputusan approval
+          description: Isi target, decision, owner, tanggal, due date, dan catatan sesuai konteks.
+        - title: Submit approval
+          description: Simpan keputusan agar status governance sinkron otomatis.
+    - name: Decision Preset
+      roles: [ADMIN]
+      steps:
+        - title: Pilih preset keputusan
+          description: Gunakan preset decision untuk mempercepat pengisian form approval yang berulang.
+        - title: Terapkan preset ke form
+          description: Setelah preset diterapkan, verifikasi field lalu submit approval.
+    - name: Approval SLA Monitor
+      roles: [ADMIN]
+      steps:
+        - title: Pantau total approved, pending, dan overdue
+          description: Gunakan indikator SLA untuk memantau kepatuhan penyelesaian approval.
+        - title: Tindak lanjuti task overdue
+          description: Fokus pada daftar overdue untuk mencegah keterlambatan sign-off.
+    - name: Blocker dan Riwayat Approval
+      roles: [ADMIN]
+      steps:
+        - title: Tinjau blocker per PIC
+          description: Gunakan panel distribusi pending per owner untuk menentukan eskalasi.
+        - title: Baca histori approval terbaru
+          description: Verifikasi jejak keputusan terakhir sebelum membuat keputusan baru.
