@@ -82,9 +82,14 @@ Dokumen ini mendefinisikan arsitektur teknis upload file backend untuk mendukung
 - File max size: `MAX_UPLOAD_SIZE_BYTES` (default 15 MB).
 - TTL upload intent: `UPLOAD_INTENT_TTL_MINUTES` (default 15 menit).
 - MIME allowlist terpusat di `lib/upload-intent.ts`.
+- Auto-escalation threshold scan queue (opsional override via env):
+  - `UPLOAD_SCAN_ALERT_FAILED_THRESHOLD` (default `3`)
+  - `UPLOAD_SCAN_ALERT_INFECTED_THRESHOLD` (default `1`)
+  - `UPLOAD_SCAN_ALERT_PENDING_THRESHOLD` (default `20`)
+  - `UPLOAD_SCAN_ALERT_PENDING_AGE_MINUTES_THRESHOLD` (default `30`)
 
 ## 8. Checklist Rollout
 
-- [ ] UI client diubah ke flow 3 tahap (intent/upload/confirm).
-- [ ] Monitoring scan queue dipasang (jumlah pending/failed).
-- [ ] SOP incident file malware disepakati.
+- [x] UI client diubah ke flow 3 tahap (intent/upload/confirm) pada modul Materials (upload lampiran).
+- [x] Monitoring scan queue dipasang melalui `GET /api/metrics` (`uploadScanQueue`).
+- [x] SOP incident file malware didokumentasikan (`OPS_FILE_MALWARE_INCIDENT_SOP.md`), menunggu sign-off stakeholder operasional.

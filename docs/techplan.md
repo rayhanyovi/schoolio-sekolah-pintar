@@ -594,6 +594,8 @@ Progress TP-REL-001:
 - Checker mengevaluasi blocker otomatis untuk syarat P0 (`TP-SEC-*`, `TP-AUTHZ-*`, `TP-API-001`, `TP-PRN-001`) dan approval authz packet (Product + Engineering) untuk mempercepat verifikasi sebelum checklist diubah menjadi `[x]`.
 - Ditambahkan workflow CI non-blocking `.github/workflows/ci-release-readiness-report.yml` untuk menghasilkan artefak status readiness di setiap push/PR.
 - Ditambahkan guard sinkronisasi governance `npm run governance:check-sync` + workflow CI `.github/workflows/ci-governance-sync.yml` agar checklist techplan tidak drift dari approval packet.
+- Ditambahkan workflow strict gate `.github/workflows/ci-release-readiness-strict.yml` pada push tag release (`v*`, `release-*`) agar release otomatis diblok jika readiness belum `READY`.
+- Workflow readiness report kini upload artifact dari `docs/RELEASE_READINESS_STATUS.md` (dengan fallback legacy root), selaras struktur dokumen saat ini.
 
 Implementasi TP-REL-002:
 - Rekap progres workstream P1 menunjukkan threshold `>=90%` tercapai; mayoritas item P1 pada WS-SCHEDULE, WS-ATT, WS-FORUM, WS-ASSIGN, WS-GRADE, WS-PARENT, WS-AUD, dan WS-TEST sudah selesai.
@@ -628,6 +630,12 @@ Implementasi TP-REL-007:
 - Ditambahkan halaman admin `app/dashboard/governance/page.tsx` dengan komponen `components/pages/Governance.tsx` untuk menampilkan snapshot readiness (`overall`, `TP-REL-001`, `TP-REL-005`, `TP-DEC gate`) serta daftar blocker per gate.
 - Ditambahkan menu navigasi admin pada sidebar (`/dashboard/governance`) untuk akses cepat ke panel governance.
 - Ditambahkan handler frontend `lib/handlers/governance.ts` dan schema response `governanceReadinessSnapshotSchema` pada `lib/schemas.ts` agar konsumsi API typed dan konsisten.
+- Ditambahkan endpoint aksi `POST /api/governance/approvals` (admin-only) untuk update packet (`authz`/`ops`/`decision`) langsung dari dashboard.
+- Setelah aksi approval, backend otomatis menjalankan `governance-sync-techplan` dan regenerasi `RELEASE_READINESS_STATUS` agar readiness report tidak drift.
+- Ditambahkan integration test `tests/integration/governance-approvals.integration.test.ts` untuk validasi update row approval, append history, dan auto refresh governance script.
+- Ditambahkan endpoint `GET /api/governance/tracker` (admin-only) untuk monitoring SLA governance: total pending/approved/overdue, blocker per PIC, overdue tasks, dan recent approval history.
+- Dashboard governance diperluas dengan panel `Approval SLA Monitor`, `Blocker per PIC`, dan `Recent Approval History` untuk mempercepat eksekusi sign-off lintas stakeholder.
+- Ditambahkan integration test `tests/integration/governance-tracker.integration.test.ts` dan unit test `tests/unit/governance-tracker.unit.test.ts` untuk memvalidasi parser tracker + rule overdue.
 
 ## 7. Checklist Keputusan Produk (Wajib Diputuskan)
 
@@ -642,6 +650,10 @@ Progress TP-DEC-001, TP-DEC-003, TP-DEC-004, TP-DEC-005, TP-DEC-006:
 - Decision packet opsi + rekomendasi teknis disiapkan di `PRODUCT_DECISION_PACKET.md`.
 - Status pending decision sekarang ikut dipantau otomatis di `RELEASE_READINESS_STATUS.md` melalui checker `scripts/release-readiness-report.mjs`.
 - Update status keputusan per-ID dapat diotomasi via `npm run governance:approve -- --packet decision --id TP-DEC-XXX ...` lalu disinkronkan ke checklist.
+- Dashboard governance menyediakan decision preset recommendation per ID (`TP-DEC-001/003/004/005/006`) untuk auto-fill owner/decision/note dan mempercepat proses approval.
+- Ditambahkan alur one-click `Apply + Submit` pada preset decision agar rekomendasi dapat langsung dieksekusi ke approval packet tanpa input manual berulang.
+- Preset decision sekarang menyertakan default due date per ID untuk menjaga konsistensi SLA saat approval dilakukan dari dashboard.
+- Ditambahkan bulk action `Submit All Pending` pada decision preset untuk mengeksekusi seluruh target `TP-DEC-*` yang masih pending secara lebih cepat dari dashboard.
 - Item-item keputusan tetap terbuka sampai ada keputusan final lintas stakeholder dan dicatat pada approval record.
 
 Keputusan TP-DEC-002:
@@ -655,6 +667,12 @@ Keputusan TP-DEC-002:
 - [x] TP-SCOPE-002 2026-02-22 | TP-REL-006 | Tambah endpoint governance readiness untuk visibilitas stakeholder | Dampak modul (API/OPS) | Keputusan (Approved + Engineering)
 - [x] TP-SCOPE-003 2026-02-22 | TP-AUTHZ-001/TP-REL-005/TP-DEC-* | Tambah audit trail histori approval governance otomatis | Dampak modul (OPS/DOC) | Keputusan (Approved + Engineering)
 - [x] TP-SCOPE-004 2026-02-22 | TP-REL-007 | Tambah dashboard governance readiness pada UI admin | Dampak modul (UI/API) | Keputusan (Approved + Engineering)
+- [x] TP-SCOPE-005 2026-03-02 | TP-REL-007 | Tambah aksi approval governance langsung dari dashboard + auto sync readiness report | Dampak modul (UI/API/OPS) | Keputusan (Approved + Engineering)
+- [x] TP-SCOPE-006 2026-03-02 | TP-REL-007 | Tambah governance tracker (SLA monitor + blocker per PIC + history) di API/UI | Dampak modul (UI/API/OPS) | Keputusan (Approved + Engineering)
+- [x] TP-SCOPE-007 2026-03-02 | TP-REL-001 | Hardening CI governance/release gate: strict readiness pada tag release + fix artifact path docs | Dampak modul (CI/OPS/DOC) | Keputusan (Approved + Engineering)
+- [x] TP-SCOPE-008 2026-03-02 | TP-DEC-* | Tambah decision preset recommendation di dashboard governance untuk percepat approval stakeholder | Dampak modul (UI/DOC) | Keputusan (Approved + Engineering)
+- [x] TP-SCOPE-009 2026-03-02 | TP-DEC-* | Tambah one-click apply+submit preset decision + default due date per ID | Dampak modul (UI/OPS/DOC) | Keputusan (Approved + Engineering)
+- [x] TP-SCOPE-010 2026-03-02 | TP-DEC-* | Tambah bulk action submit semua decision pending via preset di dashboard governance | Dampak modul (UI/OPS/DOC) | Keputusan (Approved + Engineering)
 
 Template TP-SCOPE-001:
 - `YYYY-MM-DD | TP-XXX-YYY | Alasan perubahan | Dampak modul (API/UI/DB/OPS) | Keputusan (Approved/Deferred/Rejected + PIC)`

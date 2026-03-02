@@ -215,28 +215,51 @@ Endpoints
 Contract checklist
 - ☐ Aggregation definitions (to be finalized).
 
+## Ops / Monitoring
+Endpoints
+- ☑ `GET /api/metrics`
+
+Contract checklist
+- ☑ DB health check dasar (`SELECT 1`) tersedia.
+- ☑ Upload scan queue metrics tersedia (`pending/failed/infected/clean` + oldest pending age).
+- ☑ Auto-escalation scan queue tersedia (`alertState` + daftar `alerts` berbasis threshold).
+
+## Governance
+Endpoints
+- ☑ `GET /api/governance/readiness`
+- ☑ `POST /api/governance/approvals`
+- ☑ `GET /api/governance/tracker`
+
+Contract checklist
+- ☑ Snapshot readiness governance dapat diambil oleh ADMIN.
+- ☑ Update approval packet (`authz`, `ops`, `decision`) tersedia via API terproteksi ADMIN.
+- ☑ Setelah update approval, sistem otomatis sinkronkan checklist `techplan` dan regenerate `RELEASE_READINESS_STATUS`.
+- ☑ Monitoring SLA governance tersedia (pending/approved/overdue + blocker per PIC + recent history).
+
 ## Settings
 Endpoints
 - ☑ `GET /api/settings/school-profile`
 - ☑ `PATCH /api/settings/school-profile`
 - ☑ `GET /api/schedule-templates`
 - ☑ `PATCH /api/schedule-templates` (bulk update)
+- ☑ `GET /api/settings/notifications`
+- ☑ `PATCH /api/settings/notifications`
 
 Contract checklist
 - ☐ Single school profile row.
 - ☐ Schedule template order via `position`.
 
-## Auth (placeholder)
+## Auth
 Endpoints
-- ☐ `GET /api/auth/session`
-- ☐ `POST /api/auth/login`
-- ☐ `POST /api/auth/logout`
+- ☑ `GET /api/auth/session`
+- ☑ `POST /api/auth/login`
+- ☑ `POST /api/auth/logout`
 
 Contract checklist
-- ☐ Replace with better-auth endpoints later.
+- ☑ Endpoint auth dasar (session/login/logout) sudah tersedia.
+- ☐ Finalisasi provider auth production (lihat `TP-DEC-001`).
 
 ## Gaps / Not planned yet
-- Notifications settings data model.
-- File upload pipeline (signed URLs / storage).
 - Analytics materialization strategy.
-- Role-based access control per route.
+- Integrasi UI penuh ke upload flow 3 tahap (intent/upload/confirm).
+- Finalisasi approval governance lintas stakeholder (`TP-AUTHZ-001`, `TP-REL-005`, `TP-DEC-*`).

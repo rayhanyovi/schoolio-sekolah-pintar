@@ -13,6 +13,7 @@ Dokumen ini mengkonsolidasikan approval stakeholder untuk SOP operasional dan es
 - `OPS_FALLBACK_PLAYBOOK.md`
 - `OPS_ACADEMIC_YEAR_ROLLOVER_SOP.md`
 - `ATTENDANCE_EVENT_POLICY.md`
+- `OPS_FILE_MALWARE_INCIDENT_SOP.md`
 
 ## Checklist Verifikasi Sebelum Sign-off
 

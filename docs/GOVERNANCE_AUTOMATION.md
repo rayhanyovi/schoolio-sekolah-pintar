@@ -21,6 +21,12 @@ Dokumen ini menjelaskan automasi untuk mempercepat update approval packet dan si
 - `npm run release:readiness`
 - `npm run release:readiness:strict`
 
+Catatan: selain CLI, update approval kini juga tersedia lewat dashboard admin (`/dashboard/governance`) via endpoint `POST /api/governance/approvals` yang otomatis menjalankan sinkronisasi dan regenerasi report readiness. Dashboard juga menampilkan tracker SLA governance (`GET /api/governance/tracker`) untuk pending/overdue per PIC.
+Form decision pada dashboard menyediakan preset rekomendasi untuk `TP-DEC-001/003/004/005/006`, termasuk:
+- tombol `Apply Recommended` (isi owner/decision/catatan + due date default), dan
+- tombol `Apply + Submit` untuk eksekusi satu klik dari preset ke approval packet.
+- tombol bulk `Submit All Pending` untuk mendorong approval seluruh decision target yang masih pending dalam satu alur.
+
 ## 1) Update Approval Packet
 
 ### Authz packet (`AUTHZ_APPROVAL_PACKET.md`)
@@ -130,3 +136,18 @@ Atau jalankan semua langkah sekaligus:
 ```bash
 npm run governance:refresh
 ```
+
+## 5) CI Gate Hardening
+
+Workflow CI yang aktif:
+
+- `.github/workflows/ci-governance-sync.yml`
+: memverifikasi `npm run governance:check-sync` pada `pull_request`/`push` agar drift checklist langsung memblok merge.
+- `.github/workflows/ci-release-readiness-report.yml`
+: menghasilkan artifact readiness report non-blocking untuk monitoring rutin.
+- `.github/workflows/ci-release-readiness-strict.yml`
+: gate strict pada `push tag` (`v*`, `release-*`) dan `workflow_dispatch`; job gagal jika `npm run release:readiness:strict` masih menemukan blocker.
+
+Catatan operasional:
+- Artifact readiness report di CI membaca path `docs/RELEASE_READINESS_STATUS.md` (dengan fallback root untuk kompatibilitas legacy).
+- Untuk enforcement penuh, jadikan workflow `CI Governance Sync Check` sebagai required status check di branch protection.
