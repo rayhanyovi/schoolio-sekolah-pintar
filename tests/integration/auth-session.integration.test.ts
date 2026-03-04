@@ -34,5 +34,6 @@ describe("auth session route", () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.onboardingCompleted).toBe(false);
+    expect(payload.data.schoolId).toBeNull();
   });
 });

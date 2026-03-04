@@ -6,10 +6,10 @@ import { prisma } from "@/lib/prisma";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     schoolProfile: {
-      findFirst: vi.fn(),
-      update: vi.fn(),
+      findUnique: vi.fn(),
     },
     user: {
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
   },
@@ -36,12 +36,21 @@ describe("auth onboarding complete route", () => {
       onboardingCompleted: false,
       issuedAt: 1,
       expiresAt: 2,
-      schoolId: null,
+      schoolId: "school-1",
+    } as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      roleSelectedAt: new Date("2026-03-05T00:00:00.000Z"),
+    } as never);
+    vi.mocked(prisma.user.update).mockResolvedValue({
+      id: "admin-1",
+      name: "Admin",
+      role: ROLES.ADMIN,
+      schoolId: "school-1",
     } as never);
   });
 
   it("admin dapat menyelesaikan onboarding walau setup opsional belum ada", async () => {
-    vi.mocked(prisma.schoolProfile.findFirst).mockResolvedValue({
+    vi.mocked(prisma.schoolProfile.findUnique).mockResolvedValue({
       id: "school-1",
       schoolCode: "SCH-DEMO01",
       name: "SMA 1",
@@ -63,7 +72,7 @@ describe("auth onboarding complete route", () => {
   });
 
   it("admin ditolak jika profil sekolah wajib belum diisi", async () => {
-    vi.mocked(prisma.schoolProfile.findFirst).mockResolvedValue(null as never);
+    vi.mocked(prisma.schoolProfile.findUnique).mockResolvedValue(null as never);
 
     const response = await completeOnboarding(
       new Request("http://localhost/api/auth/onboarding/complete", {

@@ -49,7 +49,7 @@ describe("Academic year scoping default behavior", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedFindActiveYear.mockResolvedValue({ id: "year-active" } as never);
@@ -63,8 +63,10 @@ describe("Academic year scoping default behavior", () => {
     expect(response.status).toBe(200);
     const where = (mockedFindClasses.mock.calls[0]?.[0] as { where: unknown }).where as {
       academicYearId?: string;
+      schoolId?: string;
     };
     expect(where.academicYearId).toBe("year-active");
+    expect(where.schoolId).toBe("school-1");
   });
 
   it("GET /api/classes mengizinkan includeAllAcademicYears=true", async () => {
@@ -76,7 +78,7 @@ describe("Academic year scoping default behavior", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedFindClasses.mockResolvedValue([] as never);
@@ -91,8 +93,10 @@ describe("Academic year scoping default behavior", () => {
     expect(mockedFindActiveYear).not.toHaveBeenCalled();
     const where = (mockedFindClasses.mock.calls[0]?.[0] as { where: unknown }).where as {
       academicYearId?: string;
+      schoolId?: string;
     };
     expect(where.academicYearId).toBeUndefined();
+    expect(where.schoolId).toBe("school-1");
   });
 
   it("GET /api/classes return kosong jika tidak ada active year", async () => {
@@ -104,7 +108,7 @@ describe("Academic year scoping default behavior", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedFindActiveYear.mockResolvedValue(null as never);
@@ -129,7 +133,7 @@ describe("Academic year scoping default behavior", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedFindActiveYear.mockResolvedValue({ id: "year-active" } as never);

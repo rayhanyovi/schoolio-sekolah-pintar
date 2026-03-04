@@ -29,7 +29,7 @@ describe("PATCH /api/users/[id]/profile - class enrollment history", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
 
     const tx = {
@@ -38,6 +38,7 @@ describe("PATCH /api/users/[id]/profile - class enrollment history", () => {
           .fn()
           .mockResolvedValueOnce({
             id: "student-1",
+            schoolId: "school-1",
             name: "Alya",
             email: "alya@example.com",
             firstName: "Alya",
@@ -53,6 +54,7 @@ describe("PATCH /api/users/[id]/profile - class enrollment history", () => {
           })
           .mockResolvedValueOnce({
             id: "student-1",
+            schoolId: "school-1",
             name: "Alya",
             email: "alya@example.com",
             firstName: "Alya",
@@ -85,6 +87,7 @@ describe("PATCH /api/users/[id]/profile - class enrollment history", () => {
         create: vi.fn().mockResolvedValue({}),
       },
       class: {
+        findFirst: vi.fn().mockResolvedValue({ id: "class-new" }),
         findUnique: vi.fn().mockResolvedValue({ academicYearId: "ay-2" }),
       },
       auditLog: {

@@ -48,7 +48,7 @@ describe("E2E role journey - PARENT", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "parent-1",
       role: ROLES.PARENT,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedFindActiveYear.mockResolvedValue({ id: "year-active" } as never);

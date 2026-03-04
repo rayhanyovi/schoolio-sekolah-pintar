@@ -8,6 +8,21 @@ vi.mock("@/lib/prisma", () => ({
     authCredential: {
       findUnique: vi.fn(),
     },
+    schoolProfile: {
+      upsert: vi.fn(),
+    },
+    user: {
+      upsert: vi.fn(),
+    },
+    teacherProfile: {
+      upsert: vi.fn(),
+    },
+    studentProfile: {
+      upsert: vi.fn(),
+    },
+    parentProfile: {
+      upsert: vi.fn(),
+    },
   },
 }));
 
@@ -87,6 +102,13 @@ describe("auth login route", () => {
   });
 
   it("akun demo aktif di non-production", async () => {
+    vi.mocked(prisma.schoolProfile.upsert).mockResolvedValue({
+      id: "school-demo",
+    } as never);
+    vi.mocked(prisma.user.upsert).mockResolvedValue({
+      id: "demo-admin",
+    } as never);
+
     const request = new Request("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
