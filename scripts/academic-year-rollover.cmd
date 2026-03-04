@@ -10,13 +10,26 @@ if "%~1"=="" (
   exit /b 1
 )
 
-if "%DATABASE_URL%"=="" (
-  echo ERROR: DATABASE_URL belum tersedia.
+set "RESOLVED_DATABASE_URL=%DATABASE_URL%"
+if /I "%APP_MODE%"=="saas" (
+  if not "%SUPABASE_DATABASE_URL%"=="" (
+    set "RESOLVED_DATABASE_URL=%SUPABASE_DATABASE_URL%"
+  ) else if not "%SUPABASE_DB_URL%"=="" (
+    set "RESOLVED_DATABASE_URL=%SUPABASE_DB_URL%"
+  ) else if not "%SUPABASE_POSTGRES_URL%"=="" (
+    set "RESOLVED_DATABASE_URL=%SUPABASE_POSTGRES_URL%"
+  )
+)
+
+if "%RESOLVED_DATABASE_URL%"=="" (
+  echo ERROR: URL database belum tersedia.
   echo Usage:
-  echo   set DATABASE_URL=postgresql://user:pass@host:port/dbname ^&^& scripts\academic-year-rollover.cmd --targetAcademicYearId^=<id^> [options]
+  echo   self_host: set DATABASE_URL=postgresql://user:pass@host:port/dbname ^&^& scripts\academic-year-rollover.cmd --targetAcademicYearId^=<id^> [options]
+  echo   saas     : set APP_MODE=saas ^&^& set SUPABASE_DATABASE_URL=postgresql://user:pass@host:port/dbname ^&^& scripts\academic-year-rollover.cmd --targetAcademicYearId^=<id^> [options]
   exit /b 1
 )
 
+set "DATABASE_URL=%RESOLVED_DATABASE_URL%"
 npx tsx scripts/academic-year-rollover.ts %*
 if errorlevel 1 (
   echo [academic-rollover] Eksekusi gagal.

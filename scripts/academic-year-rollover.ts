@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { resolveDatabaseUrl } from "../lib/database-url";
 
 type RolloverMode = "FREEZE" | "CLONE_CLASSES";
 
@@ -11,7 +12,13 @@ type ParsedArgs = {
   actorId: string | null;
 };
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: resolveDatabaseUrl(),
+    },
+  },
+});
 
 const printUsage = () => {
   console.log("Usage:");

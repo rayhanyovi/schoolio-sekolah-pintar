@@ -1,6 +1,13 @@
 import { PrismaClient, Role } from "@prisma/client";
+import { resolveDatabaseUrl } from "../lib/database-url";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: resolveDatabaseUrl(),
+    },
+  },
+});
 
 const FIRST_NAMES_ID = [
   "Aditya",
