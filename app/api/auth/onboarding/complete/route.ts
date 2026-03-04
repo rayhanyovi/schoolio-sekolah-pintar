@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { buildSchoolCodeFromId } from "@/lib/school-code";
 import {
   createSessionToken,
   SESSION_COOKIE_NAME,
@@ -20,8 +19,24 @@ export async function POST(request: NextRequest) {
   ]);
   if (roleError) return roleError;
 
+  const user = await prisma.user.findUnique({
+    where: { id: auth.userId },
+    select: { roleSelectedAt: true },
+  });
+  if (!user?.roleSelectedAt) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "Pilih role terlebih dahulu sebelum menyelesaikan onboarding",
+      400
+    );
+  }
+
   if (auth.role === ROLES.ADMIN) {
-    const schoolProfile = await prisma.schoolProfile.findFirst({
+    if (!auth.schoolId) {
+      return jsonError("FORBIDDEN", "Akun admin belum memiliki sekolah", 403);
+    }
+    const schoolProfile = await prisma.schoolProfile.findUnique({
+      where: { id: auth.schoolId },
       select: {
         id: true,
         schoolCode: true,
@@ -37,25 +52,26 @@ export async function POST(request: NextRequest) {
         400
       );
     }
-    if (!schoolProfile.schoolCode) {
-      await prisma.schoolProfile.update({
-        where: { id: schoolProfile.id },
-        data: { schoolCode: buildSchoolCodeFromId(schoolProfile.id) },
-      });
-    }
   }
 
-  await prisma.user.update({
+  const updatedUser = await prisma.user.update({
     where: { id: auth.userId },
     data: { onboardingCompletedAt: new Date() },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      schoolId: true,
+    },
   });
 
   const token = await createSessionToken({
-    userId: auth.userId,
-    name: auth.name,
-    role: auth.role,
+    userId: updatedUser.id,
+    name: updatedUser.name,
+    role: updatedUser.role,
     canUseDebugPanel: auth.canUseDebugPanel,
     onboardingCompleted: true,
+    schoolId: updatedUser.schoolId ?? null,
   });
 
   const response = jsonOk({

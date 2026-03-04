@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { buildSchoolCodeFromId } from "@/lib/school-code";
 
 type OnboardingStep = {
   id: string;
@@ -43,6 +42,8 @@ export async function GET(request: NextRequest) {
       phone: true,
       address: true,
       bio: true,
+      schoolId: true,
+      roleSelectedAt: true,
       onboardingCompletedAt: true,
     },
   });
@@ -50,32 +51,50 @@ export async function GET(request: NextRequest) {
     return jsonError("UNAUTHORIZED", "Authentication required", 401);
   }
 
-  let schoolProfile = await prisma.schoolProfile.findFirst({
-    select: {
-      id: true,
-      schoolCode: true,
-      name: true,
-      address: true,
-      email: true,
-      phone: true,
-      website: true,
-      principalName: true,
-    },
-  });
-  if (schoolProfile && !schoolProfile.schoolCode) {
-    schoolProfile = await prisma.schoolProfile.update({
-      where: { id: schoolProfile.id },
-      data: { schoolCode: buildSchoolCodeFromId(schoolProfile.id) },
-      select: {
-        id: true,
-        schoolCode: true,
-        name: true,
-        address: true,
-        email: true,
-        phone: true,
-        website: true,
-        principalName: true,
-      },
+  const schoolProfile = user.schoolId
+    ? await prisma.schoolProfile.findUnique({
+        where: { id: user.schoolId },
+        select: {
+          id: true,
+          schoolCode: true,
+          name: true,
+          address: true,
+          email: true,
+          phone: true,
+          website: true,
+          principalName: true,
+        },
+      })
+    : null;
+
+  const roleSelectionRequired =
+    user.role !== ROLES.PARENT && !user.roleSelectedAt && !user.onboardingCompletedAt;
+  const availableRoles = [ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT];
+  const hasDisplayName = Boolean(user.name?.trim());
+
+  if (roleSelectionRequired) {
+    return jsonOk({
+      role: auth.role,
+      selectedRole: null,
+      roleSelectionRequired: true,
+      availableRoles,
+      onboardingCompleted: false,
+      schoolCode: null,
+      steps: [
+        {
+          id: "profile-name",
+          title: "Isi nama akun",
+          required: true,
+          completed: hasDisplayName,
+        },
+        {
+          id: "role-selection",
+          title: "Pilih role akun",
+          required: true,
+          completed: false,
+        },
+      ],
+      reminders: [],
     });
   }
 
@@ -83,21 +102,27 @@ export async function GET(request: NextRequest) {
   const reminders: OnboardingReminder[] = [];
 
   if (auth.role === ROLES.ADMIN) {
-    const academicYearCount = await prisma.academicYear.count();
-    const scheduleTemplateCount = await prisma.scheduleTemplate.count();
-    const notificationPreferenceCount = await prisma.notificationPreference.count(
-      {
-        where: { userId: auth.userId },
-      }
-    );
+    if (!auth.schoolId) {
+      return jsonError("FORBIDDEN", "Akun admin belum memiliki sekolah", 403);
+    }
+    const [academicYearCount, scheduleTemplateCount, notificationPreferenceCount] =
+      await Promise.all([
+        prisma.academicYear.count({ where: { schoolId: auth.schoolId } }),
+        prisma.scheduleTemplate.count({ where: { schoolId: auth.schoolId } }),
+        prisma.notificationPreference.count({
+          where: { userId: auth.userId },
+        }),
+      ]);
     const schoolProfileComplete = Boolean(
-      schoolProfile?.name &&
-        schoolProfile?.address &&
-        schoolProfile?.email &&
+      schoolProfile?.name?.trim() &&
+        schoolProfile?.address?.trim() &&
+        schoolProfile?.email?.trim() &&
         schoolProfile?.schoolCode
     );
     const schoolContactOptionalComplete = Boolean(
-      schoolProfile?.phone && schoolProfile?.website && schoolProfile?.principalName
+      schoolProfile?.phone?.trim() &&
+        schoolProfile?.website?.trim() &&
+        schoolProfile?.principalName?.trim()
     );
 
     steps.push(
@@ -194,6 +219,9 @@ export async function GET(request: NextRequest) {
 
   return jsonOk({
     role: auth.role,
+    selectedRole: auth.role,
+    roleSelectionRequired: false,
+    availableRoles,
     onboardingCompleted: Boolean(user.onboardingCompletedAt),
     schoolCode: schoolProfile?.schoolCode ?? null,
     steps,

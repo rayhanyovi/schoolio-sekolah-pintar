@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -13,6 +20,8 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.PARENT]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedBody = await parseJsonBody(request, payloadSchema);
   if (parsedBody instanceof Response) return parsedBody;
@@ -22,6 +31,7 @@ export async function POST(request: NextRequest) {
     where: {
       id: body.studentId,
       role: ROLES.STUDENT,
+      schoolId,
     },
     select: {
       id: true,
