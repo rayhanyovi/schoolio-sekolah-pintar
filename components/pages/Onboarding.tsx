@@ -15,6 +15,7 @@ import {
   getAuthSession,
   getOnboardingStatus,
   linkOnboardingChild,
+  selectOnboardingRole,
 } from "@/lib/handlers/auth";
 import { createAcademicYear, listAcademicYears } from "@/lib/handlers/academic-years";
 import {
@@ -113,9 +114,15 @@ export default function Onboarding() {
     applyScheduleTemplate: false,
     applyNotifications: false,
   });
+  const [roleSelectionRole, setRoleSelectionRole] = useState<
+    "ADMIN" | "TEACHER" | "STUDENT"
+  >(ROLES.STUDENT);
+  const [roleSelectionName, setRoleSelectionName] = useState("");
+  const [roleSelectionSchoolCode, setRoleSelectionSchoolCode] = useState("");
 
   const requiredStepDone = useMemo(() => {
     if (!status) return false;
+    if (status.roleSelectionRequired) return false;
     const requiredStep = status.steps.find((item) => item.required);
     return Boolean(requiredStep?.completed);
   }, [status]);
@@ -143,6 +150,12 @@ export default function Onboarding() {
         }
         setSession(sessionResult);
         setStatus(onboardingResult);
+        setRoleSelectionName(sessionResult.name ?? "");
+        setRoleSelectionSchoolCode(onboardingResult.schoolCode ?? "");
+
+        if (onboardingResult.roleSelectionRequired) {
+          return;
+        }
 
         if (sessionResult.role === ROLES.ADMIN) {
           const [schoolProfileResult, notificationResult] = await Promise.allSettled([
@@ -293,6 +306,95 @@ export default function Onboarding() {
     }
   };
 
+  const handleSelectRole = async () => {
+    if (!roleSelectionName.trim()) {
+      toast({
+        title: "Nama belum diisi",
+        description: "Masukkan nama Anda terlebih dahulu.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (roleSelectionRole !== ROLES.ADMIN && !roleSelectionSchoolCode.trim()) {
+      toast({
+        title: "Kode sekolah belum diisi",
+        description: "Masukkan kode sekolah untuk role guru atau siswa.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await selectOnboardingRole({
+        name: roleSelectionName.trim(),
+        role: roleSelectionRole,
+        schoolCode:
+          roleSelectionRole === ROLES.ADMIN
+            ? undefined
+            : roleSelectionSchoolCode.trim(),
+      });
+
+      const [sessionResult, onboardingResult] = await Promise.all([
+        getAuthSession(),
+        getOnboardingStatus(),
+      ]);
+      setSession(sessionResult);
+      setStatus(onboardingResult);
+
+      if (sessionResult.role === ROLES.ADMIN) {
+        const [schoolProfileResult, notificationResult] = await Promise.allSettled([
+          getSchoolProfile(),
+          getNotificationPreferences(),
+        ]);
+        if (schoolProfileResult.status === "fulfilled") {
+          setAdminProfile({
+            schoolCode:
+              onboardingResult.schoolCode ??
+              schoolProfileResult.value.schoolCode ??
+              "",
+            name: schoolProfileResult.value.name ?? "",
+            address: schoolProfileResult.value.address ?? "",
+            email: schoolProfileResult.value.email ?? "",
+            phone: schoolProfileResult.value.phone ?? "",
+            website: schoolProfileResult.value.website ?? "",
+            principalName: schoolProfileResult.value.principalName ?? "",
+          });
+        } else {
+          setAdminProfile((prev) => ({
+            ...prev,
+            schoolCode: onboardingResult.schoolCode ?? prev.schoolCode,
+          }));
+        }
+        if (notificationResult.status === "fulfilled") {
+          setNotificationForm(notificationResult.value);
+        }
+      } else {
+        const profile = await getUserProfile(sessionResult.userId);
+        setQuickProfile({
+          firstName: profile.firstName ?? "",
+          lastName: profile.lastName ?? "",
+          phone: profile.phone ?? "",
+          address: profile.address ?? "",
+        });
+      }
+
+      toast({
+        title: "Role berhasil dipilih",
+        description: "Lanjutkan langkah onboarding berikutnya.",
+      });
+    } catch (error) {
+      toast({
+        title: "Gagal memilih role",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const runAdminOptionalSetup = async () => {
     if (adminOptional.applyAcademicYear) {
       const years = await listAcademicYears();
@@ -349,6 +451,77 @@ export default function Onboarding() {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-sm text-muted-foreground">
         Memuat onboarding...
+      </div>
+    );
+  }
+
+  if (status.roleSelectionRequired) {
+    return (
+      <div className="mx-auto w-full max-w-2xl space-y-6 p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Pilih Role Akun</CardTitle>
+            <CardDescription>
+              Lengkapi nama, lalu pilih role akun untuk melanjutkan onboarding.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="roleSelectionName">Nama Lengkap</Label>
+              <Input
+                id="roleSelectionName"
+                value={roleSelectionName}
+                onChange={(event) => setRoleSelectionName(event.target.value)}
+                placeholder="Masukkan nama lengkap"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="roleSelection">Role</Label>
+              <select
+                id="roleSelection"
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={roleSelectionRole}
+                onChange={(event) =>
+                  setRoleSelectionRole(
+                    event.target.value as "ADMIN" | "TEACHER" | "STUDENT"
+                  )
+                }
+              >
+                {status.availableRoles
+                  .filter(
+                    (role) =>
+                      role === ROLES.ADMIN ||
+                      role === ROLES.TEACHER ||
+                      role === ROLES.STUDENT
+                  )
+                  .map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role as keyof typeof ROLE_LABELS]}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {roleSelectionRole !== ROLES.ADMIN && (
+              <div className="space-y-2">
+                <Label htmlFor="roleSchoolCode">Kode Sekolah</Label>
+                <Input
+                  id="roleSchoolCode"
+                  value={roleSelectionSchoolCode}
+                  onChange={(event) => setRoleSelectionSchoolCode(event.target.value)}
+                  placeholder="Mis: SCH-ABC12345"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <Button onClick={handleSelectRole} disabled={isSaving}>
+                Simpan Role & Lanjutkan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

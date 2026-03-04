@@ -13,12 +13,16 @@ export type LoginPayload = {
 };
 
 export type RegisterPayload = {
-  name: string;
-  identifier: string;
+  email: string;
   password: string;
-  role: "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+  confirmPassword: string;
+  parentInviteCode?: string;
+};
+
+export type SelectOnboardingRolePayload = {
+  name: string;
+  role: "ADMIN" | "TEACHER" | "STUDENT";
   schoolCode?: string;
-  childStudentId?: string;
 };
 
 export const login = async (payload: LoginPayload) =>
@@ -37,6 +41,10 @@ export const completeOnboarding = async () =>
   onboardingCompleteResultSchema.parse(
     await apiPost("/api/auth/onboarding/complete")
   );
+
+export const selectOnboardingRole = async (
+  payload: SelectOnboardingRolePayload
+) => authLoginResultSchema.parse(await apiPost("/api/auth/onboarding/select-role", payload));
 
 export const linkOnboardingChild = async (studentId: string) =>
   onboardingLinkChildResultSchema.parse(

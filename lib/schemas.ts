@@ -79,6 +79,7 @@ export const authSessionSchema = z.object({
   role: z.string(),
   canUseDebugPanel: z.boolean().default(false),
   onboardingCompleted: z.boolean().default(true),
+  schoolId: z.string().nullable().default(null),
 });
 export type AuthSessionSummary = z.infer<typeof authSessionSchema>;
 
@@ -90,6 +91,8 @@ export const authLoginResultSchema = z.object({
   }),
   canUseDebugPanel: z.boolean().default(false),
   onboardingCompleted: z.boolean().default(true),
+  roleSelectionRequired: z.boolean().default(false),
+  schoolId: z.string().nullable().default(null),
 });
 export type AuthLoginResult = z.infer<typeof authLoginResultSchema>;
 
@@ -111,6 +114,9 @@ export type OnboardingReminder = z.infer<typeof onboardingReminderSchema>;
 
 export const onboardingStatusSchema = z.object({
   role: z.string(),
+  selectedRole: z.string().nullable().default(null),
+  roleSelectionRequired: z.boolean().default(false),
+  availableRoles: z.array(z.string()).default([]),
   onboardingCompleted: z.boolean().default(true),
   schoolCode: z.string().nullable(),
   steps: z.array(onboardingStepSchema).default([]),
@@ -136,6 +142,17 @@ export const onboardingCompleteResultSchema = z.object({
 export type OnboardingCompleteResult = z.infer<
   typeof onboardingCompleteResultSchema
 >;
+
+export const parentInviteResultSchema = z.object({
+  inviteId: z.string(),
+  code: z.string(),
+  expiresAt: z.string(),
+  student: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+});
+export type ParentInviteResult = z.infer<typeof parentInviteResultSchema>;
 
 export const userProfileSchema = z
   .object({

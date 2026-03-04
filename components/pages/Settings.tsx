@@ -245,7 +245,12 @@ export default function Settings() {
                   <Input
                     id="schoolCode"
                     value={schoolProfile.schoolCode ?? ""}
-                    readOnly
+                    onChange={(e) =>
+                      setSchoolProfile({
+                        ...schoolProfile,
+                        schoolCode: e.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div className="space-y-2">

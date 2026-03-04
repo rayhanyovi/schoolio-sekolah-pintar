@@ -28,6 +28,7 @@ import { LinkUserDialog } from "@/components/admin/LinkUserDialog";
 import { UserStatsCard } from "@/components/admin/UserStatsCard";
 import { Role, ROLES, GRADES } from "@/lib/constants";
 import {
+  createParentInvite,
   createUser,
   deleteUser,
   linkParentStudent,
@@ -254,6 +255,20 @@ export default function Users() {
     if (user) {
       setLinkingUser(user);
       setLinkDialogOpen(true);
+    }
+  };
+
+  const handleCreateParentInvite = async (studentId: string) => {
+    try {
+      const invite = await createParentInvite(studentId);
+      await navigator.clipboard.writeText(invite.code);
+      toast.success(
+        `Kode undangan tersalin: ${invite.code} (berlaku sampai ${new Date(
+          invite.expiresAt
+        ).toLocaleString("id-ID")})`
+      );
+    } catch (error) {
+      toast.error("Gagal membuat kode undangan orang tua");
     }
   };
 
@@ -532,6 +547,7 @@ export default function Users() {
                   onEdit={handleEditUser}
                   onDelete={handleDeleteUser}
                   onLink={handleLinkUser}
+                  onCreateParentInvite={handleCreateParentInvite}
                 />
               ))}
             </div>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Users, ClipboardCheck, BarChart3, Eye, EyeOff, ArrowRight, Mail, Lock } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import { APP_DESCRIPTION, ROLES, ROLE_LABELS } from "@/lib/constants";
+import { APP_DESCRIPTION } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,17 +13,13 @@ import { useToast } from "@/hooks/use-toast";
 import { setDebugAccess } from "@/lib/auth-session";
 import { login, register } from "@/lib/handlers/auth";
 
-type RegisterRole = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
-
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [registerRole, setRegisterRole] = useState<RegisterRole>(ROLES.STUDENT);
-  const [schoolCode, setSchoolCode] = useState("");
-  const [childStudentId, setChildStudentId] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [parentInviteCode, setParentInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -41,16 +37,10 @@ export default function Auth() {
             password,
           })
         : await register({
-            name: name.trim(),
-            identifier: identifier.trim(),
+            email: identifier.trim(),
             password,
-            role: registerRole,
-            schoolCode:
-              registerRole === ROLES.ADMIN ? undefined : schoolCode.trim(),
-            childStudentId:
-              registerRole === ROLES.PARENT && childStudentId.trim()
-                ? childStudentId.trim()
-                : undefined,
+            confirmPassword,
+            parentInviteCode: parentInviteCode.trim() || undefined,
           });
 
       setDebugAccess(result.canUseDebugPanel);
@@ -147,50 +137,25 @@ export default function Auth() {
               <CardDescription className="text-base">
                 {isLogin
                   ? "Masuk ke akun Anda untuk melanjutkan"
-                  : "Daftar dan lanjutkan setup awal sekolah"}
+                  : "Daftar dulu dengan email, lalu lanjutkan wizard onboarding"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nama Lengkap</Label>
-                      <Input
-                        id="name"
-                        placeholder="Masukkan nama lengkap"
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="registerRole">Daftar sebagai</Label>
-                      <select
-                        id="registerRole"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        value={registerRole}
-                        onChange={(event) =>
-                          setRegisterRole(event.target.value as RegisterRole)
-                        }
-                      >
-                        <option value={ROLES.ADMIN}>{ROLE_LABELS.ADMIN}</option>
-                        <option value={ROLES.TEACHER}>{ROLE_LABELS.TEACHER}</option>
-                        <option value={ROLES.STUDENT}>{ROLE_LABELS.STUDENT}</option>
-                        <option value={ROLES.PARENT}>{ROLE_LABELS.PARENT}</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
                 <div className="space-y-2">
-                  <Label htmlFor="identifier">Email / Username</Label>
+                  <Label htmlFor="identifier">
+                    {isLogin ? "Email / Username" : "Email"}
+                  </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="identifier"
-                      type="text"
-                      placeholder="nama@sekolah.sch.id atau username"
+                      type={isLogin ? "text" : "email"}
+                      placeholder={
+                        isLogin
+                          ? "nama@sekolah.sch.id atau username"
+                          : "nama@sekolah.sch.id"
+                      }
                       className="pl-10"
                       value={identifier}
                       onChange={(event) => setIdentifier(event.target.value)}
@@ -198,33 +163,6 @@ export default function Auth() {
                     />
                   </div>
                 </div>
-
-                {!isLogin && registerRole !== ROLES.ADMIN && (
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolCode">Kode Sekolah</Label>
-                    <Input
-                      id="schoolCode"
-                      type="text"
-                      placeholder="Mis: SCH-ABC12345"
-                      value={schoolCode}
-                      onChange={(event) => setSchoolCode(event.target.value)}
-                      required
-                    />
-                  </div>
-                )}
-
-                {!isLogin && registerRole === ROLES.PARENT && (
-                  <div className="space-y-2">
-                    <Label htmlFor="childStudentId">ID Akun Anak (opsional)</Label>
-                    <Input
-                      id="childStudentId"
-                      type="text"
-                      placeholder="Masukkan userId siswa"
-                      value={childStudentId}
-                      onChange={(event) => setChildStudentId(event.target.value)}
-                    />
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="password">Kata Sandi</Label>
@@ -257,6 +195,38 @@ export default function Auth() {
                     </p>
                   )}
                 </div>
+
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Konfirmasi Kata Sandi</Label>
+                    <Input
+                      id="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Ulangi kata sandi"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="parentInviteCode">
+                      Kode Undangan Ortu (opsional)
+                    </Label>
+                    <Input
+                      id="parentInviteCode"
+                      type="text"
+                      placeholder="Mis: ABCD-EFGH-JKLM"
+                      value={parentInviteCode}
+                      onChange={(event) => setParentInviteCode(event.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Isi hanya jika Anda mendaftar sebagai orang tua via undangan siswa.
+                    </p>
+                  </div>
+                )}
 
                 <Button
                   type="submit"

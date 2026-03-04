@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import {
+  parentInviteResultSchema,
   studentClassEnrollmentListSchema,
   userListSchema,
   userProfileSchema,
@@ -102,3 +103,8 @@ export const listTeachers = async (params?: { q?: string }) =>
 
 export const listParents = async (params?: { q?: string }) =>
   userListSchema.parse(await apiGet("/api/parents", params));
+
+export const createParentInvite = async (studentId: string) =>
+  parentInviteResultSchema.parse(
+    await apiPost("/api/parent-invites", { studentId })
+  );
