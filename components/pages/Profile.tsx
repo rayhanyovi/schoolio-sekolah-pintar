@@ -20,7 +20,8 @@ import {
   Camera,
   Save,
   Eye,
-  EyeOff
+  EyeOff,
+  Copy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
@@ -159,6 +160,23 @@ export default function Profile() {
     });
   };
 
+  const handleCopyStudentId = async () => {
+    if (!userId) return;
+    try {
+      await navigator.clipboard.writeText(userId);
+      toast({
+        title: "ID siswa disalin",
+        description: "Bagikan ID ini ke orang tua untuk proses link akun.",
+      });
+    } catch {
+      toast({
+        title: "Gagal menyalin",
+        description: "Silakan salin manual dari field ID siswa.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getInitials = () => {
     if (!profile) return "??";
     return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
@@ -226,6 +244,17 @@ export default function Profile() {
               <h2 className="text-xl font-bold">{profile.firstName} {profile.lastName}</h2>
               <p className="text-muted-foreground">{profile.email}</p>
               <Badge className="mt-2">{ROLE_LABELS[role]}</Badge>
+              {role === "STUDENT" && userId && (
+                <div className="mt-3 max-w-md space-y-2">
+                  <Label htmlFor="student-id">ID Siswa (untuk akun orang tua)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input id="student-id" value={userId} readOnly />
+                    <Button type="button" variant="outline" size="icon" onClick={handleCopyStudentId}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
           {/* Edit Button */}
