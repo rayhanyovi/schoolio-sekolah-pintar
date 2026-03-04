@@ -10,6 +10,7 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/server-auth";
 import { Role, ROLES } from "@/lib/constants";
+import { Prisma } from "@prisma/client";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1).optional(),
@@ -58,6 +59,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 
 const normalizeUsername = (value: string) => value.trim().toLowerCase();
 const isDemoLoginEnabled = () => process.env.NODE_ENV !== "production";
+const DEMO_SCHOOL_CODE = "SCH-DEMO01";
 
 const findAccount = (username: string, password: string) =>
   DEMO_ACCOUNTS.find(
@@ -65,6 +67,66 @@ const findAccount = (username: string, password: string) =>
       account.password === password &&
       account.aliases.some((alias) => alias === username)
   );
+
+const ensureDemoSchoolAndUser = async (account: DemoAccount) => {
+  const school = await prisma.schoolProfile.upsert({
+    where: { schoolCode: DEMO_SCHOOL_CODE },
+    update: {},
+    create: {
+      schoolCode: DEMO_SCHOOL_CODE,
+      name: "Sekolah Demo",
+      address: "Jalan Demo No. 1",
+      phone: "",
+      email: "demo@schoolio.local",
+      website: "",
+      principalName: "",
+    },
+    select: { id: true },
+  });
+
+  await prisma.user.upsert({
+    where: { id: account.userId },
+    update: {
+      name: account.name,
+      role: account.role,
+      schoolId: school.id,
+      onboardingCompletedAt: new Date(),
+      roleSelectedAt: new Date(),
+    },
+    create: {
+      id: account.userId,
+      name: account.name,
+      role: account.role,
+      email: account.aliases.find((alias) => alias.includes("@")) ?? null,
+      schoolId: school.id,
+      onboardingCompletedAt: new Date(),
+      roleSelectedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
+  if (account.role === ROLES.TEACHER) {
+    await prisma.teacherProfile.upsert({
+      where: { userId: account.userId },
+      update: {},
+      create: { userId: account.userId },
+    });
+  } else if (account.role === ROLES.STUDENT) {
+    await prisma.studentProfile.upsert({
+      where: { userId: account.userId },
+      update: {},
+      create: { userId: account.userId, status: "ACTIVE" },
+    });
+  } else if (account.role === ROLES.PARENT) {
+    await prisma.parentProfile.upsert({
+      where: { userId: account.userId },
+      update: {},
+      create: { userId: account.userId },
+    });
+  }
+
+  return school.id;
+};
 
 export async function POST(request: NextRequest) {
   let rawBody: unknown;
@@ -88,6 +150,16 @@ export async function POST(request: NextRequest) {
   const demoAccount =
     isDemoLoginEnabled() ? findAccount(identifier, parsed.data.password) : null;
   if (demoAccount) {
+    let schoolId: string | null = null;
+    try {
+      schoolId = await ensureDemoSchoolAndUser(demoAccount);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientInitializationError) {
+        return jsonError("CONFLICT", "Layanan database belum tersedia", 503);
+      }
+      throw error;
+    }
+
     const canUseDebugPanel =
       demoAccount.role === ROLES.ADMIN && isDebugImpersonationEnabled();
     const token = await createSessionToken({
@@ -96,6 +168,7 @@ export async function POST(request: NextRequest) {
       role: demoAccount.role,
       canUseDebugPanel,
       onboardingCompleted: true,
+      schoolId,
     });
 
     const response = jsonOk({
@@ -106,6 +179,7 @@ export async function POST(request: NextRequest) {
       },
       canUseDebugPanel,
       onboardingCompleted: true,
+      schoolId,
     });
 
     response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
@@ -121,6 +195,7 @@ export async function POST(request: NextRequest) {
           name: true,
           role: true,
           onboardingCompletedAt: true,
+          schoolId: true,
         },
       },
     },
@@ -146,6 +221,7 @@ export async function POST(request: NextRequest) {
     role: credential.user.role,
     canUseDebugPanel: false,
     onboardingCompleted,
+    schoolId: credential.user.schoolId,
   });
 
   const response = jsonOk({
@@ -156,6 +232,7 @@ export async function POST(request: NextRequest) {
     },
     canUseDebugPanel: false,
     onboardingCompleted,
+    schoolId: credential.user.schoolId,
   });
 
   response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
