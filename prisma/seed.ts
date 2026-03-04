@@ -161,6 +161,7 @@ async function main() {
 
   await prisma.schoolProfile.create({
     data: {
+      schoolCode: "SCH-DEMO01",
       name: "SMA Negeri 1 Sekolah Pintar",
       address: "Jl. Pendidikan No. 123",
       phone: "021-123456",

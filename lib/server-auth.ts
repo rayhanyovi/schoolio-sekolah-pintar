@@ -12,6 +12,7 @@ type SessionTokenPayload = {
   name: string;
   role: Role;
   canUseDebugPanel: boolean;
+  onboardingCompleted?: boolean;
   iat: number;
   exp: number;
 };
@@ -21,6 +22,7 @@ export type AuthSession = {
   name: string;
   role: Role;
   canUseDebugPanel: boolean;
+  onboardingCompleted: boolean;
   issuedAt: number;
   expiresAt: number;
 };
@@ -30,6 +32,7 @@ type SessionInput = {
   name: string;
   role: Role;
   canUseDebugPanel: boolean;
+  onboardingCompleted: boolean;
 };
 
 const roles = new Set<Role>(Object.values(ROLES));
@@ -142,11 +145,17 @@ const toSession = (payload: Partial<SessionTokenPayload>): AuthSession | null =>
   const now = Math.floor(Date.now() / 1000);
   if (payload.exp <= now) return null;
 
+  const onboardingCompleted =
+    typeof payload.onboardingCompleted === "boolean"
+      ? payload.onboardingCompleted
+      : true;
+
   return {
     userId: payload.userId,
     name: payload.name,
     role: payload.role as Role,
     canUseDebugPanel: payload.canUseDebugPanel,
+    onboardingCompleted,
     issuedAt: payload.iat,
     expiresAt: payload.exp,
   };

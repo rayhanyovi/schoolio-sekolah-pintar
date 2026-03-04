@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { jsonError, jsonOk } from "@/lib/api";
+import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/password";
 import {
   createSessionToken,
   isDebugImpersonationEnabled,
@@ -10,7 +12,8 @@ import {
 import { Role, ROLES } from "@/lib/constants";
 
 const loginSchema = z.object({
-  username: z.string().trim().min(1),
+  username: z.string().trim().min(1).optional(),
+  identifier: z.string().trim().min(1).optional(),
   password: z.string().min(1),
 });
 
@@ -54,6 +57,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 ];
 
 const normalizeUsername = (value: string) => value.trim().toLowerCase();
+const isDemoLoginEnabled = () => process.env.NODE_ENV !== "production";
 
 const findAccount = (username: string, password: string) =>
   DEMO_ACCOUNTS.find(
@@ -72,32 +76,86 @@ export async function POST(request: NextRequest) {
 
   const parsed = loginSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return jsonError("VALIDATION_ERROR", "username and password are required");
+    return jsonError("VALIDATION_ERROR", "identifier and password are required");
   }
 
-  const username = normalizeUsername(parsed.data.username);
-  const account = findAccount(username, parsed.data.password);
-  if (!account) {
+  const identifierSource = parsed.data.identifier ?? parsed.data.username ?? "";
+  const identifier = normalizeUsername(identifierSource);
+  if (!identifier) {
+    return jsonError("VALIDATION_ERROR", "identifier and password are required");
+  }
+
+  const demoAccount =
+    isDemoLoginEnabled() ? findAccount(identifier, parsed.data.password) : null;
+  if (demoAccount) {
+    const canUseDebugPanel =
+      demoAccount.role === ROLES.ADMIN && isDebugImpersonationEnabled();
+    const token = await createSessionToken({
+      userId: demoAccount.userId,
+      name: demoAccount.name,
+      role: demoAccount.role,
+      canUseDebugPanel,
+      onboardingCompleted: true,
+    });
+
+    const response = jsonOk({
+      user: {
+        id: demoAccount.userId,
+        name: demoAccount.name,
+        role: demoAccount.role,
+      },
+      canUseDebugPanel,
+      onboardingCompleted: true,
+    });
+
+    response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+    return response;
+  }
+
+  const credential = await prisma.authCredential.findUnique({
+    where: { identifier },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          onboardingCompletedAt: true,
+        },
+      },
+    },
+  });
+  if (!credential) {
     return jsonError("UNAUTHORIZED", "Username atau kata sandi salah", 401);
   }
 
-  const canUseDebugPanel =
-    account.role === ROLES.ADMIN && isDebugImpersonationEnabled();
+  const isValidPassword = await verifyPassword(
+    parsed.data.password,
+    credential.passwordSalt,
+    credential.passwordHash
+  );
+  if (!isValidPassword) {
+    return jsonError("UNAUTHORIZED", "Username atau kata sandi salah", 401);
+  }
+
+  const onboardingCompleted = Boolean(credential.user.onboardingCompletedAt);
 
   const token = await createSessionToken({
-    userId: account.userId,
-    name: account.name,
-    role: account.role,
-    canUseDebugPanel,
+    userId: credential.user.id,
+    name: credential.user.name,
+    role: credential.user.role,
+    canUseDebugPanel: false,
+    onboardingCompleted,
   });
 
   const response = jsonOk({
     user: {
-      id: account.userId,
-      name: account.name,
-      role: account.role,
+      id: credential.user.id,
+      name: credential.user.name,
+      role: credential.user.role,
     },
-    canUseDebugPanel,
+    canUseDebugPanel: false,
+    onboardingCompleted,
   });
 
   response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);

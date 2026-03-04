@@ -586,6 +586,7 @@ export const mockNotes: Note[] = [
 
 // Settings mock data
 export interface SchoolProfile {
+  schoolCode?: string;
   name: string;
   address: string;
   phone: string;
@@ -614,6 +615,7 @@ export interface ClassScheduleTemplate {
 }
 
 export const mockSchoolProfile: SchoolProfile = {
+  schoolCode: "SCH-DEMO01",
   name: "SMA Negeri 1 Schoolio",
   address: "Jl. Pendidikan No. 123, Jakarta Selatan",
   phone: "(021) 1234567",

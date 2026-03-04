@@ -73,6 +73,70 @@ export const userSchema = z
 export const userListSchema = z.array(userSchema);
 export type UserSummary = z.infer<typeof userSchema>;
 
+export const authSessionSchema = z.object({
+  userId: z.string(),
+  name: z.string(),
+  role: z.string(),
+  canUseDebugPanel: z.boolean().default(false),
+  onboardingCompleted: z.boolean().default(true),
+});
+export type AuthSessionSummary = z.infer<typeof authSessionSchema>;
+
+export const authLoginResultSchema = z.object({
+  user: z.object({
+    id: z.string(),
+    name: z.string(),
+    role: z.string(),
+  }),
+  canUseDebugPanel: z.boolean().default(false),
+  onboardingCompleted: z.boolean().default(true),
+});
+export type AuthLoginResult = z.infer<typeof authLoginResultSchema>;
+
+export const onboardingStepSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  required: z.boolean(),
+  completed: z.boolean(),
+});
+export type OnboardingStep = z.infer<typeof onboardingStepSchema>;
+
+export const onboardingReminderSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  href: z.string(),
+});
+export type OnboardingReminder = z.infer<typeof onboardingReminderSchema>;
+
+export const onboardingStatusSchema = z.object({
+  role: z.string(),
+  onboardingCompleted: z.boolean().default(true),
+  schoolCode: z.string().nullable(),
+  steps: z.array(onboardingStepSchema).default([]),
+  reminders: z.array(onboardingReminderSchema).default([]),
+});
+export type OnboardingStatus = z.infer<typeof onboardingStatusSchema>;
+
+export const onboardingLinkChildResultSchema = z.object({
+  linked: z.boolean(),
+  child: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
+});
+export type OnboardingLinkChildResult = z.infer<
+  typeof onboardingLinkChildResultSchema
+>;
+
+export const onboardingCompleteResultSchema = z.object({
+  success: z.boolean(),
+  redirectTo: z.string(),
+});
+export type OnboardingCompleteResult = z.infer<
+  typeof onboardingCompleteResultSchema
+>;
+
 export const userProfileSchema = z
   .object({
     id: z.string(),
@@ -628,6 +692,7 @@ export type AssignmentSubmissionSummary = z.infer<
 >;
 
 export const schoolProfileSchema = z.object({
+  schoolCode: z.string().nullish(),
   name: z.string(),
   address: z.string(),
   phone: emptyString,
