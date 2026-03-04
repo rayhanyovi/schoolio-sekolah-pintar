@@ -1,10 +1,17 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
-import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
-import { ROLES } from "@/lib/constants";
 import { Prisma, StudentLifecycleStatus } from "@prisma/client";
 import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
+import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
+import { ROLES } from "@/lib/constants";
 
 const STUDENT_LIFECYCLE_VALUES: StudentLifecycleStatus[] = [
   "ACTIVE",
@@ -42,6 +49,8 @@ export async function GET(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const role = searchParams.get("role");
@@ -49,9 +58,11 @@ export async function GET(request: NextRequest) {
   const q = searchParams.get("q")?.toLowerCase() ?? "";
   const includeInactive = searchParams.get("includeInactive") === "true";
   const requestedStudentStatus = searchParams.get("studentLifecycleStatus");
-  const yearScopeResult = await resolveAcademicYearScope(request);
+
+  const yearScopeResult = await resolveAcademicYearScope(request, { schoolId });
   if (yearScopeResult.error) return yearScopeResult.error;
   const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
+
   const studentStatus = requestedStudentStatus
     ? toStudentLifecycleStatus(requestedStudentStatus)
     : null;
@@ -63,7 +74,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const where: Prisma.UserWhereInput = {};
+  const where: Prisma.UserWhereInput = { schoolId };
   if (role) where.role = role;
   if (q) {
     where.OR = [
@@ -71,6 +82,7 @@ export async function GET(request: NextRequest) {
       { email: { contains: q, mode: "insensitive" } },
     ];
   }
+
   const isStudentScopedQuery = role === "STUDENT" || Boolean(classId);
   if (isStudentScopedQuery) {
     if (!includeAllAcademicYears && !academicYearId) {
@@ -81,7 +93,7 @@ export async function GET(request: NextRequest) {
       studentProfileWhere.classId = classId;
     }
     if (academicYearId) {
-      studentProfileWhere.class = { academicYearId };
+      studentProfileWhere.class = { academicYearId, schoolId };
     }
     if (studentStatus) {
       studentProfileWhere.status = studentStatus;
@@ -105,10 +117,13 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedBody = await parseJsonBody(request, createUserSchema);
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;
+
   const studentLifecycleStatus =
     body.studentLifecycleStatus === undefined ||
     body.studentLifecycleStatus === null ||
@@ -127,72 +142,92 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const row = await prisma.$transaction(async (tx) => {
-    const created = await tx.user.create({
-      data: {
-        name: body.name,
-        email: body.email ?? null,
-        role: body.role,
-        phone: body.phone ?? null,
-        address: body.address ?? null,
-        bio: body.bio ?? null,
-        avatarUrl: body.avatarUrl ?? null,
-        birthDate: body.birthDate ? new Date(body.birthDate) : null,
-      },
-    });
-
-    if (body.role === "STUDENT") {
-      const targetClassId = body.classId ?? null;
-      await tx.studentProfile.create({
+  try {
+    const row = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
         data: {
-          userId: created.id,
-          classId: targetClassId,
-          gender: body.gender ?? null,
-          status: studentLifecycleStatus ?? "ACTIVE",
+          name: body.name,
+          email: body.email ?? null,
+          role: body.role,
+          schoolId,
+          phone: body.phone ?? null,
+          address: body.address ?? null,
+          bio: body.bio ?? null,
+          avatarUrl: body.avatarUrl ?? null,
+          birthDate: body.birthDate ? new Date(body.birthDate) : null,
         },
       });
-      if (targetClassId) {
-        const classRow = await tx.class.findUnique({
-          where: { id: targetClassId },
-          select: { academicYearId: true },
-        });
-        await tx.studentClassEnrollment.create({
+
+      if (body.role === "STUDENT") {
+        const targetClassId = body.classId ?? null;
+        if (targetClassId) {
+          const existingClass = await tx.class.findFirst({
+            where: { id: targetClassId, schoolId },
+            select: { id: true },
+          });
+          if (!existingClass) {
+            throw new Error("FORBIDDEN_CLASS");
+          }
+        }
+
+        await tx.studentProfile.create({
           data: {
-            studentId: created.id,
+            userId: created.id,
             classId: targetClassId,
-            academicYearId: classRow?.academicYearId ?? null,
+            gender: body.gender ?? null,
+            status: studentLifecycleStatus ?? "ACTIVE",
           },
         });
+
+        if (targetClassId) {
+          const classRow = await tx.class.findUnique({
+            where: { id: targetClassId },
+            select: { academicYearId: true },
+          });
+          await tx.studentClassEnrollment.create({
+            data: {
+              studentId: created.id,
+              classId: targetClassId,
+              academicYearId: classRow?.academicYearId ?? null,
+            },
+          });
+        }
       }
-    }
 
-    if (body.role === "TEACHER") {
-      await tx.teacherProfile.create({ data: { userId: created.id } });
-    }
+      if (body.role === "TEACHER") {
+        await tx.teacherProfile.create({ data: { userId: created.id } });
+      }
 
-    if (body.role === "PARENT") {
-      await tx.parentProfile.create({ data: { userId: created.id } });
-    }
+      if (body.role === "PARENT") {
+        await tx.parentProfile.create({ data: { userId: created.id } });
+      }
 
-    await tx.auditLog.create({
-      data: {
-        actorId: auth.userId,
-        actorRole: auth.role,
-        action: "USER_CREATED",
-        entityType: "User",
-        entityId: created.id,
-        beforeData: null,
-        afterData: {
-          id: created.id,
-          name: created.name,
-          email: created.email,
-          role: created.role,
+      await tx.auditLog.create({
+        data: {
+          actorId: auth.userId,
+          actorRole: auth.role,
+          action: "USER_CREATED",
+          entityType: "User",
+          entityId: created.id,
+          beforeData: null,
+          afterData: {
+            id: created.id,
+            name: created.name,
+            email: created.email,
+            role: created.role,
+          },
         },
-      },
+      });
+
+      return created;
     });
 
-    return created;
-  });
-
-  return jsonOk(row, { status: 201 });
+    return jsonOk(row, { status: 201 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "FORBIDDEN_CLASS") {
+      return jsonError("FORBIDDEN", "Kelas tidak valid untuk sekolah ini", 403);
+    }
+    throw error;
+  }
 }
+

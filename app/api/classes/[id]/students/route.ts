@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import {
+  isMockEnabled,
+  jsonError,
+  jsonOk,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockStudents } from "@/lib/mockData";
 
@@ -10,6 +17,8 @@ export async function GET(request: Request, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
@@ -19,9 +28,19 @@ export async function GET(request: Request, { params }: Params) {
     const data = mockStudents.filter((student) => student.classId === id);
     return jsonOk(data);
   }
+  const classRow = await prisma.class.findFirst({
+    where: { id, schoolId },
+    select: { id: true },
+  });
+  if (!classRow) {
+    return jsonError("NOT_FOUND", "Class not found", 404);
+  }
 
   const rows = await prisma.studentProfile.findMany({
-    where: { classId: id },
+    where: {
+      classId: id,
+      user: { schoolId },
+    },
     include: { user: true, class: true },
     orderBy: { user: { name: "asc" } },
   });

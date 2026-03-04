@@ -1,6 +1,15 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonOk, parseJsonBody, parseNumber, requireAuth, requireRole } from "@/lib/api";
+import {
+  isMockEnabled,
+  jsonError,
+  jsonOk,
+  parseJsonBody,
+  parseNumber,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import {
   getStudentClassId,
@@ -34,11 +43,13 @@ export async function GET(request: NextRequest) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const grade = parseNumber(searchParams.get("grade"));
   const q = searchParams.get("q")?.toLowerCase() ?? "";
-  const yearScopeResult = await resolveAcademicYearScope(request);
+  const yearScopeResult = await resolveAcademicYearScope(request, { schoolId });
   if (yearScopeResult.error) return yearScopeResult.error;
   const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
   if (!includeAllAcademicYears && !academicYearId) {
@@ -62,7 +73,7 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { schoolId };
   if (grade) where.grade = grade;
   if (academicYearId) where.academicYearId = academicYearId;
   if (q) {
@@ -116,6 +127,8 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedBody = await parseJsonBody(request, createClassSchema);
   if (parsedBody instanceof Response) return parsedBody;
@@ -124,14 +137,37 @@ export async function POST(request: NextRequest) {
   let academicYearId: string | null = body.academicYearId ?? null;
   if (!academicYearId && body.academicYear) {
     const year = await prisma.academicYear.findFirst({
-      where: { year: body.academicYear },
+      where: { year: body.academicYear, schoolId },
       select: { id: true },
     });
     academicYearId = year?.id ?? null;
   }
+  if (academicYearId) {
+    const year = await prisma.academicYear.findFirst({
+      where: { id: academicYearId, schoolId },
+      select: { id: true },
+    });
+    if (!year) {
+      return jsonError("FORBIDDEN", "Tahun ajaran tidak valid", 403);
+    }
+  }
+  if (body.homeroomTeacherId) {
+    const teacher = await prisma.user.findFirst({
+      where: {
+        id: body.homeroomTeacherId,
+        role: ROLES.TEACHER,
+        schoolId,
+      },
+      select: { id: true },
+    });
+    if (!teacher) {
+      return jsonError("FORBIDDEN", "Wali kelas tidak valid", 403);
+    }
+  }
 
   const row = await prisma.class.create({
     data: {
+      schoolId,
       name: body.name,
       grade: body.grade,
       major: body.major ?? null,

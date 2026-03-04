@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  isMockEnabled,
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import {
   getStudentClassId,
   listLinkedClassIdsForParent,
@@ -19,7 +27,16 @@ export async function GET(request: Request, { params }: Params) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
+  const classRow = await prisma.class.findFirst({
+    where: { id: params.id, schoolId },
+    select: { id: true },
+  });
+  if (!classRow) {
+    return jsonError("NOT_FOUND", "Class not found", 404);
+  }
   if (auth.role === ROLES.STUDENT) {
     const ownClassId = await getStudentClassId(auth.userId);
     if (!ownClassId || ownClassId !== params.id) {
@@ -41,7 +58,7 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const rows = await prisma.subjectClass.findMany({
-    where: { classId: params.id },
+    where: { classId: params.id, subject: { schoolId } },
     include: { subject: true },
   });
 
@@ -62,6 +79,8 @@ export async function PUT(request: Request, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
@@ -69,6 +88,24 @@ export async function PUT(request: Request, { params }: Params) {
   const subjectIds: string[] = body?.subjectIds ?? [];
   if (!Array.isArray(subjectIds)) {
     return jsonError("VALIDATION_ERROR", "subjectIds array is required");
+  }
+  const classRow = await prisma.class.findFirst({
+    where: { id: params.id, schoolId },
+    select: { id: true },
+  });
+  if (!classRow) {
+    return jsonError("NOT_FOUND", "Class not found", 404);
+  }
+  if (subjectIds.length) {
+    const availableSubjects = await prisma.subject.count({
+      where: {
+        id: { in: subjectIds },
+        schoolId,
+      },
+    });
+    if (availableSubjects !== subjectIds.length) {
+      return jsonError("FORBIDDEN", "Ada mata pelajaran lintas sekolah", 403);
+    }
   }
 
   await prisma.subjectClass.deleteMany({ where: { classId: params.id } });

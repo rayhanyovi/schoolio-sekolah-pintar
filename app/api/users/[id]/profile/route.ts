@@ -1,7 +1,13 @@
 import { NextRequest } from "next/server";
 import { StudentLifecycleStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, parseJsonRecordBody, requireAuth } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireSchoolContext,
+} from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: { id: string } };
@@ -79,18 +85,21 @@ const toProfileSnapshot = (
 const authorizeProfileAccess = async (request: NextRequest, userId: string) => {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
   if (auth.role !== ROLES.ADMIN && auth.userId !== userId) {
     return jsonError("FORBIDDEN", "You are not allowed to access this profile", 403);
   }
-  return auth;
+  return { auth, schoolId };
 };
 
 export async function GET(request: NextRequest, { params }: Params) {
-  const auth = await authorizeProfileAccess(request, params.id);
-  if (auth instanceof Response) return auth;
+  const context = await authorizeProfileAccess(request, params.id);
+  if (context instanceof Response) return context;
+  const { schoolId } = context;
 
-  const row = await prisma.user.findUnique({
-    where: { id: params.id },
+  const row = await prisma.user.findFirst({
+    where: { id: params.id, schoolId },
     include: {
       studentProfile: { include: { class: true } },
       teacherProfile: true,
@@ -103,8 +112,9 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
-  const auth = await authorizeProfileAccess(request, params.id);
-  if (auth instanceof Response) return auth;
+  const context = await authorizeProfileAccess(request, params.id);
+  if (context instanceof Response) return context;
+  const { auth, schoolId } = context;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
@@ -137,122 +147,138 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   ) {
     return jsonError("VALIDATION_ERROR", "studentProfile.status tidak valid", 400);
   }
-  const row = await prisma.$transaction(async (tx) => {
-    const before = await tx.user.findUnique({
-      where: { id: params.id },
-      include: {
-        studentProfile: true,
-        teacherProfile: true,
-        parentProfile: true,
-      },
-    });
-    if (!before) return null;
-
-    const updatedUser = await tx.user.update({
-      where: { id: params.id },
-      data: {
-        name: derivedName ? derivedName : undefined,
-        email: emailValue,
-        firstName: body.firstName,
-        lastName: body.lastName,
-        phone: body.phone,
-        address: body.address,
-        bio: body.bio,
-        avatarUrl: body.avatarUrl,
-        birthDate: birthDateValue,
-      },
-    });
-
-    if (body.studentProfile) {
-      const previousClassId = before.studentProfile?.classId ?? null;
-      const nextClassId =
-        body.studentProfile.classId === undefined
-          ? previousClassId
-          : body.studentProfile.classId ?? null;
-      const nextStatus =
-        requestedStudentStatus ?? before.studentProfile?.status ?? "ACTIVE";
-      await tx.studentProfile.upsert({
-        where: { userId: params.id },
-        update: {
-          classId: nextClassId,
-          gender: body.studentProfile.gender ?? null,
-          status: nextStatus,
+  try {
+    const row = await prisma.$transaction(async (tx) => {
+      const before = await tx.user.findUnique({
+        where: { id: params.id },
+        include: {
+          studentProfile: true,
+          teacherProfile: true,
+          parentProfile: true,
         },
-        create: {
-          userId: params.id,
-          classId: nextClassId,
-          gender: body.studentProfile.gender ?? null,
-          status: nextStatus,
+      });
+      if (!before || before.schoolId !== schoolId) return null;
+
+      const updatedUser = await tx.user.update({
+        where: { id: params.id },
+        data: {
+          name: derivedName ? derivedName : undefined,
+          email: emailValue,
+          firstName: body.firstName,
+          lastName: body.lastName,
+          phone: body.phone,
+          address: body.address,
+          bio: body.bio,
+          avatarUrl: body.avatarUrl,
+          birthDate: birthDateValue,
         },
       });
 
-      if (previousClassId !== nextClassId) {
-        const now = new Date();
-        await tx.studentClassEnrollment.updateMany({
-          where: {
-            studentId: params.id,
-            endedAt: null,
+      if (body.studentProfile) {
+        const previousClassId = before.studentProfile?.classId ?? null;
+        const nextClassId =
+          body.studentProfile.classId === undefined
+            ? previousClassId
+            : body.studentProfile.classId ?? null;
+        if (nextClassId) {
+          const targetClass = await tx.class.findFirst({
+            where: { id: nextClassId, schoolId },
+            select: { id: true },
+          });
+          if (!targetClass) {
+            throw new Error("FORBIDDEN_CLASS");
+          }
+        }
+        const nextStatus =
+          requestedStudentStatus ?? before.studentProfile?.status ?? "ACTIVE";
+        await tx.studentProfile.upsert({
+          where: { userId: params.id },
+          update: {
+            classId: nextClassId,
+            gender: body.studentProfile.gender ?? null,
+            status: nextStatus,
           },
-          data: { endedAt: now },
+          create: {
+            userId: params.id,
+            classId: nextClassId,
+            gender: body.studentProfile.gender ?? null,
+            status: nextStatus,
+          },
         });
 
-        if (nextClassId) {
-          const classRow = await tx.class.findUnique({
-            where: { id: nextClassId },
-            select: { academicYearId: true },
-          });
-          await tx.studentClassEnrollment.create({
-            data: {
+        if (previousClassId !== nextClassId) {
+          const now = new Date();
+          await tx.studentClassEnrollment.updateMany({
+            where: {
               studentId: params.id,
-              classId: nextClassId,
-              academicYearId: classRow?.academicYearId ?? null,
-              startedAt: now,
+              endedAt: null,
             },
+            data: { endedAt: now },
           });
+
+          if (nextClassId) {
+            const classRow = await tx.class.findUnique({
+              where: { id: nextClassId },
+              select: { academicYearId: true },
+            });
+            await tx.studentClassEnrollment.create({
+              data: {
+                studentId: params.id,
+                classId: nextClassId,
+                academicYearId: classRow?.academicYearId ?? null,
+                startedAt: now,
+              },
+            });
+          }
         }
       }
-    }
 
-    if (body.teacherProfile) {
-      await tx.teacherProfile.upsert({
-        where: { userId: params.id },
-        update: { title: body.teacherProfile.title ?? null },
-        create: { userId: params.id, title: body.teacherProfile.title ?? null },
+      if (body.teacherProfile) {
+        await tx.teacherProfile.upsert({
+          where: { userId: params.id },
+          update: { title: body.teacherProfile.title ?? null },
+          create: { userId: params.id, title: body.teacherProfile.title ?? null },
+        });
+      }
+
+      if (body.parentProfile) {
+        await tx.parentProfile.upsert({
+          where: { userId: params.id },
+          update: {},
+          create: { userId: params.id },
+        });
+      }
+
+      const after = await tx.user.findUnique({
+        where: { id: params.id },
+        include: {
+          studentProfile: true,
+          teacherProfile: true,
+          parentProfile: true,
+        },
       });
-    }
 
-    if (body.parentProfile) {
-      await tx.parentProfile.upsert({
-        where: { userId: params.id },
-        update: {},
-        create: { userId: params.id },
+      await tx.auditLog.create({
+        data: {
+          actorId: auth.userId,
+          actorRole: auth.role,
+          action: "USER_PROFILE_UPDATED",
+          entityType: "User",
+          entityId: params.id,
+          beforeData: toProfileSnapshot(before),
+          afterData: toProfileSnapshot(after),
+        },
       });
-    }
 
-    const after = await tx.user.findUnique({
-      where: { id: params.id },
-      include: {
-        studentProfile: true,
-        teacherProfile: true,
-        parentProfile: true,
-      },
+      return updatedUser;
     });
 
-    await tx.auditLog.create({
-      data: {
-        actorId: auth.userId,
-        actorRole: auth.role,
-        action: "USER_PROFILE_UPDATED",
-        entityType: "User",
-        entityId: params.id,
-        beforeData: toProfileSnapshot(before),
-        afterData: toProfileSnapshot(after),
-      },
-    });
-
-    return updatedUser;
-  });
-
-  if (!row) return jsonError("NOT_FOUND", "User not found", 404);
-  return jsonOk(row);
+    if (!row) return jsonError("NOT_FOUND", "User not found", 404);
+    return jsonOk(row);
+  } catch (error) {
+    if (error instanceof Error && error.message === "FORBIDDEN_CLASS") {
+      return jsonError("FORBIDDEN", "Kelas tidak valid untuk sekolah ini", 403);
+    }
+    throw error;
+  }
 }

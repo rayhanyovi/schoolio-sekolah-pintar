@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { canViewStudent } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -17,6 +23,8 @@ export async function GET(request: NextRequest, { params }: Params) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id: studentId } = await params;
   if (!studentId) {
@@ -29,7 +37,10 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
 
   const rows = await prisma.studentClassEnrollment.findMany({
-    where: { studentId } as Prisma.StudentClassEnrollmentWhereInput,
+    where: {
+      studentId,
+      class: { schoolId },
+    } as Prisma.StudentClassEnrollmentWhereInput,
     include: {
       class: { select: { name: true, section: true } },
       academicYear: { select: { year: true, semester: true } },

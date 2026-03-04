@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
@@ -33,13 +39,15 @@ export async function GET(request: NextRequest) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const q = searchParams.get("q")?.toLowerCase() ?? "";
   const includeInactive = searchParams.get("includeInactive") === "true";
   const lifecycleStatusParam = searchParams.get("studentLifecycleStatus");
-  const yearScopeResult = await resolveAcademicYearScope(request);
+  const yearScopeResult = await resolveAcademicYearScope(request, { schoolId });
   if (yearScopeResult.error) return yearScopeResult.error;
   const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
   if (!includeAllAcademicYears && !academicYearId) {
@@ -54,7 +62,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const where: Prisma.UserWhereInput = { role: "STUDENT" };
+  const where: Prisma.UserWhereInput = { role: "STUDENT", schoolId };
   if (q) {
     where.OR = [
       { name: { contains: q, mode: "insensitive" } },
@@ -66,7 +74,7 @@ export async function GET(request: NextRequest) {
     studentProfileWhere.classId = classId;
   }
   if (academicYearId) {
-    studentProfileWhere.class = { academicYearId };
+    studentProfileWhere.class = { academicYearId, schoolId };
   }
   if (lifecycleStatus) {
     studentProfileWhere.status = lifecycleStatus;

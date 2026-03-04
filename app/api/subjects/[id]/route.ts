@@ -1,6 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  isMockEnabled,
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockSubjects } from "@/lib/mockData";
 
@@ -16,6 +24,8 @@ export async function GET(request: NextRequest, { params }: Params) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   if (isMockEnabled()) {
     const item = mockSubjects.find((row) => row.id === params.id);
@@ -23,8 +33,8 @@ export async function GET(request: NextRequest, { params }: Params) {
     return jsonOk(item);
   }
 
-  const row = await prisma.subject.findUnique({
-    where: { id: params.id },
+  const row = await prisma.subject.findFirst({
+    where: { id: params.id, schoolId },
     include: {
       teachers: { include: { teacher: true } },
       classes: true,
@@ -55,10 +65,42 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
+  const existingSubject = await prisma.subject.findFirst({
+    where: { id: params.id, schoolId },
+    select: { id: true },
+  });
+  if (!existingSubject) {
+    return jsonError("NOT_FOUND", "Subject not found", 404);
+  }
+  if (Array.isArray(body.teacherIds) && body.teacherIds.length) {
+    const teacherCount = await prisma.user.count({
+      where: {
+        id: { in: body.teacherIds },
+        role: ROLES.TEACHER,
+        schoolId,
+      },
+    });
+    if (teacherCount !== body.teacherIds.length) {
+      return jsonError("FORBIDDEN", "Ada guru lintas sekolah", 403);
+    }
+  }
+  if (Array.isArray(body.classIds) && body.classIds.length) {
+    const classCount = await prisma.class.count({
+      where: {
+        id: { in: body.classIds },
+        schoolId,
+      },
+    });
+    if (classCount !== body.classIds.length) {
+      return jsonError("FORBIDDEN", "Ada kelas lintas sekolah", 403);
+    }
+  }
   const row = await prisma.subject.update({
     where: { id: params.id },
     data: {
@@ -117,7 +159,16 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
+  const existingSubject = await prisma.subject.findFirst({
+    where: { id: params.id, schoolId },
+    select: { id: true },
+  });
+  if (!existingSubject) {
+    return jsonError("NOT_FOUND", "Subject not found", 404);
+  }
   await prisma.subject.delete({ where: { id: params.id } });
   return jsonOk({ id: params.id });
 }

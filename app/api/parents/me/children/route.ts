@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { Prisma, StudentLifecycleStatus } from "@prisma/client";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { ROLES } from "@/lib/constants";
 import { listLinkedStudentIds } from "@/lib/authz";
@@ -28,13 +34,15 @@ export async function GET(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.PARENT]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const q = searchParams.get("q")?.trim() ?? "";
   const includeInactive = searchParams.get("includeInactive") === "true";
   const lifecycleStatusParam = searchParams.get("studentLifecycleStatus");
-  const yearScopeResult = await resolveAcademicYearScope(request);
+  const yearScopeResult = await resolveAcademicYearScope(request, { schoolId });
   if (yearScopeResult.error) return yearScopeResult.error;
   const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
   if (!includeAllAcademicYears && !academicYearId) {
@@ -56,6 +64,7 @@ export async function GET(request: NextRequest) {
 
   const where: Prisma.UserWhereInput = {
     role: "STUDENT",
+    schoolId,
     id: { in: linkedStudentIds },
   };
 
@@ -64,7 +73,7 @@ export async function GET(request: NextRequest) {
     studentProfileWhere.classId = classId;
   }
   if (academicYearId) {
-    studentProfileWhere.class = { academicYearId };
+    studentProfileWhere.class = { academicYearId, schoolId };
   }
   if (lifecycleStatus) {
     studentProfileWhere.status = lifecycleStatus;
