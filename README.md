@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sekolah Pintar
 
-## Getting Started
+Next.js + Prisma app untuk operasional sekolah.
 
-First, run the development server:
+## App Mode
 
+Project ini mendukung dua mode deployment:
+
+- `self_host` (default): koneksi DB dari `DATABASE_URL` (PostgreSQL local/self-host).
+- `saas`: koneksi DB dari `SUPABASE_DATABASE_URL` (prioritas), fallback ke `DATABASE_URL`.
+
+## Setup Environment
+
+1. Copy env template:
+```bash
+copy .env.example .env
+```
+2. Isi variabel sesuai mode yang dipakai.
+
+## Self-Host Quickstart
+
+1. Set di `.env`:
+   - `APP_MODE=self_host`
+   - `DATABASE_URL=postgresql://...`
+2. Jalankan DB lokal:
+```bash
+docker compose up -d db
+```
+3. Install + migrate:
+```bash
+npm install
+npm run prisma:generate
+npm run prisma:migrate
+```
+4. Jalankan app:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## SaaS Quickstart (Supabase)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Set di `.env`:
+   - `APP_MODE=saas`
+   - `SUPABASE_DATABASE_URL=postgresql://...` (recommended)
+   - `SESSION_SECRET=<secret-production>`
+2. Install + migrate:
+```bash
+npm install
+npm run prisma:generate
+npm run prisma:migrate
+```
+3. Jalankan app:
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Utility Scripts
 
-## Learn More
+Script berikut sudah support mode `self_host` dan `saas`:
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `scripts\db-backup.cmd [output-file]`
+- `scripts\db-restore.cmd <input-file>`
+- `scripts\academic-year-rollover.cmd --targetAcademicYearId=<id> [options]`
