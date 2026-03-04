@@ -21,23 +21,23 @@ ADD COLUMN "schoolId" TEXT;
 
 -- AlterTable
 ALTER TABLE "AcademicYear"
-ADD COLUMN "schoolId" TEXT NOT NULL;
+ADD COLUMN "schoolId" TEXT;
 
 -- AlterTable
 ALTER TABLE "Class"
-ADD COLUMN "schoolId" TEXT NOT NULL;
+ADD COLUMN "schoolId" TEXT;
 
 -- AlterTable
 ALTER TABLE "Subject"
-ADD COLUMN "schoolId" TEXT NOT NULL;
+ADD COLUMN "schoolId" TEXT;
 
 -- AlterTable
 ALTER TABLE "ScheduleTemplate"
-ADD COLUMN "schoolId" TEXT NOT NULL;
+ADD COLUMN "schoolId" TEXT;
 
 -- AlterTable
 ALTER TABLE "Major"
-ADD COLUMN "schoolId" TEXT NOT NULL;
+ADD COLUMN "schoolId" TEXT;
 
 -- Backfill missing school code before making it required
 UPDATE "SchoolProfile"
@@ -47,9 +47,138 @@ SET "schoolCode" = CONCAT(
 )
 WHERE "schoolCode" IS NULL;
 
+-- Ensure at least one school exists for legacy data backfill
+INSERT INTO "SchoolProfile" (
+  "id",
+  "schoolCode",
+  "name",
+  "address",
+  "phone",
+  "email",
+  "website",
+  "principalName",
+  "createdAt",
+  "updatedAt"
+)
+SELECT
+  'school_default',
+  'SCH-DEFAULT',
+  'Sekolah Default',
+  'Alamat belum diatur',
+  '',
+  'admin@school.local',
+  '',
+  '',
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM "SchoolProfile");
+
+-- Backfill tenant relation for existing rows (single-school legacy data)
+WITH default_school AS (
+  SELECT "id" FROM "SchoolProfile" ORDER BY "createdAt" ASC LIMIT 1
+)
+UPDATE "User" u
+SET "schoolId" = ds."id"
+FROM default_school ds
+WHERE u."schoolId" IS NULL;
+
+WITH default_school AS (
+  SELECT "id" FROM "SchoolProfile" ORDER BY "createdAt" ASC LIMIT 1
+)
+UPDATE "AcademicYear" ay
+SET "schoolId" = ds."id"
+FROM default_school ds
+WHERE ay."schoolId" IS NULL;
+
+WITH default_school AS (
+  SELECT "id" FROM "SchoolProfile" ORDER BY "createdAt" ASC LIMIT 1
+)
+UPDATE "Class" c
+SET "schoolId" = ds."id"
+FROM default_school ds
+WHERE c."schoolId" IS NULL;
+
+WITH default_school AS (
+  SELECT "id" FROM "SchoolProfile" ORDER BY "createdAt" ASC LIMIT 1
+)
+UPDATE "Subject" s
+SET "schoolId" = ds."id"
+FROM default_school ds
+WHERE s."schoolId" IS NULL;
+
+WITH default_school AS (
+  SELECT "id" FROM "SchoolProfile" ORDER BY "createdAt" ASC LIMIT 1
+)
+UPDATE "ScheduleTemplate" st
+SET "schoolId" = ds."id"
+FROM default_school ds
+WHERE st."schoolId" IS NULL;
+
+WITH default_school AS (
+  SELECT "id" FROM "SchoolProfile" ORDER BY "createdAt" ASC LIMIT 1
+)
+UPDATE "Major" m
+SET "schoolId" = ds."id"
+FROM default_school ds
+WHERE m."schoolId" IS NULL;
+
 -- AlterTable
 ALTER TABLE "SchoolProfile"
 ALTER COLUMN "schoolCode" SET NOT NULL;
+
+-- AlterTable
+ALTER TABLE "AcademicYear"
+ALTER COLUMN "schoolId" SET NOT NULL;
+
+-- AlterTable
+ALTER TABLE "Class"
+ALTER COLUMN "schoolId" SET NOT NULL;
+
+-- AlterTable
+ALTER TABLE "Subject"
+ALTER COLUMN "schoolId" SET NOT NULL;
+
+-- AlterTable
+ALTER TABLE "ScheduleTemplate"
+ALTER COLUMN "schoolId" SET NOT NULL;
+
+-- AlterTable
+ALTER TABLE "Major"
+ALTER COLUMN "schoolId" SET NOT NULL;
+
+-- De-duplicate legacy subject codes per tenant before unique index
+WITH ranked_subjects AS (
+  SELECT
+    "id",
+    "code",
+    ROW_NUMBER() OVER (
+      PARTITION BY "schoolId", "code"
+      ORDER BY "createdAt" ASC, "id" ASC
+    ) AS rn
+  FROM "Subject"
+)
+UPDATE "Subject" s
+SET "code" = CONCAT(rs."code", '-DUP-', SUBSTRING(s."id" FROM 1 FOR 6))
+FROM ranked_subjects rs
+WHERE s."id" = rs."id"
+  AND rs.rn > 1;
+
+-- De-duplicate legacy major codes per tenant before unique index
+WITH ranked_majors AS (
+  SELECT
+    "id",
+    "code",
+    ROW_NUMBER() OVER (
+      PARTITION BY "schoolId", "code"
+      ORDER BY "createdAt" ASC, "id" ASC
+    ) AS rn
+  FROM "Major"
+)
+UPDATE "Major" m
+SET "code" = CONCAT(rm."code", '-DUP-', SUBSTRING(m."id" FROM 1 FOR 6))
+FROM ranked_majors rm
+WHERE m."id" = rm."id"
+  AND rm.rn > 1;
 
 -- DropIndex
 DROP INDEX IF EXISTS "Major_code_key";
