@@ -149,17 +149,7 @@ async function main() {
     prisma.user.deleteMany(),
   ]);
 
-  const academicYear = await prisma.academicYear.create({
-    data: {
-      year: "2024/2025",
-      semester: "ODD",
-      startDate: new Date(2024, 6, 15),
-      endDate: new Date(2024, 11, 20),
-      isActive: true,
-    },
-  });
-
-  await prisma.schoolProfile.create({
+  const schoolProfile = await prisma.schoolProfile.create({
     data: {
       schoolCode: "SCH-DEMO01",
       name: "SMA Negeri 1 Sekolah Pintar",
@@ -171,14 +161,40 @@ async function main() {
     },
   });
 
+  const academicYear = await prisma.academicYear.create({
+    data: {
+      schoolId: schoolProfile.id,
+      year: "2024/2025",
+      semester: "ODD",
+      startDate: new Date(2024, 6, 15),
+      endDate: new Date(2024, 11, 20),
+      isActive: true,
+    },
+  });
+
   const [majorMipa, majorIps] = await Promise.all([
-    prisma.major.create({ data: { code: "MIPA", name: "MIPA", description: "Matematika & IPA" } }),
-    prisma.major.create({ data: { code: "IPS", name: "IPS", description: "Ilmu Pengetahuan Sosial" } }),
+    prisma.major.create({
+      data: {
+        schoolId: schoolProfile.id,
+        code: "MIPA",
+        name: "MIPA",
+        description: "Matematika & IPA",
+      },
+    }),
+    prisma.major.create({
+      data: {
+        schoolId: schoolProfile.id,
+        code: "IPS",
+        name: "IPS",
+        description: "Ilmu Pengetahuan Sosial",
+      },
+    }),
   ]);
 
   for (const slot of LESSON_SLOTS) {
     await prisma.scheduleTemplate.create({
       data: {
+        schoolId: schoolProfile.id,
         name: slot.name,
         startTime: slot.start,
         endTime: slot.end,
@@ -190,6 +206,7 @@ async function main() {
   for (const slot of BREAK_SLOTS) {
     await prisma.scheduleTemplate.create({
       data: {
+        schoolId: schoolProfile.id,
         name: slot.name,
         startTime: slot.start,
         endTime: slot.end,
@@ -201,9 +218,11 @@ async function main() {
 
   const admin = await prisma.user.create({
     data: {
+      schoolId: schoolProfile.id,
       name: buildName(0),
       role: Role.ADMIN,
       email: "admin@school.local",
+      roleSelectedAt: new Date(),
     },
   });
 
@@ -221,6 +240,7 @@ async function main() {
     if (subjectMap.has(key)) continue;
     const created = await prisma.subject.create({
       data: {
+        schoolId: schoolProfile.id,
         name: subject.name,
         code: subject.code,
         category: subject.category,
@@ -233,16 +253,20 @@ async function main() {
 
     const teacherA = await prisma.user.create({
       data: {
+        schoolId: schoolProfile.id,
         name: `${buildName(teachers.length + 1)} (${subject.major})`,
         role: Role.TEACHER,
         email: `teacher_${subject.code.toLowerCase()}_a_${subject.major.toLowerCase()}@school.local`,
+        roleSelectedAt: new Date(),
       },
     });
     const teacherB = await prisma.user.create({
       data: {
+        schoolId: schoolProfile.id,
         name: `${buildName(teachers.length + 2)} (${subject.major})`,
         role: Role.TEACHER,
         email: `teacher_${subject.code.toLowerCase()}_b_${subject.major.toLowerCase()}@school.local`,
+        roleSelectedAt: new Date(),
       },
     });
     teachers.push({ id: teacherA.id, name: teacherA.name });
@@ -283,6 +307,7 @@ async function main() {
         const homeroomTeacher = randPick(teachers, classes.length).id;
         const created = await prisma.class.create({
           data: {
+            schoolId: schoolProfile.id,
             name: className,
             grade,
             major,
@@ -307,9 +332,11 @@ async function main() {
     for (let i = 0; i < 5; i += 1) {
       const student = await prisma.user.create({
         data: {
+          schoolId: schoolProfile.id,
           name: buildName(100 + studentIndex),
           role: Role.STUDENT,
           email: `student_${studentIndex}@school.local`,
+          roleSelectedAt: new Date(),
         },
       });
       await prisma.studentProfile.create({
@@ -323,9 +350,11 @@ async function main() {
 
       const parent = await prisma.user.create({
         data: {
+          schoolId: schoolProfile.id,
           name: buildName(1000 + studentIndex),
           role: Role.PARENT,
           email: `parent_${studentIndex}@school.local`,
+          roleSelectedAt: new Date(),
         },
       });
       await prisma.parentProfile.create({ data: { userId: parent.id } });
@@ -544,6 +573,7 @@ async function main() {
     const teacherId = (subjectTeachers.get(subjectId) ?? [])[0] ?? null;
     const session = await prisma.attendanceSession.create({
       data: {
+        sessionKey: `${cls.id}:${subjectId}:2025-01-15`,
         classId: cls.id,
         subjectId,
         teacherId: teacherId!,

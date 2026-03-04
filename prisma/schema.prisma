@@ -146,53 +146,61 @@ enum UploadScanStatus {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  authUserId     String?  @unique
-  email          String?  @unique
-  name           String
-  firstName      String?
-  lastName       String?
-  role           Role
-  phone          String?
-  address        String?
-  bio            String?
-  avatarUrl      String?
-  birthDate      DateTime?
+  id                    String    @id @default(cuid())
+  authUserId            String?   @unique
+  email                 String?   @unique
+  schoolId              String?
+  name                  String
+  firstName             String?
+  lastName              String?
+  role                  Role
+  phone                 String?
+  address               String?
+  bio                   String?
+  avatarUrl             String?
+  birthDate             DateTime?
   onboardingCompletedAt DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  roleSelectedAt        DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
+  school         SchoolProfile?  @relation(fields: [schoolId], references: [id])
   studentProfile StudentProfile?
   teacherProfile TeacherProfile?
   parentProfile  ParentProfile?
   credential     AuthCredential?
 
-  createdEvents      CalendarEvent[]     @relation("EventCreator")
-  forumThreads       ForumThread[]
-  forumReplies       ForumReply[]
-  notes              Note[]
-  materials          Material[]
-  assignments        Assignment[]        @relation("AssignmentTeacher")
-  attendanceSessions AttendanceSession[] @relation("SessionTeacher")
-  takenSessions      AttendanceSession[] @relation("SessionTakenBy")
-  attendanceOverrides AttendanceSession[] @relation("SessionOverriddenBy")
-  classSchedules     ClassSchedule[]
-  homeroomClasses    Class[]             @relation("HomeroomTeacher")
-  subjectTeaching    SubjectTeacher[]
-  parentLinks        ParentStudent[]     @relation("ParentLinks")
-  childLinks         ParentStudent[]     @relation("ChildLinks")
-  assignmentSubmits  AssignmentSubmission[]
-  attendanceRecords  AttendanceRecord[]
-  teacherAttendance  TeacherAttendance[]
-  majorTeaching      MajorTeacher[]
-  classEnrollments   StudentClassEnrollment[]
-  auditLogs          AuditLog[]           @relation("AuditActor")
+  createdEvents          CalendarEvent[]          @relation("EventCreator")
+  forumThreads           ForumThread[]
+  forumReplies           ForumReply[]
+  notes                  Note[]
+  materials              Material[]
+  assignments            Assignment[]             @relation("AssignmentTeacher")
+  attendanceSessions     AttendanceSession[]      @relation("SessionTeacher")
+  takenSessions          AttendanceSession[]      @relation("SessionTakenBy")
+  attendanceOverrides    AttendanceSession[]      @relation("SessionOverriddenBy")
+  classSchedules         ClassSchedule[]
+  homeroomClasses        Class[]                  @relation("HomeroomTeacher")
+  subjectTeaching        SubjectTeacher[]
+  parentLinks            ParentStudent[]          @relation("ParentLinks")
+  childLinks             ParentStudent[]          @relation("ChildLinks")
+  assignmentSubmits      AssignmentSubmission[]
+  attendanceRecords      AttendanceRecord[]
+  teacherAttendance      TeacherAttendance[]
+  majorTeaching          MajorTeacher[]
+  classEnrollments       StudentClassEnrollment[]
+  auditLogs              AuditLog[]               @relation("AuditActor")
   notificationPreference NotificationPreference?
-  notificationsReceived  Notification[]   @relation("NotificationRecipient")
-  notificationsTriggered Notification[]   @relation("NotificationTriggerActor")
-  publishedReportCards   ReportCardSnapshot[] @relation("ReportCardPublisher")
-  uploadIntentsCreated   UploadIntent[]   @relation("UploadIntentCreator")
-  uploadIntentsConfirmed UploadIntent[]   @relation("UploadIntentConfirmer")
+  notificationsReceived  Notification[]           @relation("NotificationRecipient")
+  notificationsTriggered Notification[]           @relation("NotificationTriggerActor")
+  publishedReportCards   ReportCardSnapshot[]     @relation("ReportCardPublisher")
+  uploadIntentsCreated   UploadIntent[]           @relation("UploadIntentCreator")
+  uploadIntentsConfirmed UploadIntent[]           @relation("UploadIntentConfirmer")
+  parentInvitesAsStudent ParentInvite[]           @relation("ParentInviteStudent")
+  parentInvitesCreated   ParentInvite[]           @relation("ParentInviteCreator")
+  parentInvitesRedeemed  ParentInvite[]           @relation("ParentInviteRedeemer")
+
+  @@index([schoolId])
 }
 
 model AuthCredential {
@@ -208,28 +216,28 @@ model AuthCredential {
 }
 
 model StudentProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
+  id        String                 @id @default(cuid())
+  userId    String                 @unique
+  user      User                   @relation(fields: [userId], references: [id])
   classId   String?
-  class     Class?   @relation(fields: [classId], references: [id])
+  class     Class?                 @relation(fields: [classId], references: [id])
   gender    Gender?
   status    StudentLifecycleStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
 }
 
 model StudentClassEnrollment {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   studentId      String
   classId        String
   academicYearId String?
-  startedAt      DateTime @default(now())
+  startedAt      DateTime  @default(now())
   endedAt        DateTime?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
-  student      User         @relation(fields: [studentId], references: [id])
-  class        Class        @relation(fields: [classId], references: [id])
+  student      User          @relation(fields: [studentId], references: [id])
+  class        Class         @relation(fields: [classId], references: [id])
   academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
 
   @@index([studentId, startedAt])
@@ -263,37 +271,42 @@ model ParentStudent {
 }
 
 model Class {
-  id                String   @id @default(cuid())
+  id                String        @id @default(cuid())
+  schoolId          String
   name              String
   grade             Int
   major             String?
   section           String
   academicYearId    String?
+  school            SchoolProfile @relation(fields: [schoolId], references: [id])
   academicYear      AcademicYear? @relation(fields: [academicYearId], references: [id])
   homeroomTeacherId String?
-  homeroomTeacher   User?    @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id])
-  studentCount      Int      @default(0)
-  maleCount         Int      @default(0)
-  femaleCount       Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  homeroomTeacher   User?         @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id])
+  studentCount      Int           @default(0)
+  maleCount         Int           @default(0)
+  femaleCount       Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  students           StudentProfile[]
-  subjectLinks       SubjectClass[]
-  schedules          ClassSchedule[]
-  assignmentLinks    AssignmentClass[]
-  eventLinks         CalendarEventClass[]
-  notes              Note[]
-  materials          Material[]
-  forumThreads       ForumThread[]
-  attendanceSessions AttendanceSession[]
-  gradeWeights       GradeWeight[]
+  students            StudentProfile[]
+  subjectLinks        SubjectClass[]
+  schedules           ClassSchedule[]
+  assignmentLinks     AssignmentClass[]
+  eventLinks          CalendarEventClass[]
+  notes               Note[]
+  materials           Material[]
+  forumThreads        ForumThread[]
+  attendanceSessions  AttendanceSession[]
+  gradeWeights        GradeWeight[]
   reportCardSnapshots ReportCardSnapshot[]
   studentEnrollments  StudentClassEnrollment[]
+
+  @@index([schoolId])
 }
 
 model AcademicYear {
   id        String   @id @default(cuid())
+  schoolId  String
   year      String
   semester  Semester
   startDate DateTime
@@ -302,22 +315,27 @@ model AcademicYear {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  classes Class[]
+  school              SchoolProfile            @relation(fields: [schoolId], references: [id])
+  classes             Class[]
   reportCardSnapshots ReportCardSnapshot[]
-  studentEnrollments StudentClassEnrollment[]
+  studentEnrollments  StudentClassEnrollment[]
+
+  @@index([schoolId])
 }
 
 model Subject {
-  id           String   @id @default(cuid())
+  id           String          @id @default(cuid())
+  schoolId     String
   name         String
   code         String
   category     SubjectCategory
   description  String?
   color        String?
   hoursPerWeek Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
+  school             SchoolProfile       @relation(fields: [schoolId], references: [id])
   teachers           SubjectTeacher[]
   classes            SubjectClass[]
   assignments        Assignment[]
@@ -329,6 +347,9 @@ model Subject {
   questions          Question[]
   questionPackages   QuestionPackage[]
   gradeWeights       GradeWeight[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
 }
 
 model SubjectTeacher {
@@ -362,39 +383,39 @@ model ClassSchedule {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  class    Class   @relation(fields: [classId], references: [id])
-  subject  Subject @relation(fields: [subjectId], references: [id])
-  teacher  User?   @relation(fields: [teacherId], references: [id])
+  class    Class               @relation(fields: [classId], references: [id])
+  subject  Subject             @relation(fields: [subjectId], references: [id])
+  teacher  User?               @relation(fields: [teacherId], references: [id])
   sessions AttendanceSession[]
 }
 
 model AttendanceSession {
-  id         String   @id @default(cuid())
-  sessionKey String   @unique
-  classId    String
-  subjectId  String
-  status     AttendanceSessionStatus @default(OPEN)
-  teacherId  String?
+  id               String                  @id @default(cuid())
+  sessionKey       String                  @unique
+  classId          String
+  subjectId        String
+  status           AttendanceSessionStatus @default(OPEN)
+  teacherId        String?
   takenByTeacherId String?
-  overriddenById String?
-  overrideReason String?
-  overriddenAt DateTime?
-  lockedAt DateTime?
-  finalizedAt DateTime?
-  scheduleId String?
-  date       DateTime
-  startTime  String?
-  endTime    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  overriddenById   String?
+  overrideReason   String?
+  overriddenAt     DateTime?
+  lockedAt         DateTime?
+  finalizedAt      DateTime?
+  scheduleId       String?
+  date             DateTime
+  startTime        String?
+  endTime          String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 
-  class    Class          @relation(fields: [classId], references: [id])
-  subject  Subject        @relation(fields: [subjectId], references: [id])
-  teacher  User?          @relation("SessionTeacher", fields: [teacherId], references: [id])
-  takenBy  User?          @relation("SessionTakenBy", fields: [takenByTeacherId], references: [id])
-  overriddenBy User?      @relation("SessionOverriddenBy", fields: [overriddenById], references: [id])
-  schedule ClassSchedule? @relation(fields: [scheduleId], references: [id])
-  records  AttendanceRecord[]
+  class             Class               @relation(fields: [classId], references: [id])
+  subject           Subject             @relation(fields: [subjectId], references: [id])
+  teacher           User?               @relation("SessionTeacher", fields: [teacherId], references: [id])
+  takenBy           User?               @relation("SessionTakenBy", fields: [takenByTeacherId], references: [id])
+  overriddenBy      User?               @relation("SessionOverriddenBy", fields: [overriddenById], references: [id])
+  schedule          ClassSchedule?      @relation(fields: [scheduleId], references: [id])
+  records           AttendanceRecord[]
   teacherAttendance TeacherAttendance[]
 }
 
@@ -413,42 +434,42 @@ model AttendanceRecord {
 }
 
 model TeacherAttendance {
-  id         String           @id @default(cuid())
-  teacherId  String
-  sessionId  String?
-  date       DateTime
-  status     AttendanceStatus
-  note       String?
-  isAllDay   Boolean          @default(false)
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  id        String           @id @default(cuid())
+  teacherId String
+  sessionId String?
+  date      DateTime
+  status    AttendanceStatus
+  note      String?
+  isAllDay  Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
-  teacher User              @relation(fields: [teacherId], references: [id])
+  teacher User               @relation(fields: [teacherId], references: [id])
   session AttendanceSession? @relation(fields: [sessionId], references: [id])
 }
 
 model Assignment {
-  id                String             @id @default(cuid())
-  title             String
-  description       String?
-  subjectId         String
-  teacherId         String
-  dueDate           DateTime
-  allowLateSubmission Boolean          @default(false)
-  lateUntil         DateTime?
-  maxAttempts       Int?
-  gradingPolicy     GradingPolicy      @default(LATEST)
-  gradeComponent    GradeComponent     @default(HOMEWORK)
-  kind              AssignmentKind?
-  deliveryType      AssignmentDeliveryType?
-  status            AssignmentStatus  @default(ACTIVE)
-  questionPackageId String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                  String                  @id @default(cuid())
+  title               String
+  description         String?
+  subjectId           String
+  teacherId           String
+  dueDate             DateTime
+  allowLateSubmission Boolean                 @default(false)
+  lateUntil           DateTime?
+  maxAttempts         Int?
+  gradingPolicy       GradingPolicy           @default(LATEST)
+  gradeComponent      GradeComponent          @default(HOMEWORK)
+  kind                AssignmentKind?
+  deliveryType        AssignmentDeliveryType?
+  status              AssignmentStatus        @default(ACTIVE)
+  questionPackageId   String?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
 
-  subject         Subject            @relation(fields: [subjectId], references: [id])
-  teacher         User               @relation("AssignmentTeacher", fields: [teacherId], references: [id])
-  questionPackage QuestionPackage?   @relation(fields: [questionPackageId], references: [id])
+  subject         Subject                @relation(fields: [subjectId], references: [id])
+  teacher         User                   @relation("AssignmentTeacher", fields: [teacherId], references: [id])
+  questionPackage QuestionPackage?       @relation(fields: [questionPackageId], references: [id])
   classes         AssignmentClass[]
   questions       AssignmentQuestion[]
   submissions     AssignmentSubmission[]
@@ -521,33 +542,33 @@ model Material {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  subject     Subject @relation(fields: [subjectId], references: [id])
-  class       Class?  @relation(fields: [classId], references: [id])
-  teacher     User    @relation(fields: [teacherId], references: [id])
-  attachments MaterialAttachment[]
+  subject       Subject              @relation(fields: [subjectId], references: [id])
+  class         Class?               @relation(fields: [classId], references: [id])
+  teacher       User                 @relation(fields: [teacherId], references: [id])
+  attachments   MaterialAttachment[]
   uploadIntents UploadIntent[]
 }
 
 model MaterialAttachment {
-  id         String   @id @default(cuid())
-  materialId String
-  fileName   String
-  fileType   String
-  sizeLabel  String?
-  url        String?
-  storageKey String?
+  id             String            @id @default(cuid())
+  materialId     String
+  fileName       String
+  fileType       String
+  sizeLabel      String?
+  url            String?
+  storageKey     String?
   checksumSha256 String?
-  etag       String?
-  scanStatus UploadScanStatus?
-  uploadIntentId String? @unique
-  createdAt  DateTime @default(now())
+  etag           String?
+  scanStatus     UploadScanStatus?
+  uploadIntentId String?           @unique
+  createdAt      DateTime          @default(now())
 
-  material Material @relation(fields: [materialId], references: [id])
+  material     Material      @relation(fields: [materialId], references: [id])
   uploadIntent UploadIntent? @relation(fields: [uploadIntentId], references: [id])
 }
 
 model UploadIntent {
-  id                     String           @id @default(cuid())
+  id                     String             @id @default(cuid())
   materialId             String
   uploadedById           String
   confirmedById          String?
@@ -560,17 +581,17 @@ model UploadIntent {
   uploadedSizeBytes      Int?
   uploadedChecksumSha256 String?
   status                 UploadIntentStatus @default(PENDING)
-  scanStatus             UploadScanStatus @default(PENDING)
+  scanStatus             UploadScanStatus   @default(PENDING)
   scanResult             String?
   expiresAt              DateTime
   uploadedAt             DateTime?
   confirmedAt            DateTime?
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
-  material    Material           @relation(fields: [materialId], references: [id])
-  uploadedBy  User               @relation("UploadIntentCreator", fields: [uploadedById], references: [id])
-  confirmedBy User?              @relation("UploadIntentConfirmer", fields: [confirmedById], references: [id])
+  material    Material            @relation(fields: [materialId], references: [id])
+  uploadedBy  User                @relation("UploadIntentCreator", fields: [uploadedById], references: [id])
+  confirmedBy User?               @relation("UploadIntentConfirmer", fields: [confirmedById], references: [id])
   attachment  MaterialAttachment?
   scanJob     UploadScanJob?
 
@@ -579,15 +600,15 @@ model UploadIntent {
 }
 
 model UploadScanJob {
-  id         String           @id @default(cuid())
-  intentId   String           @unique
-  status     UploadScanStatus @default(PENDING)
-  provider   String?
-  result     String?
-  queuedAt   DateTime         @default(now())
+  id          String           @id @default(cuid())
+  intentId    String           @unique
+  status      UploadScanStatus @default(PENDING)
+  provider    String?
+  result      String?
+  queuedAt    DateTime         @default(now())
   completedAt DateTime?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   intent UploadIntent @relation(fields: [intentId], references: [id])
 
@@ -611,23 +632,23 @@ model Question {
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 
-  subject     Subject?           @relation(fields: [subjectId], references: [id])
+  subject     Subject?              @relation(fields: [subjectId], references: [id])
   packages    QuestionPackageItem[]
   assignments AssignmentQuestion[]
 }
 
 model QuestionPackage {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   description String?
   subjectId   String?
   subjectText String?
   lastUsedAt  DateTime?
-  usageCount  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  usageCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  subject     Subject?            @relation(fields: [subjectId], references: [id])
+  subject     Subject?              @relation(fields: [subjectId], references: [id])
   items       QuestionPackageItem[]
   assignments Assignment[]
 }
@@ -657,9 +678,9 @@ model ForumThread {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
-  subject Subject @relation(fields: [subjectId], references: [id])
-  class   Class?  @relation(fields: [classId], references: [id])
-  author  User    @relation(fields: [authorId], references: [id])
+  subject Subject      @relation(fields: [subjectId], references: [id])
+  class   Class?       @relation(fields: [classId], references: [id])
+  author  User         @relation(fields: [authorId], references: [id])
   replies ForumReply[]
 }
 
@@ -675,7 +696,7 @@ model ForumReply {
   updatedAt        DateTime @updatedAt
 
   thread ForumThread @relation(fields: [threadId], references: [id])
-  author User       @relation(fields: [authorId], references: [id])
+  author User        @relation(fields: [authorId], references: [id])
 }
 
 model Note {
@@ -698,18 +719,18 @@ model Note {
 }
 
 model CalendarEvent {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
   date        DateTime
   endDate     DateTime?
   type        EventType
-  isRecurring Boolean  @default(false)
+  isRecurring Boolean   @default(false)
   createdById String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  createdBy User?               @relation("EventCreator", fields: [createdById], references: [id])
+  createdBy User?                @relation("EventCreator", fields: [createdById], references: [id])
   classes   CalendarEventClass[]
 }
 
@@ -724,7 +745,7 @@ model CalendarEventClass {
 
 model SchoolProfile {
   id            String   @id @default(cuid())
-  schoolCode    String?  @unique
+  schoolCode    String   @unique
   name          String
   address       String
   phone         String
@@ -734,10 +755,19 @@ model SchoolProfile {
   logoUrl       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  users             User[]
+  classes           Class[]
+  subjects          Subject[]
+  academicYears     AcademicYear[]
+  scheduleTemplates ScheduleTemplate[]
+  majors            Major[]
+  parentInvites     ParentInvite[]
 }
 
 model ScheduleTemplate {
   id        String   @id @default(cuid())
+  schoolId  String
   name      String
   startTime String
   endTime   String
@@ -746,23 +776,32 @@ model ScheduleTemplate {
   position  Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  school SchoolProfile @relation(fields: [schoolId], references: [id])
+
+  @@index([schoolId])
 }
 
 model Major {
-  id          String   @id @default(cuid())
-  code        String   @unique
+  id          String         @id @default(cuid())
+  schoolId    String
+  code        String
   name        String
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  school      SchoolProfile  @relation(fields: [schoolId], references: [id])
   teachers    MajorTeacher[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
 }
 
 model MajorTeacher {
   majorId   String
   teacherId String
-  major     Major @relation(fields: [majorId], references: [id])
-  teacher   User  @relation(fields: [teacherId], references: [id])
+  major     Major  @relation(fields: [majorId], references: [id])
+  teacher   User   @relation(fields: [teacherId], references: [id])
 
   @@id([majorId, teacherId])
   @@index([teacherId])
@@ -834,4 +873,26 @@ model ReportCardSnapshot {
   publishedBy  User         @relation("ReportCardPublisher", fields: [publishedById], references: [id])
 
   @@index([classId, academicYearId, semester, publishedAt])
+}
+
+model ParentInvite {
+  id               String    @id @default(cuid())
+  schoolId         String
+  studentId        String
+  createdByUserId  String
+  codeHash         String    @unique
+  expiresAt        DateTime
+  isActive         Boolean   @default(true)
+  redeemedAt       DateTime?
+  redeemedByUserId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  school     SchoolProfile @relation(fields: [schoolId], references: [id])
+  student    User          @relation("ParentInviteStudent", fields: [studentId], references: [id])
+  createdBy  User          @relation("ParentInviteCreator", fields: [createdByUserId], references: [id])
+  redeemedBy User?         @relation("ParentInviteRedeemer", fields: [redeemedByUserId], references: [id])
+
+  @@index([schoolId, isActive])
+  @@index([studentId, isActive])
 }
