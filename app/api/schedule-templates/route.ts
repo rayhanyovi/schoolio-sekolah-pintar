@@ -1,6 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  isMockEnabled,
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockScheduleTemplate } from "@/lib/mockData";
 
@@ -9,12 +17,15 @@ export async function GET(request: Request) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   if (isMockEnabled()) {
     return jsonOk(mockScheduleTemplate);
   }
 
   const rows = await prisma.scheduleTemplate.findMany({
+    where: { schoolId },
     orderBy: [{ position: "asc" }, { startTime: "asc" }],
   });
   return jsonOk(rows);
@@ -25,6 +36,8 @@ export async function PATCH(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
@@ -35,30 +48,45 @@ export async function PATCH(request: NextRequest) {
   }
 
   for (const [index, item] of templates.entries()) {
-    if (!item?.id || !item?.name) continue;
-    await prisma.scheduleTemplate.upsert({
-      where: { id: item.id },
-      update: {
-        name: item.name,
-        startTime: item.startTime,
-        endTime: item.endTime,
-        duration: item.duration,
-        isBreak: item.isBreak,
-        position: index + 1,
-      },
-      create: {
-        id: item.id,
-        name: item.name,
-        startTime: item.startTime,
-        endTime: item.endTime,
-        duration: item.duration,
-        isBreak: item.isBreak,
-        position: index + 1,
-      },
-    });
+    if (!item?.name) continue;
+    const existing = item.id
+      ? await prisma.scheduleTemplate.findFirst({
+          where: {
+            id: item.id,
+            schoolId,
+          },
+          select: { id: true },
+        })
+      : null;
+    if (existing) {
+      await prisma.scheduleTemplate.update({
+        where: { id: existing.id },
+        data: {
+          name: item.name,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          duration: item.duration,
+          isBreak: item.isBreak,
+          position: index + 1,
+        },
+      });
+    } else {
+      await prisma.scheduleTemplate.create({
+        data: {
+          schoolId,
+          name: item.name,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          duration: item.duration,
+          isBreak: item.isBreak,
+          position: index + 1,
+        },
+      });
+    }
   }
 
   const rows = await prisma.scheduleTemplate.findMany({
+    where: { schoolId },
     orderBy: [{ position: "asc" }, { startTime: "asc" }],
   });
   return jsonOk(rows);

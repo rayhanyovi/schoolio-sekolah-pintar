@@ -2,68 +2,63 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { BookOpen, Users, ClipboardCheck, BarChart3, Eye, EyeOff, ArrowRight, Mail, Lock } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { APP_DESCRIPTION } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { APP_DESCRIPTION } from "@/lib/constants";
-import { apiPost } from "@/lib/api-client";
-import { setDebugAccess } from "@/lib/auth-session";
-import { Eye, EyeOff, Mail, Lock, ArrowRight, BookOpen, Users, ClipboardCheck, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-type LoginResponse = {
-  user: {
-    id: string;
-    name: string;
-    role: string;
-  };
-  canUseDebugPanel: boolean;
-};
+import { setDebugAccess } from "@/lib/auth-session";
+import { login, register } from "@/lib/handlers/auth";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [parentInviteCode, setParentInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const isDemoEnvironment = process.env.NODE_ENV !== "production";
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setIsLoading(true);
 
     try {
-      if (!isLogin) {
-        toast({
-          title: "Registrasi belum tersedia",
-          description: "Silakan gunakan akun demo untuk masuk.",
-        });
-        return;
-      }
+      const result = isLogin
+        ? await login({
+            identifier: identifier.trim(),
+            password,
+          })
+        : await register({
+            email: identifier.trim(),
+            password,
+            confirmPassword,
+            parentInviteCode: parentInviteCode.trim() || undefined,
+          });
 
-      const loginResult = await apiPost<LoginResponse>("/api/auth/login", {
-        username: email.trim(),
-        password,
-      });
-
-      setDebugAccess(loginResult.canUseDebugPanel);
+      setDebugAccess(result.canUseDebugPanel);
       toast({
-        title: "Selamat Datang!",
-        description: "Anda akan dialihkan ke dashboard.",
+        title: isLogin ? "Login berhasil" : "Registrasi berhasil",
+        description: result.onboardingCompleted
+          ? "Anda akan diarahkan ke dashboard."
+          : "Lanjutkan setup awal akun Anda.",
       });
-      router.push("/dashboard");
+      router.push(result.onboardingCompleted ? "/dashboard" : "/onboarding");
     } catch (error) {
       setDebugAccess(false);
       const message =
         error instanceof Error
           ? error.message
-          : "Terjadi kesalahan saat proses login.";
+          : "Terjadi kesalahan saat proses autentikasi.";
       toast({
-        title: "Login gagal",
+        title: isLogin ? "Login gagal" : "Registrasi gagal",
         description: message,
         variant: "destructive",
       });
@@ -81,9 +76,7 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Panel - Features */}
       <div className="hidden lg:flex lg:w-1/2 gradient-hero p-12 flex-col justify-between relative overflow-hidden">
-        {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-64 h-64 border border-primary-foreground/30 rounded-full" />
           <div className="absolute bottom-40 right-10 w-96 h-96 border border-primary-foreground/20 rounded-full" />
@@ -100,6 +93,11 @@ export default function Auth() {
           <p className="text-primary-foreground/80 text-lg mt-4 max-w-md">
             {APP_DESCRIPTION}
           </p>
+          {isDemoEnvironment && (
+            <p className="mt-4 text-sm text-primary-foreground/80">
+              Demo debug: gunakan `admin / admin` untuk akses panel debug role-switch.
+            </p>
+          )}
         </div>
 
         <div className="relative z-10 space-y-6">
@@ -121,14 +119,12 @@ export default function Auth() {
         </div>
 
         <div className="relative z-10 text-primary-foreground/60 text-sm">
-          © 2025 Schoolio. Hak Cipta Dilindungi.
+          © 2026 Schoolio. Hak Cipta Dilindungi.
         </div>
       </div>
 
-      {/* Right Panel - Auth Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md animate-fade-in">
-          {/* Mobile Logo */}
           <div className="lg:hidden mb-8 flex justify-center">
             <Logo size="lg" />
           </div>
@@ -136,40 +132,33 @@ export default function Auth() {
           <Card variant="elevated" className="border-0">
             <CardHeader className="space-y-1 text-center pb-4">
               <CardTitle className="text-2xl font-bold">
-                {isLogin ? "Selamat Datang Kembali" : "Daftar Akun Baru"}
+                {isLogin ? "Selamat Datang Kembali" : "Buat Akun Baru"}
               </CardTitle>
               <CardDescription className="text-base">
                 {isLogin
                   ? "Masuk ke akun Anda untuk melanjutkan"
-                  : "Buat akun baru untuk memulai"}
+                  : "Daftar dulu dengan email, lalu lanjutkan wizard onboarding"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {!isLogin && (
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nama Lengkap</Label>
-                    <Input
-                      id="name"
-                      placeholder="Masukkan nama lengkap"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required={!isLogin}
-                    />
-                  </div>
-                )}
-
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email / Username</Label>
+                  <Label htmlFor="identifier">
+                    {isLogin ? "Email / Username" : "Email"}
+                  </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
-                      id="email"
-                      type="text"
-                      placeholder="nama@sekolah.sch.id atau admin"
+                      id="identifier"
+                      type={isLogin ? "text" : "email"}
+                      placeholder={
+                        isLogin
+                          ? "nama@sekolah.sch.id atau username"
+                          : "nama@sekolah.sch.id"
+                      }
                       className="pl-10"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={identifier}
+                      onChange={(event) => setIdentifier(event.target.value)}
                       required
                     />
                   </div>
@@ -185,7 +174,7 @@ export default function Auth() {
                       placeholder="Masukkan kata sandi"
                       className="pl-10 pr-10"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(event) => setPassword(event.target.value)}
                       required
                     />
                     <button
@@ -200,16 +189,42 @@ export default function Auth() {
                       )}
                     </button>
                   </div>
+                  {!isLogin && (
+                    <p className="text-xs text-muted-foreground">
+                      Minimal 8 karakter.
+                    </p>
+                  )}
                 </div>
 
-                {isLogin && (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      className="text-sm text-primary hover:underline"
-                    >
-                      Lupa kata sandi?
-                    </button>
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Konfirmasi Kata Sandi</Label>
+                    <Input
+                      id="confirmPassword"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Ulangi kata sandi"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="parentInviteCode">
+                      Kode Undangan Ortu (opsional)
+                    </Label>
+                    <Input
+                      id="parentInviteCode"
+                      type="text"
+                      placeholder="Mis: ABCD-EFGH-JKLM"
+                      value={parentInviteCode}
+                      onChange={(event) => setParentInviteCode(event.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Isi hanya jika Anda mendaftar sebagai orang tua via undangan siswa.
+                    </p>
                   </div>
                 )}
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/server-auth";
 
 const isPublicApiPath = (pathname: string) =>
-  pathname === "/api/auth/login";
+  pathname === "/api/auth/login" || pathname === "/api/auth/register";
 
 const attachCorrelationId = (response: NextResponse, correlationId: string) => {
   response.headers.set("x-correlation-id", correlationId);
@@ -42,9 +42,12 @@ export async function middleware(request: NextRequest) {
   const correlationId =
     request.headers.get("x-correlation-id") ?? crypto.randomUUID();
   const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isOnboardingRoute =
+    pathname === "/onboarding" || pathname.startsWith("/onboarding/");
   const isApiRoute = pathname.startsWith("/api");
   const isProtectedApiRoute = isApiRoute && !isPublicApiPath(pathname);
-  const shouldProtectRoute = isDashboardRoute || isProtectedApiRoute;
+  const shouldProtectRoute =
+    isDashboardRoute || isOnboardingRoute || isProtectedApiRoute;
 
   if (isApiRoute) {
     console.info(
@@ -59,6 +62,21 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value ?? null;
   const session = await verifySessionToken(token);
   if (session) {
+    if (isDashboardRoute && !session.onboardingCompleted) {
+      const onboardingUrl = new URL("/onboarding", request.url);
+      onboardingUrl.searchParams.set("from", pathname);
+      return attachCorrelationId(
+        NextResponse.redirect(onboardingUrl),
+        correlationId
+      );
+    }
+    if (isOnboardingRoute && session.onboardingCompleted) {
+      const dashboardUrl = new URL("/dashboard", request.url);
+      return attachCorrelationId(
+        NextResponse.redirect(dashboardUrl),
+        correlationId
+      );
+    }
     return createForwardResponse(request, correlationId);
   }
 
@@ -72,5 +90,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/api/:path*"],
+  matcher: ["/dashboard/:path*", "/onboarding", "/onboarding/:path*", "/api/:path*"],
 };

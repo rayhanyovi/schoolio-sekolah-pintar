@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonOk, requireAuth, requireRole, requireSchoolContext } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -9,11 +9,13 @@ export async function GET(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER, ROLES.PARENT]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.toLowerCase() ?? "";
 
-  const where: Prisma.UserWhereInput = { role: "PARENT" };
+  const where: Prisma.UserWhereInput = { role: "PARENT", schoolId };
   if (q) {
     where.OR = [
       { name: { contains: q, mode: "insensitive" } },

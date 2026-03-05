@@ -1,6 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  isMockEnabled,
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockMajors } from "@/lib/mockData";
 
@@ -9,12 +17,15 @@ export async function GET(request: Request) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   if (isMockEnabled()) {
     return jsonOk(mockMajors);
   }
 
   const rows = await prisma.major.findMany({
+    where: { schoolId },
     orderBy: { code: "asc" },
   });
 
@@ -26,6 +37,8 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
@@ -47,6 +60,7 @@ export async function POST(request: NextRequest) {
 
   const row = await prisma.major.create({
     data: {
+      schoolId,
       code,
       name,
       description,

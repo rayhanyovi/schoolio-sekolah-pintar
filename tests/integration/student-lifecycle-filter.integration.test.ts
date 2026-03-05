@@ -41,7 +41,7 @@ describe("GET /api/students lifecycle default filter", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "teacher-1",
       role: ROLES.TEACHER,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedFindActiveYear.mockResolvedValue({ id: "year-active" } as never);
@@ -55,10 +55,13 @@ describe("GET /api/students lifecycle default filter", () => {
     expect(response.status).toBe(200);
     expect(mockedFindMany).toHaveBeenCalledTimes(1);
     const where = (mockedFindMany.mock.calls[0]?.[0] as { where: unknown }).where as {
-      studentProfile?: { status?: string; class?: { academicYearId?: string } };
+      schoolId?: string;
+      studentProfile?: { status?: string; class?: { academicYearId?: string; schoolId?: string } };
     };
+    expect(where.schoolId).toBe("school-1");
     expect(where.studentProfile?.status).toBe("ACTIVE");
     expect(where.studentProfile?.class?.academicYearId).toBe("year-active");
+    expect(where.studentProfile?.class?.schoolId).toBe("school-1");
   });
 
   it("mengizinkan includeInactive=true untuk menonaktifkan filter status default", async () => {
@@ -70,7 +73,7 @@ describe("GET /api/students lifecycle default filter", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "teacher-1",
       role: ROLES.TEACHER,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedFindActiveYear.mockResolvedValue({ id: "year-active" } as never);

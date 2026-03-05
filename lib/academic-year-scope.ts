@@ -11,13 +11,19 @@ type AcademicYearScopeResult =
   | { scope: AcademicYearScope; error: null }
   | { scope: null; error: Response };
 
+type ResolveAcademicYearScopeOptions = {
+  schoolId?: string | null;
+};
+
 export const resolveAcademicYearScope = async (
-  request: NextRequest
+  request: NextRequest,
+  options?: ResolveAcademicYearScopeOptions
 ): Promise<AcademicYearScopeResult> => {
   const { searchParams } = new URL(request.url);
   const includeAllAcademicYears =
     searchParams.get("includeAllAcademicYears") === "true";
   const requestedAcademicYearId = searchParams.get("academicYearId");
+  const schoolId = options?.schoolId ?? null;
 
   if (includeAllAcademicYears && requestedAcademicYearId) {
     return {
@@ -31,8 +37,11 @@ export const resolveAcademicYearScope = async (
   }
 
   if (requestedAcademicYearId) {
-    const academicYear = await prisma.academicYear.findUnique({
-      where: { id: requestedAcademicYearId },
+    const academicYear = await prisma.academicYear.findFirst({
+      where: {
+        id: requestedAcademicYearId,
+        ...(schoolId ? { schoolId } : {}),
+      },
       select: { id: true },
     });
     if (!academicYear) {
@@ -58,7 +67,10 @@ export const resolveAcademicYearScope = async (
   }
 
   const activeAcademicYear = await prisma.academicYear.findFirst({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(schoolId ? { schoolId } : {}),
+    },
     select: { id: true },
     orderBy: { updatedAt: "desc" },
   });

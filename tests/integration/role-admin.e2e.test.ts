@@ -8,7 +8,12 @@ import { requireAuth, requireRole } from "@/lib/api";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     academicYear: {
+      findFirst: vi.fn(),
+      updateMany: vi.fn(),
       create: vi.fn(),
+    },
+    user: {
+      findFirst: vi.fn(),
     },
     class: {
       create: vi.fn(),
@@ -18,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
       findFirst: vi.fn(),
     },
     $queryRaw: vi.fn(),
+    $transaction: vi.fn(),
   },
 }));
 
@@ -38,26 +44,34 @@ describe("E2E role journey - ADMIN", () => {
   it("menjalankan flow master data sampai monitoring", async () => {
     const mockedRequireAuth = vi.mocked(requireAuth);
     const mockedRequireRole = vi.mocked(requireRole);
+    const mockedFindYear = vi.mocked(prisma.academicYear.findFirst);
+    const mockedUpdateActiveYear = vi.mocked(prisma.academicYear.updateMany);
     const mockedCreateYear = vi.mocked(prisma.academicYear.create);
+    const mockedUserFindFirst = vi.mocked(prisma.user.findFirst);
     const mockedCreateClass = vi.mocked(prisma.class.create);
     const mockedUploadScanJobCount = vi.mocked(prisma.uploadScanJob.count);
     const mockedUploadScanJobFindFirst = vi.mocked(prisma.uploadScanJob.findFirst);
     const mockedQueryRaw = vi.mocked(prisma.$queryRaw);
+    const mockedTransaction = vi.mocked(prisma.$transaction);
 
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
+    mockedFindYear.mockResolvedValue({ id: "year-1" } as never);
+    mockedUpdateActiveYear.mockResolvedValue({ count: 1 } as never);
     mockedCreateYear.mockResolvedValue({
       id: "year-1",
+      schoolId: "school-1",
       year: "2026/2027",
       semester: "ODD",
       startDate: new Date("2026-07-01T00:00:00.000Z"),
       endDate: new Date("2026-12-31T23:59:59.999Z"),
       isActive: true,
     } as never);
+    mockedUserFindFirst.mockResolvedValue(null as never);
     mockedCreateClass.mockResolvedValue({
       id: "class-1",
       name: "X IPA",
@@ -74,6 +88,14 @@ describe("E2E role journey - ADMIN", () => {
     mockedUploadScanJobCount.mockResolvedValue(0 as never);
     mockedUploadScanJobFindFirst.mockResolvedValue(null as never);
     mockedQueryRaw.mockResolvedValue([{ "?column?": 1 }] as never);
+    mockedTransaction.mockImplementation(async (callback: never) =>
+      callback({
+        academicYear: {
+          updateMany: mockedUpdateActiveYear,
+          create: mockedCreateYear,
+        },
+      })
+    );
 
     const yearRequest = new Request("http://localhost/api/academic-years", {
       method: "POST",

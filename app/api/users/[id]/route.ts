@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { canAccessOwnUser } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 
@@ -9,6 +16,8 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(request: NextRequest, { params }: Params) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
@@ -18,8 +27,8 @@ export async function GET(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "You are not allowed to access this user", 403);
   }
 
-  const row = await prisma.user.findUnique({
-    where: { id },
+  const row = await prisma.user.findFirst({
+    where: { id, schoolId },
     include: { studentProfile: true, teacherProfile: true, parentProfile: true },
   });
   return jsonOk(row);
@@ -30,6 +39,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
@@ -38,7 +49,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
-  const existing = await prisma.user.findUnique({ where: { id } });
+  const existing = await prisma.user.findFirst({
+    where: { id, schoolId },
+  });
   if (!existing) {
     return jsonError("NOT_FOUND", "User not found", 404);
   }
@@ -93,12 +106,16 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
     return jsonOk(null);
   }
-  const existing = await prisma.user.findUnique({ where: { id } });
+  const existing = await prisma.user.findFirst({
+    where: { id, schoolId },
+  });
   if (!existing) {
     return jsonError("NOT_FOUND", "User not found", 404);
   }

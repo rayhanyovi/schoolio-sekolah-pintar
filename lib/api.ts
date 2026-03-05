@@ -5,7 +5,7 @@ import { ActorContext, hasAnyRole, toActorContext } from "@/lib/authz";
 import { monitorApiError } from "@/lib/error-monitoring";
 import { ZodType, z } from "zod";
 
-export const isMockEnabled = () => process.env.debug_with_mock_data === "true";
+export const isMockEnabled = () => process.env.DEBUG_WITH_MOCK_DATA === "true";
 
 export const jsonOk = <T>(data: T, init?: ResponseInit) =>
   NextResponse.json({ data }, init);
@@ -22,7 +22,7 @@ export const parseNumber = (value: string | null) => {
 };
 
 export const requireAuth = async (
-  request: Request
+  request: Request,
 ): Promise<ActorContext | NextResponse> => {
   const session = await resolveAuthSession(request);
   if (!session) {
@@ -33,10 +33,27 @@ export const requireAuth = async (
 
 export const requireRole = (
   actor: ActorContext,
-  roles: Role[]
+  roles: Role[],
 ): NextResponse | null => {
   if (hasAnyRole(actor, roles)) return null;
-  return jsonError("FORBIDDEN", "You are not allowed to perform this action", 403);
+  return jsonError(
+    "FORBIDDEN",
+    "You are not allowed to perform this action",
+    403,
+  );
+};
+
+export const requireSchoolContext = (
+  actor: ActorContext,
+): string | NextResponse => {
+  if (!actor.schoolId) {
+    return jsonError(
+      "FORBIDDEN",
+      "Akun belum tergabung ke sekolah",
+      403,
+    );
+  }
+  return actor.schoolId;
 };
 
 const toValidationMessage = (error: z.ZodError) =>
@@ -44,7 +61,7 @@ const toValidationMessage = (error: z.ZodError) =>
 
 export const parseJsonBody = async <T>(
   request: Request,
-  schema: ZodType<T>
+  schema: ZodType<T>,
 ): Promise<T | NextResponse> => {
   let payload: unknown;
   try {
@@ -55,18 +72,22 @@ export const parseJsonBody = async <T>(
 
   const parsed = schema.safeParse(payload);
   if (!parsed.success) {
-    return jsonError("VALIDATION_ERROR", toValidationMessage(parsed.error), 400);
+    return jsonError(
+      "VALIDATION_ERROR",
+      toValidationMessage(parsed.error),
+      400,
+    );
   }
   return parsed.data;
 };
 
 export const parseJsonRecordBody = (
-  request: Request
+  request: Request,
 ): Promise<Record<string, unknown> | NextResponse> =>
   parseJsonBody(request, z.record(z.unknown()));
 
 export const parseJsonRecordBodyAllowEmpty = async (
-  request: Request
+  request: Request,
 ): Promise<Record<string, unknown> | NextResponse> => {
   let rawBody: string;
   try {
@@ -88,12 +109,16 @@ export const parseJsonRecordBodyAllowEmpty = async (
 
   const parsed = z.record(z.unknown()).safeParse(payload);
   if (!parsed.success) {
-    return jsonError("VALIDATION_ERROR", toValidationMessage(parsed.error), 400);
+    return jsonError(
+      "VALIDATION_ERROR",
+      toValidationMessage(parsed.error),
+      400,
+    );
   }
   return parsed.data;
 };
 
 export const parseJsonRecordArrayBody = (
-  request: Request
+  request: Request,
 ): Promise<Record<string, unknown>[] | NextResponse> =>
   parseJsonBody(request, z.array(z.record(z.unknown())));

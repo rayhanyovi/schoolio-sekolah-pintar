@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { jsonError, jsonOk } from "@/lib/api";
+import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/password";
 import {
   createSessionToken,
   isDebugImpersonationEnabled,
@@ -8,9 +10,11 @@ import {
   SESSION_COOKIE_NAME,
 } from "@/lib/server-auth";
 import { Role, ROLES } from "@/lib/constants";
+import { Prisma } from "@prisma/client";
 
 const loginSchema = z.object({
-  username: z.string().trim().min(1),
+  username: z.string().trim().min(1).optional(),
+  identifier: z.string().trim().min(1).optional(),
   password: z.string().min(1),
 });
 
@@ -54,6 +58,8 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 ];
 
 const normalizeUsername = (value: string) => value.trim().toLowerCase();
+const isDemoLoginEnabled = () => process.env.NODE_ENV !== "production";
+const DEMO_SCHOOL_CODE = "SCH-DEMO01";
 
 const findAccount = (username: string, password: string) =>
   DEMO_ACCOUNTS.find(
@@ -61,6 +67,66 @@ const findAccount = (username: string, password: string) =>
       account.password === password &&
       account.aliases.some((alias) => alias === username)
   );
+
+const ensureDemoSchoolAndUser = async (account: DemoAccount) => {
+  const school = await prisma.schoolProfile.upsert({
+    where: { schoolCode: DEMO_SCHOOL_CODE },
+    update: {},
+    create: {
+      schoolCode: DEMO_SCHOOL_CODE,
+      name: "Sekolah Demo",
+      address: "Jalan Demo No. 1",
+      phone: "",
+      email: "demo@schoolio.local",
+      website: "",
+      principalName: "",
+    },
+    select: { id: true },
+  });
+
+  await prisma.user.upsert({
+    where: { id: account.userId },
+    update: {
+      name: account.name,
+      role: account.role,
+      schoolId: school.id,
+      onboardingCompletedAt: new Date(),
+      roleSelectedAt: new Date(),
+    },
+    create: {
+      id: account.userId,
+      name: account.name,
+      role: account.role,
+      email: account.aliases.find((alias) => alias.includes("@")) ?? null,
+      schoolId: school.id,
+      onboardingCompletedAt: new Date(),
+      roleSelectedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
+  if (account.role === ROLES.TEACHER) {
+    await prisma.teacherProfile.upsert({
+      where: { userId: account.userId },
+      update: {},
+      create: { userId: account.userId },
+    });
+  } else if (account.role === ROLES.STUDENT) {
+    await prisma.studentProfile.upsert({
+      where: { userId: account.userId },
+      update: {},
+      create: { userId: account.userId, status: "ACTIVE" },
+    });
+  } else if (account.role === ROLES.PARENT) {
+    await prisma.parentProfile.upsert({
+      where: { userId: account.userId },
+      update: {},
+      create: { userId: account.userId },
+    });
+  }
+
+  return school.id;
+};
 
 export async function POST(request: NextRequest) {
   let rawBody: unknown;
@@ -72,32 +138,101 @@ export async function POST(request: NextRequest) {
 
   const parsed = loginSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return jsonError("VALIDATION_ERROR", "username and password are required");
+    return jsonError("VALIDATION_ERROR", "identifier and password are required");
   }
 
-  const username = normalizeUsername(parsed.data.username);
-  const account = findAccount(username, parsed.data.password);
-  if (!account) {
+  const identifierSource = parsed.data.identifier ?? parsed.data.username ?? "";
+  const identifier = normalizeUsername(identifierSource);
+  if (!identifier) {
+    return jsonError("VALIDATION_ERROR", "identifier and password are required");
+  }
+
+  const demoAccount =
+    isDemoLoginEnabled() ? findAccount(identifier, parsed.data.password) : null;
+  if (demoAccount) {
+    let schoolId: string | null = null;
+    try {
+      schoolId = await ensureDemoSchoolAndUser(demoAccount);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientInitializationError) {
+        return jsonError("CONFLICT", "Layanan database belum tersedia", 503);
+      }
+      throw error;
+    }
+
+    const canUseDebugPanel =
+      demoAccount.role === ROLES.ADMIN && isDebugImpersonationEnabled();
+    const token = await createSessionToken({
+      userId: demoAccount.userId,
+      name: demoAccount.name,
+      role: demoAccount.role,
+      canUseDebugPanel,
+      onboardingCompleted: true,
+      schoolId,
+    });
+
+    const response = jsonOk({
+      user: {
+        id: demoAccount.userId,
+        name: demoAccount.name,
+        role: demoAccount.role,
+      },
+      canUseDebugPanel,
+      onboardingCompleted: true,
+      schoolId,
+    });
+
+    response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+    return response;
+  }
+
+  const credential = await prisma.authCredential.findUnique({
+    where: { identifier },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          onboardingCompletedAt: true,
+          schoolId: true,
+        },
+      },
+    },
+  });
+  if (!credential) {
     return jsonError("UNAUTHORIZED", "Username atau kata sandi salah", 401);
   }
 
-  const canUseDebugPanel =
-    account.role === ROLES.ADMIN && isDebugImpersonationEnabled();
+  const isValidPassword = await verifyPassword(
+    parsed.data.password,
+    credential.passwordSalt,
+    credential.passwordHash
+  );
+  if (!isValidPassword) {
+    return jsonError("UNAUTHORIZED", "Username atau kata sandi salah", 401);
+  }
+
+  const onboardingCompleted = Boolean(credential.user.onboardingCompletedAt);
 
   const token = await createSessionToken({
-    userId: account.userId,
-    name: account.name,
-    role: account.role,
-    canUseDebugPanel,
+    userId: credential.user.id,
+    name: credential.user.name,
+    role: credential.user.role,
+    canUseDebugPanel: false,
+    onboardingCompleted,
+    schoolId: credential.user.schoolId,
   });
 
   const response = jsonOk({
     user: {
-      id: account.userId,
-      name: account.name,
-      role: account.role,
+      id: credential.user.id,
+      name: credential.user.name,
+      role: credential.user.role,
     },
-    canUseDebugPanel,
+    canUseDebugPanel: false,
+    onboardingCompleted,
+    schoolId: credential.user.schoolId,
   });
 
   response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);

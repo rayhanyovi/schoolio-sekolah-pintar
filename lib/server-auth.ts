@@ -12,6 +12,8 @@ type SessionTokenPayload = {
   name: string;
   role: Role;
   canUseDebugPanel: boolean;
+  onboardingCompleted?: boolean;
+  schoolId?: string | null;
   iat: number;
   exp: number;
 };
@@ -21,6 +23,8 @@ export type AuthSession = {
   name: string;
   role: Role;
   canUseDebugPanel: boolean;
+  onboardingCompleted: boolean;
+  schoolId: string | null;
   issuedAt: number;
   expiresAt: number;
 };
@@ -30,6 +34,8 @@ type SessionInput = {
   name: string;
   role: Role;
   canUseDebugPanel: boolean;
+  onboardingCompleted: boolean;
+  schoolId?: string | null;
 };
 
 const roles = new Set<Role>(Object.values(ROLES));
@@ -142,11 +148,22 @@ const toSession = (payload: Partial<SessionTokenPayload>): AuthSession | null =>
   const now = Math.floor(Date.now() / 1000);
   if (payload.exp <= now) return null;
 
+  const onboardingCompleted =
+    typeof payload.onboardingCompleted === "boolean"
+      ? payload.onboardingCompleted
+      : true;
+  const schoolId =
+    typeof payload.schoolId === "string" || payload.schoolId === null
+      ? payload.schoolId
+      : null;
+
   return {
     userId: payload.userId,
     name: payload.name,
     role: payload.role as Role,
     canUseDebugPanel: payload.canUseDebugPanel,
+    onboardingCompleted,
+    schoolId,
     issuedAt: payload.iat,
     expiresAt: payload.exp,
   };
@@ -161,6 +178,7 @@ export const createSessionToken = async (session: SessionInput) => {
   const now = Math.floor(Date.now() / 1000);
   const payload: SessionTokenPayload = {
     ...session,
+    schoolId: session.schoolId ?? null,
     iat: now,
     exp: now + SESSION_TTL_SECONDS,
   };

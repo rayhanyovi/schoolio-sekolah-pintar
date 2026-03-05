@@ -33,6 +33,7 @@ import {
 } from "@/lib/handlers/settings";
 import {
   AcademicYearSummary,
+  OnboardingReminder,
   ScheduleTemplateSummary,
   SchoolProfileSummary,
 } from "@/lib/schemas";
@@ -41,11 +42,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { getOnboardingStatus } from "@/lib/handlers/auth";
 
 export default function Settings() {
   const { role } = useRoleContext();
   const { toast } = useToast();
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfileSummary>({
+    schoolCode: null,
     name: "",
     address: "",
     phone: "",
@@ -57,6 +60,7 @@ export default function Settings() {
   const [academicYears, setAcademicYears] = useState<AcademicYearSummary[]>([]);
   const [scheduleTemplate, setScheduleTemplate] = useState<ScheduleTemplateSummary[]>([]);
   const [isSavingScheduleTemplate, setIsSavingScheduleTemplate] = useState(false);
+  const [onboardingReminders, setOnboardingReminders] = useState<OnboardingReminder[]>([]);
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     assignmentReminders: true,
@@ -67,12 +71,14 @@ export default function Settings() {
   const isAdmin = role === "ADMIN";
 
   const loadData = async () => {
-    const [profileResult, yearResult, templateResult, notificationResult] = await Promise.allSettled([
-      getSchoolProfile(),
-      listAcademicYears(),
-      getScheduleTemplates(),
-      getNotificationPreferences(),
-    ]);
+    const [profileResult, yearResult, templateResult, notificationResult, onboardingResult] =
+      await Promise.allSettled([
+        getSchoolProfile(),
+        listAcademicYears(),
+        getScheduleTemplates(),
+        getNotificationPreferences(),
+        getOnboardingStatus(),
+      ]);
     if (profileResult.status === "fulfilled") {
       setSchoolProfile(profileResult.value);
     }
@@ -84,6 +90,9 @@ export default function Settings() {
     }
     if (notificationResult.status === "fulfilled") {
       setNotifications(notificationResult.value);
+    }
+    if (onboardingResult.status === "fulfilled" && onboardingResult.value.role === "ADMIN") {
+      setOnboardingReminders(onboardingResult.value.reminders);
     }
   };
 
@@ -180,6 +189,25 @@ export default function Settings() {
         <p className="text-muted-foreground">Kelola pengaturan sistem dan konfigurasi sekolah</p>
       </div>
 
+      {onboardingReminders.length > 0 && (
+        <Card className="border-warning/30 bg-warning/10">
+          <CardHeader>
+            <CardTitle className="text-base">Pengingat Setup Awal</CardTitle>
+            <CardDescription>
+              Anda sempat memilih &quot;Setting nanti&quot; saat onboarding. Item berikut disarankan untuk dilengkapi.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {onboardingReminders.map((reminder) => (
+              <div key={reminder.id} className="rounded-md border border-warning/30 bg-background/90 p-3">
+                <p className="font-medium">{reminder.title}</p>
+                <p className="text-sm text-muted-foreground">{reminder.description}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center gap-2">
@@ -212,6 +240,19 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="schoolCode">Kode Sekolah</Label>
+                  <Input
+                    id="schoolCode"
+                    value={schoolProfile.schoolCode ?? ""}
+                    onChange={(e) =>
+                      setSchoolProfile({
+                        ...schoolProfile,
+                        schoolCode: e.target.value,
+                      })
+                    }
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="schoolName">Nama Sekolah</Label>
                   <Input

@@ -10,6 +10,9 @@ import { prisma } from "@/lib/prisma";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    user: {
+      findFirst: vi.fn(),
+    },
     parentStudent: {
       findUnique: vi.fn(),
     },
@@ -19,7 +22,7 @@ vi.mock("@/lib/prisma", () => ({
 const makeActor = (role: ActorContext["role"], userId: string): ActorContext => ({
   role,
   userId,
-  schoolId: null,
+  schoolId: "school-1",
 });
 
 describe("Authz policy unit", () => {
@@ -54,7 +57,9 @@ describe("Authz policy unit", () => {
     const parent = makeActor(ROLES.PARENT, "parent-1");
     const mockedFindUnique = vi.mocked(prisma.parentStudent.findUnique);
 
-    mockedFindUnique.mockResolvedValueOnce({ studentId: "student-1" } as never);
+    mockedFindUnique.mockResolvedValueOnce({
+      student: { schoolId: "school-1" },
+    } as never);
     await expect(canViewStudent(parent, "student-1")).resolves.toBe(true);
 
     mockedFindUnique.mockResolvedValueOnce(null);
@@ -66,6 +71,9 @@ describe("Authz policy unit", () => {
     const teacher = makeActor(ROLES.TEACHER, "teacher-1");
     const parent = makeActor(ROLES.PARENT, "parent-1");
     const student = makeActor(ROLES.STUDENT, "student-1");
+    const mockedFindParent = vi.mocked(prisma.user.findFirst);
+
+    mockedFindParent.mockResolvedValue({ id: "parent-x" } as never);
 
     await expect(canViewParent(admin, "parent-x")).resolves.toBe(true);
     await expect(canViewParent(teacher, "parent-x")).resolves.toBe(true);

@@ -8,7 +8,7 @@ export type ActorContext = AuthSession & {
 
 export const toActorContext = (session: AuthSession): ActorContext => ({
   ...session,
-  schoolId: null,
+  schoolId: session.schoolId ?? null,
 });
 
 export const hasAnyRole = (actor: ActorContext, roles: Role[]) =>
@@ -115,8 +115,17 @@ export const canViewStudent = async (
   actor: ActorContext,
   studentId: string
 ) => {
+  if (!actor.schoolId) return false;
   if (actor.role === ROLES.ADMIN || actor.role === ROLES.TEACHER) {
-    return true;
+    const student = await prisma.user.findFirst({
+      where: {
+        id: studentId,
+        role: ROLES.STUDENT,
+        schoolId: actor.schoolId,
+      },
+      select: { id: true },
+    });
+    return Boolean(student);
   }
   if (actor.role === ROLES.STUDENT) {
     return actor.userId === studentId;
@@ -129,9 +138,13 @@ export const canViewStudent = async (
           studentId,
         },
       },
-      select: { studentId: true },
+      select: {
+        student: {
+          select: { schoolId: true },
+        },
+      },
     });
-    return Boolean(linked);
+    return linked?.student.schoolId === actor.schoolId;
   }
   return false;
 };
@@ -140,8 +153,17 @@ export const canViewParent = async (
   actor: ActorContext,
   parentId: string
 ) => {
+  if (!actor.schoolId) return false;
   if (actor.role === ROLES.ADMIN || actor.role === ROLES.TEACHER) {
-    return true;
+    const parent = await prisma.user.findFirst({
+      where: {
+        id: parentId,
+        role: ROLES.PARENT,
+        schoolId: actor.schoolId,
+      },
+      select: { id: true },
+    });
+    return Boolean(parent);
   }
   if (actor.role === ROLES.PARENT) {
     return actor.userId === parentId;

@@ -1,6 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  isMockEnabled,
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockSubjects } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
@@ -15,6 +23,8 @@ export async function GET(request: NextRequest) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
@@ -32,7 +42,7 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { schoolId };
   if (category) where.category = category;
   if (q) {
     where.OR = [
@@ -73,6 +83,8 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
@@ -81,39 +93,67 @@ export async function POST(request: NextRequest) {
     return jsonError("VALIDATION_ERROR", "name, code, and category are required");
   }
 
-  const row = await prisma.subject.create({
-    data: {
-      name: body.name,
-      code: body.code,
-      category: body.category,
-      description: body.description ?? "",
-      color: body.color ?? "bg-primary",
-      hoursPerWeek: body.hoursPerWeek ?? 0,
-    },
-  });
-
   const teacherIds: string[] = body.teacherIds ?? [];
   const classIds: string[] = body.classIds ?? [];
-
   if (teacherIds.length) {
-    await prisma.subjectTeacher.createMany({
-      data: teacherIds.map((teacherId) => ({
-        subjectId: row.id,
-        teacherId,
-      })),
-      skipDuplicates: true,
+    const teacherCount = await prisma.user.count({
+      where: {
+        id: { in: teacherIds },
+        role: ROLES.TEACHER,
+        schoolId,
+      },
     });
+    if (teacherCount !== teacherIds.length) {
+      return jsonError("FORBIDDEN", "Ada guru lintas sekolah", 403);
+    }
+  }
+  if (classIds.length) {
+    const classCount = await prisma.class.count({
+      where: {
+        id: { in: classIds },
+        schoolId,
+      },
+    });
+    if (classCount !== classIds.length) {
+      return jsonError("FORBIDDEN", "Ada kelas lintas sekolah", 403);
+    }
   }
 
-  if (classIds.length) {
-    await prisma.subjectClass.createMany({
-      data: classIds.map((classId) => ({
-        subjectId: row.id,
-        classId,
-      })),
-      skipDuplicates: true,
+  const row = await prisma.$transaction(async (tx) => {
+    const created = await tx.subject.create({
+      data: {
+        schoolId,
+        name: body.name,
+        code: body.code,
+        category: body.category,
+        description: body.description ?? "",
+        color: body.color ?? "bg-primary",
+        hoursPerWeek: body.hoursPerWeek ?? 0,
+      },
     });
-  }
+
+    if (teacherIds.length) {
+      await tx.subjectTeacher.createMany({
+        data: teacherIds.map((teacherId) => ({
+          subjectId: created.id,
+          teacherId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    if (classIds.length) {
+      await tx.subjectClass.createMany({
+        data: classIds.map((classId) => ({
+          subjectId: created.id,
+          classId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return created;
+  });
 
   const data = {
     id: row.id,
