@@ -204,15 +204,31 @@ model User {
 }
 
 model AuthCredential {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  identifier   String   @unique
-  passwordHash String
-  passwordSalt String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String               @id @default(cuid())
+  userId             String               @unique
+  identifier         String               @unique
+  passwordHash       String
+  passwordSalt       String
+  mustChangePassword Boolean              @default(false)
+  isDefaultPassword  Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id           String   @id @default(cuid())
+  credentialId String
+  tokenHash    String   @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  credential AuthCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId, expiresAt])
 }
 
 model StudentProfile {
@@ -332,12 +348,14 @@ model Subject {
   description  String?
   color        String?
   hoursPerWeek Int
+  appliesToAllMajors Boolean   @default(true)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
   school             SchoolProfile       @relation(fields: [schoolId], references: [id])
   teachers           SubjectTeacher[]
   classes            SubjectClass[]
+  majors             SubjectMajor[]
   assignments        Assignment[]
   materials          Material[]
   forumThreads       ForumThread[]
@@ -792,6 +810,7 @@ model Major {
   updatedAt   DateTime       @updatedAt
   school      SchoolProfile  @relation(fields: [schoolId], references: [id])
   teachers    MajorTeacher[]
+  subjects    SubjectMajor[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -805,6 +824,16 @@ model MajorTeacher {
 
   @@id([majorId, teacherId])
   @@index([teacherId])
+}
+
+model SubjectMajor {
+  subjectId String
+  majorId   String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  major     Major   @relation(fields: [majorId], references: [id], onDelete: Cascade)
+
+  @@id([subjectId, majorId])
+  @@index([majorId])
 }
 
 model NotificationPreference {

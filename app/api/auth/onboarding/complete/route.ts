@@ -21,12 +21,28 @@ export async function POST(request: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: auth.userId },
-    select: { roleSelectedAt: true },
+    select: {
+      roleSelectedAt: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      birthDate: true,
+    },
   });
   if (!user?.roleSelectedAt) {
     return jsonError(
       "VALIDATION_ERROR",
       "Pilih role terlebih dahulu sebelum menyelesaikan onboarding",
+      400
+    );
+  }
+  const hasDisplayName = Boolean(
+    user.name?.trim() || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
+  );
+  if (!hasDisplayName || !user.birthDate) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "Lengkapi data diri (nama lengkap dan tanggal lahir) sebelum menyelesaikan onboarding",
       400
     );
   }
@@ -52,6 +68,24 @@ export async function POST(request: NextRequest) {
         400
       );
     }
+    const [academicYearCount, subjectCount] = await Promise.all([
+      prisma.academicYear.count({ where: { schoolId: auth.schoolId } }),
+      prisma.subject.count({ where: { schoolId: auth.schoolId } }),
+    ]);
+    if (academicYearCount === 0) {
+      return jsonError(
+        "VALIDATION_ERROR",
+        "Tahun ajaran wajib dibuat sebelum onboarding admin selesai",
+        400
+      );
+    }
+    if (subjectCount === 0) {
+      return jsonError(
+        "VALIDATION_ERROR",
+        "Template mata pelajaran wajib dibuat sebelum onboarding admin selesai",
+        400
+      );
+    }
   }
 
   const updatedUser = await prisma.user.update({
@@ -72,6 +106,7 @@ export async function POST(request: NextRequest) {
     canUseDebugPanel: auth.canUseDebugPanel,
     onboardingCompleted: true,
     schoolId: updatedUser.schoolId ?? null,
+    mustChangePassword: auth.mustChangePassword,
   });
 
   const response = jsonOk({

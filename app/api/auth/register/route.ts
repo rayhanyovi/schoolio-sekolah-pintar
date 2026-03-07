@@ -4,6 +4,7 @@ import { z } from "zod";
 import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
+import { normalizeCredentialIdentifier } from "@/lib/auth-credential";
 import {
   createSessionToken,
   sessionCookieOptions,
@@ -27,13 +28,11 @@ const registerSchema = z.object({
     message: "Konfirmasi password tidak cocok",
   });
 
-const normalizeIdentifier = (value: string) => value.trim().toLowerCase();
-
 export async function POST(request: NextRequest) {
   const parsedBody = await parseJsonBody(request, registerSchema);
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;
-  const identifier = normalizeIdentifier(body.email);
+  const identifier = normalizeCredentialIdentifier(body.email);
 
   if (!identifier) {
     return jsonError("VALIDATION_ERROR", "email wajib diisi", 400);
@@ -183,6 +182,7 @@ export async function POST(request: NextRequest) {
       canUseDebugPanel: false,
       onboardingCompleted,
       schoolId: created.schoolId ?? null,
+      mustChangePassword: false,
     });
 
     const response = jsonOk(
@@ -195,6 +195,7 @@ export async function POST(request: NextRequest) {
         canUseDebugPanel: false,
         onboardingCompleted,
         roleSelectionRequired,
+        mustChangePassword: false,
       },
       { status: 201 }
     );

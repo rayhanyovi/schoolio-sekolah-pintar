@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/server-auth";
 
-const isPublicApiPath = (pathname: string) =>
-  pathname === "/api/auth/login" || pathname === "/api/auth/register";
+const PUBLIC_API_PATHS = new Set([
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+]);
+
+const MUST_CHANGE_PASSWORD_ALLOWED_API_PATHS = new Set([
+  "/api/auth/change-password",
+  "/api/auth/session",
+  "/api/auth/logout",
+]);
+
+const isPublicApiPath = (pathname: string) => PUBLIC_API_PATHS.has(pathname);
+const isMustChangePasswordAllowedApiPath = (pathname: string) =>
+  MUST_CHANGE_PASSWORD_ALLOWED_API_PATHS.has(pathname);
 
 const attachCorrelationId = (response: NextResponse, correlationId: string) => {
   response.headers.set("x-correlation-id", correlationId);
@@ -19,6 +33,20 @@ const buildUnauthorizedApiResponse = (correlationId: string) =>
       },
     },
     { status: 401 }
+    ),
+    correlationId
+  );
+
+const buildMustChangePasswordApiResponse = (correlationId: string) =>
+  attachCorrelationId(
+    NextResponse.json(
+      {
+        error: {
+          code: "FORBIDDEN",
+          message: "Password harus diganti terlebih dahulu",
+        },
+      },
+      { status: 403 }
     ),
     correlationId
   );
@@ -44,10 +72,15 @@ export async function middleware(request: NextRequest) {
   const isDashboardRoute = pathname.startsWith("/dashboard");
   const isOnboardingRoute =
     pathname === "/onboarding" || pathname.startsWith("/onboarding/");
+  const isChangePasswordRoute =
+    pathname === "/change-password" || pathname.startsWith("/change-password/");
   const isApiRoute = pathname.startsWith("/api");
   const isProtectedApiRoute = isApiRoute && !isPublicApiPath(pathname);
   const shouldProtectRoute =
-    isDashboardRoute || isOnboardingRoute || isProtectedApiRoute;
+    isDashboardRoute ||
+    isOnboardingRoute ||
+    isChangePasswordRoute ||
+    isProtectedApiRoute;
 
   if (isApiRoute) {
     console.info(
@@ -62,6 +95,28 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value ?? null;
   const session = await verifySessionToken(token);
   if (session) {
+    if (session.mustChangePassword) {
+      if (isApiRoute && !isMustChangePasswordAllowedApiPath(pathname)) {
+        return buildMustChangePasswordApiResponse(correlationId);
+      }
+      if (!isApiRoute && !isChangePasswordRoute) {
+        const changePasswordUrl = new URL("/change-password", request.url);
+        changePasswordUrl.searchParams.set("from", pathname);
+        return attachCorrelationId(
+          NextResponse.redirect(changePasswordUrl),
+          correlationId
+        );
+      }
+      return createForwardResponse(request, correlationId);
+    }
+    if (isChangePasswordRoute) {
+      const destination = session.onboardingCompleted ? "/dashboard" : "/onboarding";
+      const destinationUrl = new URL(destination, request.url);
+      return attachCorrelationId(
+        NextResponse.redirect(destinationUrl),
+        correlationId
+      );
+    }
     if (isDashboardRoute && !session.onboardingCompleted) {
       const onboardingUrl = new URL("/onboarding", request.url);
       onboardingUrl.searchParams.set("from", pathname);
@@ -90,5 +145,12 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/onboarding", "/onboarding/:path*", "/api/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/onboarding",
+    "/onboarding/:path*",
+    "/change-password",
+    "/change-password/:path*",
+    "/api/:path*",
+  ],
 };

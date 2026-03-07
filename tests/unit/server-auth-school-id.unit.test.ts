@@ -42,11 +42,13 @@ describe("server auth schoolId token", () => {
       canUseDebugPanel: true,
       onboardingCompleted: true,
       schoolId: "school-1",
+      mustChangePassword: true,
     });
 
     const session = await verifySessionToken(token);
     expect(session).not.toBeNull();
     expect(session?.schoolId).toBe("school-1");
+    expect(session?.mustChangePassword).toBe(true);
   });
 
   it("tetap bisa membaca token lama tanpa schoolId", async () => {
@@ -68,6 +70,7 @@ describe("server auth schoolId token", () => {
     expect(session).not.toBeNull();
     expect(session?.schoolId).toBeNull();
     expect(session?.userId).toBe("teacher-1");
+    expect(session?.mustChangePassword).toBe(false);
   });
 });
 
