@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Role, ROLE_LABELS } from "@/lib/constants";
-import { MoreVertical, Pencil, Trash2, Link2, UserPlus } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Link2, UserPlus, KeyRound } from "lucide-react";
 
 interface UserCardProps {
   id: string;
@@ -26,6 +26,7 @@ interface UserCardProps {
   onDelete?: (id: string) => void;
   onLink?: (id: string) => void;
   onCreateParentInvite?: (id: string) => void;
+  onResetPassword?: (id: string) => void;
 }
 
 const roleStyles: Record<Role, string> = {
@@ -47,8 +48,11 @@ export function UserCard({
   onDelete,
   onLink,
   onCreateParentInvite,
+  onResetPassword,
 }: UserCardProps) {
-  const hasActions = Boolean(onEdit || onDelete || onLink || onCreateParentInvite);
+  const hasActions = Boolean(
+    onEdit || onDelete || onLink || onCreateParentInvite || onResetPassword
+  );
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -101,6 +105,12 @@ export function UserCard({
                       <DropdownMenuItem onClick={() => onCreateParentInvite(id)}>
                         <UserPlus className="h-4 w-4 mr-2" />
                         Buat Kode Undangan Ortu
+                      </DropdownMenuItem>
+                    )}
+                    {onResetPassword && (
+                      <DropdownMenuItem onClick={() => onResetPassword(id)}>
+                        <KeyRound className="h-4 w-4 mr-2" />
+                        Reset Password Default
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />

@@ -35,15 +35,18 @@ import {
   listParents,
   listStudents,
   listTeachers,
+  resetUserPasswordToDefault,
   unlinkParentStudent,
   updateUser,
   updateUserProfile,
 } from "@/lib/handlers/users";
 import { listClasses } from "@/lib/handlers/classes";
+import { getSchoolProfile } from "@/lib/handlers/settings";
 import { ClassSummary, UserSummary } from "@/lib/schemas";
 import {
   Search,
   Plus,
+  Share2,
   Users as UsersIcon,
   GraduationCap,
   BookOpen,
@@ -58,7 +61,11 @@ type UserRow = UserSummary & {
   parentLinks?: { parentId: string; studentId: string }[];
 };
 
-export default function Users() {
+type UsersProps = {
+  isSaasMode?: boolean;
+};
+
+export default function Users({ isSaasMode = false }: UsersProps) {
   const [activeTab, setActiveTab] = useState<
     "students" | "teachers" | "parents"
   >("students");
@@ -70,6 +77,8 @@ export default function Users() {
   const [searchQuery, setSearchQuery] = useState("");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
+  const [schoolInviteCode, setSchoolInviteCode] = useState("");
+  const [schoolInviteSchoolId, setSchoolInviteSchoolId] = useState("");
 
   // Dialog states
   const [formDialogOpen, setFormDialogOpen] = useState(false);
@@ -115,7 +124,7 @@ export default function Users() {
       setTeachers(teachersData);
       setParents(parentsData);
       setClasses(classData);
-    } catch (error) {
+    } catch {
       toast.error("Gagal memuat data pengguna");
     } finally {
       setIsLoading(false);
@@ -125,6 +134,29 @@ export default function Users() {
   useEffect(() => {
     reloadData();
   }, []);
+
+  useEffect(() => {
+    if (!isSaasMode) return;
+
+    let isActive = true;
+    const loadSchoolCode = async () => {
+      try {
+        const profile = await getSchoolProfile();
+        if (!isActive) return;
+        setSchoolInviteCode(profile.schoolCode?.trim() ?? "");
+        setSchoolInviteSchoolId(typeof profile.id === "string" ? profile.id.trim() : "");
+      } catch {
+        if (!isActive) return;
+        toast.error("Gagal memuat kode invite sekolah");
+      }
+    };
+
+    void loadSchoolCode();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isSaasMode]);
 
   // Get stats
   const stats = {
@@ -223,6 +255,41 @@ export default function Users() {
     setFormDialogOpen(true);
   };
 
+  const handleShareSchoolInvite = async () => {
+    if (!schoolInviteCode && !schoolInviteSchoolId) {
+      toast.error("Kode invite sekolah belum tersedia");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (schoolInviteSchoolId) {
+      params.set("schoolId", schoolInviteSchoolId);
+    } else if (schoolInviteCode) {
+      params.set("schoolCode", schoolInviteCode);
+    }
+    const registerUrl = `${window.location.origin}/auth${
+      params.toString() ? `?${params.toString()}` : ""
+    }`;
+    const inviteMessage = [
+      "Ayo gabung ke sekolah kami di Sekolah Pintar.",
+      schoolInviteCode ? `Kode invite sekolah: ${schoolInviteCode}` : null,
+      `Daftar di: ${registerUrl}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    try {
+      await navigator.clipboard.writeText(inviteMessage);
+      toast.success(
+        schoolInviteCode
+          ? `Kode invite tersalin: ${schoolInviteCode}`
+          : "Link invite sekolah tersalin"
+      );
+    } catch {
+      toast.error("Gagal menyalin kode invite");
+    }
+  };
+
   const handleEditUser = (id: string) => {
     const user = [...students, ...teachers, ...parents].find((u) => u.id === id);
     if (user) {
@@ -242,7 +309,7 @@ export default function Users() {
       await deleteUser(deletingUserId);
       toast.success("Pengguna berhasil dihapus");
       await reloadData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal menghapus pengguna");
     } finally {
       setDeleteDialogOpen(false);
@@ -267,8 +334,26 @@ export default function Users() {
           invite.expiresAt
         ).toLocaleString("id-ID")})`
       );
-    } catch (error) {
+    } catch {
       toast.error("Gagal membuat kode undangan orang tua");
+    }
+  };
+
+  const handleResetPasswordToDefault = async (userId: string) => {
+    const confirmed = window.confirm(
+      "Reset password user ini ke password default server? User akan diminta ganti password saat login."
+    );
+    if (!confirmed) return;
+
+    try {
+      const result = await resetUserPasswordToDefault(userId);
+      toast.success(result.message);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Gagal reset password ke default"
+      );
     }
   };
 
@@ -303,10 +388,14 @@ export default function Users() {
             )
           );
         }
-        toast.success("Pengguna baru berhasil ditambahkan");
+        toast.success(
+          isSaasMode
+            ? "Pengguna baru berhasil ditambahkan"
+            : "Pengguna baru aktif dengan password default server dan wajib ganti password saat login pertama"
+        );
       }
       await reloadData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal menyimpan pengguna");
     }
   };
@@ -338,7 +427,7 @@ export default function Users() {
       }
       toast.success("Hubungan berhasil disimpan");
       await reloadData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal menyimpan hubungan");
     }
   };
@@ -379,7 +468,9 @@ export default function Users() {
             Manajemen Pengguna
           </h1>
           <p className="text-muted-foreground">
-            Kelola data siswa, guru, dan orang tua
+            {isSaasMode
+              ? "Kelola data siswa, guru, dan orang tua melalui kode invite."
+              : "Kelola data siswa, guru, dan orang tua"}
           </p>
         </div>
         <div className="flex gap-2">
@@ -391,13 +482,24 @@ export default function Users() {
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button
-            onClick={handleAddUser}
-            className="gradient-primary text-primary-foreground"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah Pengguna
-          </Button>
+          {isSaasMode ? (
+            <Button
+              onClick={() => void handleShareSchoolInvite()}
+              disabled={!schoolInviteCode && !schoolInviteSchoolId}
+              className="gradient-primary text-primary-foreground"
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share Kode Invite
+            </Button>
+          ) : (
+            <Button
+              onClick={handleAddUser}
+              className="gradient-primary text-primary-foreground"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Pengguna
+            </Button>
+          )}
         </div>
       </div>
 
@@ -526,7 +628,11 @@ export default function Users() {
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <GraduationCap className="h-12 w-12 mb-4 opacity-50" />
               <p className="text-lg font-medium">Tidak ada siswa ditemukan</p>
-              <p className="text-sm">Coba ubah filter atau tambah siswa baru</p>
+              <p className="text-sm">
+                {isSaasMode
+                  ? "Coba ubah filter atau bagikan kode invite sekolah."
+                  : "Coba ubah filter atau tambah siswa baru"}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -548,6 +654,9 @@ export default function Users() {
                   onDelete={handleDeleteUser}
                   onLink={handleLinkUser}
                   onCreateParentInvite={handleCreateParentInvite}
+                  onResetPassword={
+                    !isSaasMode ? handleResetPasswordToDefault : undefined
+                  }
                 />
               ))}
             </div>
@@ -565,7 +674,9 @@ export default function Users() {
               <BookOpen className="h-12 w-12 mb-4 opacity-50" />
               <p className="text-lg font-medium">Tidak ada guru ditemukan</p>
               <p className="text-sm">
-                Coba ubah pencarian atau tambah guru baru
+                {isSaasMode
+                  ? "Coba ubah pencarian atau bagikan kode invite sekolah."
+                  : "Coba ubah pencarian atau tambah guru baru"}
               </p>
             </div>
           ) : (
@@ -579,6 +690,9 @@ export default function Users() {
                   role={teacher.role as Role}
                   onEdit={handleEditUser}
                   onDelete={handleDeleteUser}
+                  onResetPassword={
+                    !isSaasMode ? handleResetPasswordToDefault : undefined
+                  }
                 />
               ))}
             </div>
@@ -598,7 +712,9 @@ export default function Users() {
                 Tidak ada orang tua ditemukan
               </p>
               <p className="text-sm">
-                Coba ubah pencarian atau tambah orang tua baru
+                {isSaasMode
+                  ? "Coba ubah pencarian atau gunakan fitur undangan orang tua di data siswa."
+                  : "Coba ubah pencarian atau tambah orang tua baru"}
               </p>
             </div>
           ) : (
@@ -620,6 +736,9 @@ export default function Users() {
                   onEdit={handleEditUser}
                   onDelete={handleDeleteUser}
                   onLink={handleLinkUser}
+                  onResetPassword={
+                    !isSaasMode ? handleResetPasswordToDefault : undefined
+                  }
                 />
               ))}
             </div>
