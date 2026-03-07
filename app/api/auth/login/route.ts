@@ -3,6 +3,7 @@ import { z } from "zod";
 import { jsonError, jsonOk } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { normalizeCredentialIdentifier } from "@/lib/auth-credential";
 import {
   createSessionToken,
   isDebugImpersonationEnabled,
@@ -57,7 +58,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
 ];
 
-const normalizeUsername = (value: string) => value.trim().toLowerCase();
 const isDemoLoginEnabled = () => process.env.NODE_ENV !== "production";
 const DEMO_SCHOOL_CODE = "SCH-DEMO01";
 
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
   }
 
   const identifierSource = parsed.data.identifier ?? parsed.data.username ?? "";
-  const identifier = normalizeUsername(identifierSource);
+  const identifier = normalizeCredentialIdentifier(identifierSource);
   if (!identifier) {
     return jsonError("VALIDATION_ERROR", "identifier and password are required");
   }
@@ -169,6 +169,7 @@ export async function POST(request: NextRequest) {
       canUseDebugPanel,
       onboardingCompleted: true,
       schoolId,
+      mustChangePassword: false,
     });
 
     const response = jsonOk({
@@ -180,6 +181,7 @@ export async function POST(request: NextRequest) {
       canUseDebugPanel,
       onboardingCompleted: true,
       schoolId,
+      mustChangePassword: false,
     });
 
     response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
@@ -188,7 +190,12 @@ export async function POST(request: NextRequest) {
 
   const credential = await prisma.authCredential.findUnique({
     where: { identifier },
-    include: {
+    select: {
+      id: true,
+      passwordSalt: true,
+      passwordHash: true,
+      mustChangePassword: true,
+      isDefaultPassword: true,
       user: {
         select: {
           id: true,
@@ -214,6 +221,8 @@ export async function POST(request: NextRequest) {
   }
 
   const onboardingCompleted = Boolean(credential.user.onboardingCompletedAt);
+  const mustChangePassword =
+    credential.mustChangePassword || credential.isDefaultPassword;
 
   const token = await createSessionToken({
     userId: credential.user.id,
@@ -222,6 +231,7 @@ export async function POST(request: NextRequest) {
     canUseDebugPanel: false,
     onboardingCompleted,
     schoolId: credential.user.schoolId,
+    mustChangePassword,
   });
 
   const response = jsonOk({
@@ -233,6 +243,7 @@ export async function POST(request: NextRequest) {
     canUseDebugPanel: false,
     onboardingCompleted,
     schoolId: credential.user.schoolId,
+    mustChangePassword,
   });
 
   response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
