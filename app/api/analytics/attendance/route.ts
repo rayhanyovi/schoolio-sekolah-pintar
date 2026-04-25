@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonOk, requireAuth, requireRole, requireSchoolContext } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -9,27 +9,29 @@ export async function GET(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  const where: Record<string, unknown> = {};
+  const sessionWhere: Record<string, unknown> = {
+    class: { schoolId },
+  };
   if (from || to) {
-    where.session = {
-      date: {
-        ...(from ? { gte: new Date(from) } : {}),
-        ...(to ? { lte: new Date(to) } : {}),
-      },
+    sessionWhere.date = {
+      ...(from ? { gte: new Date(from) } : {}),
+      ...(to ? { lte: new Date(to) } : {}),
     };
+  }
+  if (auth.role === ROLES.TEACHER) {
+    sessionWhere.OR = [{ teacherId: auth.userId }, { takenByTeacherId: auth.userId }];
   }
 
-  if (auth.role === ROLES.TEACHER) {
-    where.session = {
-      ...(where.session ?? {}),
-      OR: [{ teacherId: auth.userId }, { takenByTeacherId: auth.userId }],
-    };
-  }
+  const where: Record<string, unknown> = {
+    session: sessionWhere,
+  };
 
   const rows = await prisma.attendanceRecord.findMany({
     where: where as Prisma.AttendanceRecordWhereInput,

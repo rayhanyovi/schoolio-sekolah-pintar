@@ -1,11 +1,17 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isMockEnabled, jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
-import { mockAssignments } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -86,6 +92,8 @@ export async function GET(request: NextRequest) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
@@ -99,36 +107,17 @@ export async function GET(request: NextRequest) {
     return jsonOk([]);
   }
 
-  if (isMockEnabled()) {
-    const data = mockAssignments.filter((item) => {
-      const classMatch = classId ? item.classIds.includes(classId) : true;
-      const subjectMatch = subjectId ? item.subjectId === subjectId : true;
-      const teacherFilter =
-        auth.role === ROLES.TEACHER ? auth.userId : teacherId;
-      const teacherMatch = teacherFilter
-        ? item.teacherId === teacherFilter
-        : true;
-      const statusMatch = status ? item.status === status : true;
-      return classMatch && subjectMatch && teacherMatch && statusMatch;
-    });
-    return jsonOk(
-      data.map((item) => ({
-        ...item,
-        kind: item.type,
-        deliveryType: null,
-        type: item.type,
-        allowLateSubmission: false,
-        lateUntil: null,
-        maxAttempts: null,
-        gradingPolicy: "LATEST",
-        gradeComponent: inferGradeComponentFromKind(item.type),
-      }))
-    );
-  }
-
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = {
+    subject: { schoolId },
+  };
   const withAcademicYearClassFilter = (input: Record<string, unknown>) =>
-    academicYearId ? { ...input, class: { academicYearId } } : input;
+    ({
+      ...input,
+      class: {
+        schoolId,
+        ...(academicYearId ? { academicYearId } : {}),
+      },
+    });
   if (subjectId) where.subjectId = subjectId;
   if (teacherId) where.teacherId = teacherId;
   if (status) where.status = status;

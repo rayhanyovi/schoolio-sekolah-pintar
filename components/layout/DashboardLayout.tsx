@@ -121,7 +121,7 @@ export function DashboardLayout({
         </header>
 
         {/* Main Content */}
-        <RoleProvider role={role} userId={selectedUserId}>
+        <RoleProvider role={role} userId={selectedUserId} userName={selectedUserName}>
           <main className="flex-1 overflow-auto p-6">
             {children}
           </main>

@@ -6,6 +6,7 @@ import { Role } from "@/lib/constants";
 interface RoleContextValue {
   role: Role;
   userId?: string;
+  userName?: string;
 }
 
 const RoleContext = React.createContext<RoleContextValue | null>(null);
@@ -13,12 +14,13 @@ const RoleContext = React.createContext<RoleContextValue | null>(null);
 interface RoleProviderProps {
   role: Role;
   userId?: string;
+  userName?: string;
   children: React.ReactNode;
 }
 
-export function RoleProvider({ role, userId, children }: RoleProviderProps) {
+export function RoleProvider({ role, userId, userName, children }: RoleProviderProps) {
   return (
-    <RoleContext.Provider value={{ role, userId }}>
+    <RoleContext.Provider value={{ role, userId, userName }}>
       {children}
     </RoleContext.Provider>
   );

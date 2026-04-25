@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
@@ -16,6 +22,8 @@ export async function GET(request: NextRequest) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const studentId = searchParams.get("studentId");
@@ -29,22 +37,24 @@ export async function GET(request: NextRequest) {
     return jsonOk([]);
   }
 
-  const where: Record<string, unknown> = {};
+  const sessionWhere: Record<string, unknown> = {
+    class: { schoolId },
+  };
+  const where: Record<string, unknown> = {
+    session: sessionWhere,
+  };
   if (studentId) where.studentId = studentId;
-  if (subjectId) where.session = { subjectId };
+  if (subjectId) sessionWhere.subjectId = subjectId;
   if (dateFrom || dateTo) {
-    where.session = {
-      ...(where.session ?? {}),
-      date: {
-        ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-        ...(dateTo ? { lte: new Date(dateTo) } : {}),
-      },
+    sessionWhere.date = {
+      ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+      ...(dateTo ? { lte: new Date(dateTo) } : {}),
     };
   }
   if (academicYearId) {
-    where.session = {
-      ...(where.session ?? {}),
-      class: { academicYearId },
+    sessionWhere.class = {
+      schoolId,
+      academicYearId,
     };
   }
 

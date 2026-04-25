@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  isMockEnabled,
   jsonError,
   jsonOk,
   parseJsonRecordBody,
@@ -10,8 +9,21 @@ import {
   requireSchoolContext,
 } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
-import { mockSubjects } from "@/lib/mockData";
 import { Prisma } from "@prisma/client";
+
+const toStringIdList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    ids.push(trimmed);
+  }
+  return ids;
+};
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -30,18 +42,6 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get("category");
   const q = searchParams.get("q")?.toLowerCase() ?? "";
 
-  if (isMockEnabled()) {
-    const data = mockSubjects.filter((item) => {
-      const categoryMatch = category ? item.category === category : true;
-      const queryMatch = q
-        ? item.name.toLowerCase().includes(q) ||
-          item.code.toLowerCase().includes(q)
-        : true;
-      return categoryMatch && queryMatch;
-    });
-    return jsonOk(data);
-  }
-
   const where: Record<string, unknown> = { schoolId };
   if (category) where.category = category;
   if (q) {
@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
     include: {
       teachers: { include: { teacher: true } },
       classes: true,
+      majors: { include: { major: { select: { id: true, code: true } } } },
     },
     orderBy: { name: "asc" },
   });
@@ -72,6 +73,9 @@ export async function GET(request: NextRequest) {
       name: link.teacher.name,
     })),
     classIds: row.classes.map((link) => link.classId),
+    majorIds: row.majors.map((link) => link.majorId),
+    majorCodes: row.majors.map((link) => link.major.code),
+    appliesToAllMajors: row.appliesToAllMajors,
     hoursPerWeek: row.hoursPerWeek,
   }));
 
@@ -95,6 +99,20 @@ export async function POST(request: NextRequest) {
 
   const teacherIds: string[] = body.teacherIds ?? [];
   const classIds: string[] = body.classIds ?? [];
+  const majorIds = toStringIdList(body.majorIds);
+  let majorRows: Array<{ id: string; code: string }> = [];
+  const appliesToAllMajors =
+    typeof body.appliesToAllMajors === "boolean"
+      ? body.appliesToAllMajors
+      : majorIds.length === 0;
+
+  if (!appliesToAllMajors && majorIds.length === 0) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "Pilih minimal satu jurusan atau aktifkan semua jurusan"
+    );
+  }
+
   if (teacherIds.length) {
     const teacherCount = await prisma.user.count({
       where: {
@@ -118,6 +136,18 @@ export async function POST(request: NextRequest) {
       return jsonError("FORBIDDEN", "Ada kelas lintas sekolah", 403);
     }
   }
+  if (majorIds.length) {
+    majorRows = await prisma.major.findMany({
+      where: {
+        id: { in: majorIds },
+        schoolId,
+      },
+      select: { id: true, code: true },
+    });
+    if (majorRows.length !== majorIds.length) {
+      return jsonError("FORBIDDEN", "Ada jurusan lintas sekolah", 403);
+    }
+  }
 
   const row = await prisma.$transaction(async (tx) => {
     const created = await tx.subject.create({
@@ -129,6 +159,7 @@ export async function POST(request: NextRequest) {
         description: body.description ?? "",
         color: body.color ?? "bg-primary",
         hoursPerWeek: body.hoursPerWeek ?? 0,
+        appliesToAllMajors,
       },
     });
 
@@ -152,6 +183,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (!appliesToAllMajors && majorIds.length) {
+      await tx.subjectMajor.createMany({
+        data: majorIds.map((majorId) => ({
+          subjectId: created.id,
+          majorId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
     return created;
   });
 
@@ -164,6 +205,9 @@ export async function POST(request: NextRequest) {
     color: row.color ?? "bg-primary",
     teachers: [],
     classIds,
+    majorIds: appliesToAllMajors ? [] : majorIds,
+    majorCodes: appliesToAllMajors ? [] : majorRows.map((item) => item.code),
+    appliesToAllMajors,
     hoursPerWeek: row.hoursPerWeek,
   };
 

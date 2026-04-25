@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonOk, requireAuth, requireRole, requireSchoolContext } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
 export async function GET(request: Request) {
@@ -12,13 +12,15 @@ export async function GET(request: Request) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const [totalStudents, totalTeachers, totalParents, totalClasses] =
     await Promise.all([
-      prisma.user.count({ where: { role: "STUDENT" } }),
-      prisma.user.count({ where: { role: "TEACHER" } }),
-      prisma.user.count({ where: { role: "PARENT" } }),
-      prisma.class.count(),
+      prisma.user.count({ where: { role: "STUDENT", schoolId } }),
+      prisma.user.count({ where: { role: "TEACHER", schoolId } }),
+      prisma.user.count({ where: { role: "PARENT", schoolId } }),
+      prisma.class.count({ where: { schoolId } }),
     ]);
 
   return jsonOk({

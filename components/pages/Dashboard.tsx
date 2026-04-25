@@ -6,6 +6,7 @@ import { ScheduleCard } from "@/components/dashboard/ScheduleCard";
 import { AssignmentCard } from "@/components/dashboard/AssignmentCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DAYS_OF_WEEK } from "@/lib/constants";
+import { useRoleContext } from "@/hooks/useRoleContext";
 import {
   Users,
   BookOpen,
@@ -47,6 +48,7 @@ const getTodayDayOfWeek = (date: Date) => {
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const { userName } = useRoleContext();
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
@@ -54,7 +56,7 @@ export default function Dashboard() {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecordSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const dayName =
     today.getDay() === 0
       ? "Minggu"
@@ -114,7 +116,7 @@ export default function Dashboard() {
     return () => {
       isActive = false;
     };
-  }, [toast, todayDayOfWeek]);
+  }, [today, todayDayOfWeek, toast]);
 
   const totalSubjects = subjects.length;
   const activeAssignments = assignments.length;
@@ -164,7 +166,7 @@ export default function Dashboard() {
     const nowMinutes = today.getHours() * 60 + today.getMinutes();
     const sorted = [...schedules].sort((a, b) => a.startTime.localeCompare(b.startTime));
     let activeId: string | null = null;
-    sorted.forEach((item, index) => {
+    sorted.forEach((item) => {
       const start = parseTimeToMinutes(item.startTime);
       const end = parseTimeToMinutes(item.endTime);
       if (start !== null && end !== null && nowMinutes >= start && nowMinutes <= end) {
@@ -252,7 +254,7 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
-            Selamat Datang, Pengguna! 👋
+            Selamat Datang, {userName?.trim() || "Pengguna"}! 👋
           </h1>
           <p className="text-muted-foreground mt-1">
             {dayName}, {today.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}

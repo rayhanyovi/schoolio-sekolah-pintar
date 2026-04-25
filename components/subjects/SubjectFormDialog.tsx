@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SubjectFormValues, SubjectSummary } from "@/lib/schemas";
+import { MajorSummary, SubjectFormValues, SubjectSummary } from "@/lib/schemas";
 import { SUBJECT_CATEGORIES, SubjectCategory } from "@/lib/constants";
 
 interface SubjectFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subject?: SubjectSummary | null;
+  majors: MajorSummary[];
   onSubmit: (data: SubjectFormValues) => void;
 }
 
@@ -26,7 +28,13 @@ const COLOR_OPTIONS = [
   { value: "bg-destructive", label: "Bahaya" },
 ];
 
-export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: SubjectFormDialogProps) {
+export function SubjectFormDialog({
+  open,
+  onOpenChange,
+  subject,
+  majors,
+  onSubmit,
+}: SubjectFormDialogProps) {
   const [formData, setFormData] = useState<SubjectFormValues>({
     name: "",
     code: "",
@@ -34,6 +42,8 @@ export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: Sub
     description: "",
     color: "bg-primary",
     hoursPerWeek: 0,
+    majorIds: [],
+    appliesToAllMajors: true,
   });
 
   useEffect(() => {
@@ -46,6 +56,8 @@ export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: Sub
           description: subject.description,
           color: subject.color || "bg-primary",
           hoursPerWeek: subject.hoursPerWeek ?? 0,
+          majorIds: subject.majorIds ?? [],
+          appliesToAllMajors: subject.appliesToAllMajors ?? true,
         });
       } else {
         setFormData({
@@ -55,14 +67,34 @@ export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: Sub
           description: "",
           color: "bg-primary",
           hoursPerWeek: 0,
+          majorIds: [],
+          appliesToAllMajors: true,
         });
       }
     }, 0);
     return () => clearTimeout(timer);
   }, [subject, open]);
 
+  const toggleMajor = (majorId: string) => {
+    setFormData((prev) => {
+      const exists = prev.majorIds.includes(majorId);
+      return {
+        ...prev,
+        majorIds: exists
+          ? prev.majorIds.filter((id) => id !== majorId)
+          : [...prev.majorIds, majorId],
+      };
+    });
+  };
+
+  const isMajorSelectionInvalid =
+    !formData.appliesToAllMajors && formData.majorIds.length === 0;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isMajorSelectionInvalid) {
+      return;
+    }
     onSubmit(formData);
     onOpenChange(false);
   };
@@ -153,11 +185,67 @@ export function SubjectFormDialog({ open, onOpenChange, subject, onSubmit }: Sub
             />
           </div>
 
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="appliesToAllMajors"
+                checked={formData.appliesToAllMajors}
+                onCheckedChange={(checked) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    appliesToAllMajors: Boolean(checked),
+                    majorIds: Boolean(checked) ? [] : prev.majorIds,
+                  }))
+                }
+              />
+              <div>
+                <Label htmlFor="appliesToAllMajors">Berlaku untuk semua jurusan</Label>
+                <p className="text-xs text-muted-foreground">
+                  Matematika biasanya berlaku untuk semua jurusan.
+                </p>
+              </div>
+            </div>
+
+            {!formData.appliesToAllMajors && (
+              <div className="space-y-2">
+                <Label>Pilih Jurusan</Label>
+                {majors.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Belum ada jurusan. Tambahkan jurusan dulu di menu Jurusan.
+                  </p>
+                ) : (
+                  <div className="max-h-32 space-y-2 overflow-y-auto rounded-md border p-2">
+                    {majors.map((major) => (
+                      <label
+                        key={major.id}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-muted/40"
+                      >
+                        <Checkbox
+                          checked={formData.majorIds.includes(major.id)}
+                          onCheckedChange={() => toggleMajor(major.id)}
+                        />
+                        <span>{major.code}</span>
+                        {major.name && major.name !== major.code && (
+                          <span className="text-muted-foreground">- {major.name}</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {isMajorSelectionInvalid && (
+                  <p className="text-xs text-destructive">
+                    Pilih minimal satu jurusan atau aktifkan semua jurusan.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Batal
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={isMajorSelectionInvalid}>
               {subject ? "Simpan Perubahan" : "Tambah Mata Pelajaran"}
             </Button>
           </div>

@@ -16,9 +16,15 @@ import {
   setSubjectTeachers,
   updateSubject,
 } from "@/lib/handlers/subjects";
+import { listMajors } from "@/lib/handlers/majors";
 import { listTeachers } from "@/lib/handlers/users";
-import { SubjectFormValues, SubjectSummary, TeacherOption } from "@/lib/schemas";
-import { SUBJECT_CATEGORIES, SubjectCategory } from "@/lib/constants";
+import {
+  MajorSummary,
+  SubjectFormValues,
+  SubjectSummary,
+  TeacherOption,
+} from "@/lib/schemas";
+import { SUBJECT_CATEGORIES } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 
@@ -27,6 +33,7 @@ export default function Subjects() {
   const { toast } = useToast();
   const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
+  const [majors, setMajors] = useState<MajorSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -40,15 +47,21 @@ export default function Subjects() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [subjectData, teacherData] = await Promise.all([
+        const majorPromise =
+          role === ROLES.ADMIN || role === ROLES.TEACHER
+            ? listMajors()
+            : Promise.resolve([]);
+        const [subjectData, teacherData, majorData] = await Promise.all([
           listSubjects(),
           listTeachers(),
+          majorPromise,
         ]);
         if (!isActive) return;
         setSubjects(subjectData);
         setTeachers(
           teacherData.map((teacher) => ({ id: teacher.id, name: teacher.name }))
         );
+        setMajors(majorData);
       } catch (error) {
         if (!isActive) return;
         toast({
@@ -64,7 +77,7 @@ export default function Subjects() {
     return () => {
       isActive = false;
     };
-  }, [toast]);
+  }, [role, toast]);
 
   const filteredSubjects = subjects.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -83,6 +96,8 @@ export default function Subjects() {
       description: data.description,
       color: data.color,
       hoursPerWeek: data.hoursPerWeek,
+      appliesToAllMajors: data.appliesToAllMajors,
+      majorIds: data.appliesToAllMajors ? [] : data.majorIds,
     };
 
     try {
@@ -243,6 +258,7 @@ export default function Subjects() {
         open={formDialogOpen}
         onOpenChange={setFormDialogOpen}
         subject={selectedSubject}
+        majors={majors}
         onSubmit={handleSubmit}
       />
       <AssignTeacherDialog
