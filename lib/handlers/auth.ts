@@ -2,6 +2,7 @@ import { apiGet, apiPost } from "@/lib/api-client";
 import {
   authLoginResultSchema,
   authSessionSchema,
+  forgotPasswordResultSchema,
   onboardingCompleteResultSchema,
   onboardingLinkChildResultSchema,
   onboardingStatusSchema,
@@ -20,9 +21,11 @@ export type RegisterPayload = {
 };
 
 export type SelectOnboardingRolePayload = {
-  name: string;
-  role: "ADMIN" | "TEACHER" | "STUDENT";
+  name?: string;
+  role: "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+  schoolId?: string;
   schoolCode?: string;
+  studentCode?: string;
 };
 
 export const login = async (payload: LoginPayload) =>
@@ -33,6 +36,23 @@ export const register = async (payload: RegisterPayload) =>
 
 export const getAuthSession = async () =>
   authSessionSchema.parse(await apiGet("/api/auth/session"));
+
+export const forgotPassword = async (email: string) =>
+  forgotPasswordResultSchema.parse(
+    await apiPost("/api/auth/forgot-password", { email })
+  );
+
+export const resetPassword = async (payload: {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}) => apiPost("/api/auth/reset-password", payload);
+
+export const changePassword = async (payload: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) => apiPost("/api/auth/change-password", payload);
 
 export const getOnboardingStatus = async () =>
   onboardingStatusSchema.parse(await apiGet("/api/auth/onboarding"));

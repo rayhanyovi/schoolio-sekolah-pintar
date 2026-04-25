@@ -80,6 +80,7 @@ export const authSessionSchema = z.object({
   canUseDebugPanel: z.boolean().default(false),
   onboardingCompleted: z.boolean().default(true),
   schoolId: z.string().nullable().default(null),
+  mustChangePassword: z.boolean().default(false),
 });
 export type AuthSessionSummary = z.infer<typeof authSessionSchema>;
 
@@ -93,8 +94,16 @@ export const authLoginResultSchema = z.object({
   onboardingCompleted: z.boolean().default(true),
   roleSelectionRequired: z.boolean().default(false),
   schoolId: z.string().nullable().default(null),
+  mustChangePassword: z.boolean().default(false),
 });
 export type AuthLoginResult = z.infer<typeof authLoginResultSchema>;
+
+export const forgotPasswordResultSchema = z.object({
+  success: z.boolean().default(true),
+  mode: z.enum(["saas", "self_host"]),
+  message: z.string(),
+});
+export type ForgotPasswordResult = z.infer<typeof forgotPasswordResultSchema>;
 
 export const onboardingStepSchema = z.object({
   id: z.string(),
@@ -234,6 +243,9 @@ export const subjectSchema = z.object({
     .nullish()
     .transform((value) => value ?? []),
   classIds: stringArray,
+  majorIds: stringArray,
+  majorCodes: stringArray,
+  appliesToAllMajors: z.boolean().default(true),
   hoursPerWeek: zeroNumber,
 });
 export const subjectListSchema = z.array(subjectSchema);
@@ -266,6 +278,8 @@ export const subjectFormSchema = z.object({
   description: emptyString,
   color: emptyString,
   hoursPerWeek: z.number(),
+  majorIds: stringArray,
+  appliesToAllMajors: z.boolean().default(true),
 });
 export type SubjectFormValues = z.infer<typeof subjectFormSchema>;
 
@@ -709,6 +723,7 @@ export type AssignmentSubmissionSummary = z.infer<
 >;
 
 export const schoolProfileSchema = z.object({
+  id: z.string().nullish(),
   schoolCode: z.string().nullish(),
   name: z.string(),
   address: z.string(),

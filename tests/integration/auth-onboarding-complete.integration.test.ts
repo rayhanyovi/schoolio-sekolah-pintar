@@ -8,6 +8,12 @@ vi.mock("@/lib/prisma", () => ({
     schoolProfile: {
       findUnique: vi.fn(),
     },
+    academicYear: {
+      count: vi.fn(),
+    },
+    subject: {
+      count: vi.fn(),
+    },
     user: {
       findUnique: vi.fn(),
       update: vi.fn(),
@@ -40,6 +46,10 @@ describe("auth onboarding complete route", () => {
     } as never);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       roleSelectedAt: new Date("2026-03-05T00:00:00.000Z"),
+      name: "Admin",
+      firstName: null,
+      lastName: null,
+      birthDate: new Date("1990-01-01T00:00:00.000Z"),
     } as never);
     vi.mocked(prisma.user.update).mockResolvedValue({
       id: "admin-1",
@@ -47,6 +57,8 @@ describe("auth onboarding complete route", () => {
       role: ROLES.ADMIN,
       schoolId: "school-1",
     } as never);
+    vi.mocked(prisma.academicYear.count).mockResolvedValue(1 as never);
+    vi.mocked(prisma.subject.count).mockResolvedValue(1 as never);
   });
 
   it("admin dapat menyelesaikan onboarding walau setup opsional belum ada", async () => {
@@ -84,5 +96,26 @@ describe("auth onboarding complete route", () => {
     expect(response.status).toBe(400);
     expect(payload.error.code).toBe("VALIDATION_ERROR");
     expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("admin ditolak jika tahun ajaran belum ada", async () => {
+    vi.mocked(prisma.schoolProfile.findUnique).mockResolvedValue({
+      id: "school-1",
+      schoolCode: "SCH-DEMO01",
+      name: "SMA 1",
+      address: "Jl. A",
+      email: "info@demo.sch.id",
+    } as never);
+    vi.mocked(prisma.academicYear.count).mockResolvedValue(0 as never);
+
+    const response = await completeOnboarding(
+      new Request("http://localhost/api/auth/onboarding/complete", {
+        method: "POST",
+      }) as never
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("VALIDATION_ERROR");
   });
 });

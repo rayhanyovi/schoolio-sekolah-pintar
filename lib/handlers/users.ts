@@ -108,3 +108,8 @@ export const createParentInvite = async (studentId: string) =>
   parentInviteResultSchema.parse(
     await apiPost("/api/parent-invites", { studentId })
   );
+
+export const resetUserPasswordToDefault = (id: string) =>
+  apiPost<{ success: boolean; message: string }>(
+    `/api/users/${id}/reset-password`
+  );

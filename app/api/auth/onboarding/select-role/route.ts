@@ -12,9 +12,11 @@ import {
 } from "@/lib/server-auth";
 
 const selectRoleSchema = z.object({
-  name: z.string().trim().min(1, "name wajib diisi"),
-  role: z.enum([ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT]),
+  name: z.string().trim().optional().nullable(),
+  role: z.enum([ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT, ROLES.PARENT]),
+  schoolId: z.string().trim().optional().nullable(),
   schoolCode: z.string().trim().optional().nullable(),
+  studentCode: z.string().trim().optional().nullable(),
 });
 
 const createSchoolForAdmin = async (tx: Prisma.TransactionClient) => {
@@ -75,25 +77,60 @@ export async function POST(request: NextRequest) {
     return jsonError("CONFLICT", "Role sudah dipilih sebelumnya", 409);
   }
   let schoolId: string | null = null;
-  if (body.role !== ROLES.ADMIN) {
-    const normalizedSchoolCode = body.schoolCode
-      ? normalizeSchoolCode(body.schoolCode)
-      : "";
-    if (!normalizedSchoolCode) {
+  let parentStudentId: string | null = null;
+  if (body.role === ROLES.PARENT) {
+    const normalizedStudentCode = body.studentCode?.trim() ?? "";
+    if (!normalizedStudentCode) {
       return jsonError(
         "VALIDATION_ERROR",
-        "schoolCode wajib diisi untuk role ini",
+        "studentCode wajib diisi untuk role orang tua",
         400
       );
     }
-    const school = await prisma.schoolProfile.findUnique({
-      where: { schoolCode: normalizedSchoolCode },
-      select: { id: true },
+    const student = await prisma.user.findFirst({
+      where: {
+        id: normalizedStudentCode,
+        role: ROLES.STUDENT,
+        schoolId: { not: null },
+      },
+      select: {
+        id: true,
+        schoolId: true,
+      },
     });
+    if (!student?.schoolId) {
+      return jsonError("FORBIDDEN", "Kode siswa tidak valid", 403);
+    }
+    schoolId = student.schoolId;
+    parentStudentId = student.id;
+  } else if (body.role !== ROLES.ADMIN) {
+    const normalizedSchoolId = body.schoolId?.trim() ?? "";
+    const normalizedSchoolCode = body.schoolCode
+      ? normalizeSchoolCode(body.schoolCode)
+      : "";
+    if (!normalizedSchoolId && !normalizedSchoolCode) {
+      return jsonError(
+        "VALIDATION_ERROR",
+        "schoolCode atau schoolId wajib diisi untuk role ini",
+        400
+      );
+    }
+    const school = normalizedSchoolId
+      ? await prisma.schoolProfile.findUnique({
+          where: { id: normalizedSchoolId },
+          select: { id: true },
+        })
+      : await prisma.schoolProfile.findUnique({
+          where: { schoolCode: normalizedSchoolCode },
+          select: { id: true },
+        });
     if (!school) {
       return jsonError("FORBIDDEN", "Kode sekolah tidak valid", 403);
     }
     schoolId = school.id;
+  }
+  if (body.role === ROLES.PARENT && !parentStudentId) {
+    return jsonError("FORBIDDEN", "Kode siswa tidak valid", 403);
   }
 
   const selected = await prisma.$transaction(async (tx) => {
@@ -106,7 +143,7 @@ export async function POST(request: NextRequest) {
     const updatedUser = await tx.user.update({
       where: { id: auth.userId },
       data: {
-        name: body.name.trim(),
+        name: body.name?.trim() || user.name || "",
         role: body.role,
         schoolId: resolvedSchoolId,
         roleSelectedAt: new Date(),
@@ -135,6 +172,27 @@ export async function POST(request: NextRequest) {
         update: {},
         create: { userId: auth.userId, status: "ACTIVE" },
       });
+    } else if (body.role === ROLES.PARENT) {
+      await tx.teacherProfile.deleteMany({ where: { userId: auth.userId } });
+      await tx.studentProfile.deleteMany({ where: { userId: auth.userId } });
+      await tx.parentProfile.upsert({
+        where: { userId: auth.userId },
+        update: {},
+        create: { userId: auth.userId },
+      });
+      await tx.parentStudent.upsert({
+        where: {
+          parentId_studentId: {
+            parentId: auth.userId,
+            studentId: parentStudentId!,
+          },
+        },
+        update: {},
+        create: {
+          parentId: auth.userId,
+          studentId: parentStudentId!,
+        },
+      });
     } else if (body.role === ROLES.ADMIN) {
       await tx.teacherProfile.deleteMany({ where: { userId: auth.userId } });
       await tx.studentProfile.deleteMany({ where: { userId: auth.userId } });
@@ -153,6 +211,7 @@ export async function POST(request: NextRequest) {
     canUseDebugPanel: auth.canUseDebugPanel,
     onboardingCompleted: false,
     schoolId: selected.schoolId,
+    mustChangePassword: false,
   });
 
   const response = jsonOk({
@@ -161,6 +220,7 @@ export async function POST(request: NextRequest) {
     onboardingCompleted: false,
     roleSelectionRequired: false,
     schoolId: selected.schoolId,
+    mustChangePassword: false,
   });
   response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
   return response;

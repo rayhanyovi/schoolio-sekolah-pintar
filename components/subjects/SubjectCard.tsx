@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Pencil, Trash2 } from "lucide-react";
+import { Layers, Users, Pencil, Trash2 } from "lucide-react";
 import { SubjectSummary } from "@/lib/schemas";
 import { SUBJECT_CATEGORIES, SUBJECT_CATEGORY_COLORS, SubjectCategory } from "@/lib/constants";
 
@@ -42,6 +42,30 @@ export function SubjectCard({ subject, onEdit, onDelete }: SubjectCardProps) {
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground line-clamp-2">{subject.description}</p>
         
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm">
+            <Layers className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">Cakupan Jurusan:</span>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {subject.appliesToAllMajors ? (
+              <Badge variant="secondary" className="text-xs">
+                Semua Jurusan
+              </Badge>
+            ) : subject.majorCodes.length ? (
+              subject.majorCodes.map((code) => (
+                <Badge key={code} variant="secondary" className="text-xs">
+                  {code}
+                </Badge>
+              ))
+            ) : (
+              <Badge variant="secondary" className="text-xs">
+                -
+              </Badge>
+            )}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm">
             <Users className="h-4 w-4 text-primary" />

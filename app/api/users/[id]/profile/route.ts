@@ -10,7 +10,9 @@ import {
 } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
 
 const STUDENT_LIFECYCLE_VALUES: StudentLifecycleStatus[] = [
   "ACTIVE",
@@ -82,6 +84,12 @@ const toProfileSnapshot = (
   };
 };
 
+const resolveUserId = async (context: RouteContext) => {
+  const params = await context.params;
+  const userId = params?.id;
+  return typeof userId === "string" && userId.trim().length ? userId : null;
+};
+
 const authorizeProfileAccess = async (request: NextRequest, userId: string) => {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
@@ -93,13 +101,16 @@ const authorizeProfileAccess = async (request: NextRequest, userId: string) => {
   return { auth, schoolId };
 };
 
-export async function GET(request: NextRequest, { params }: Params) {
-  const context = await authorizeProfileAccess(request, params.id);
-  if (context instanceof Response) return context;
-  const { schoolId } = context;
+export async function GET(request: NextRequest, context: RouteContext) {
+  const userId = await resolveUserId(context);
+  if (!userId) return jsonError("VALIDATION_ERROR", "User id tidak valid", 400);
+
+  const authContext = await authorizeProfileAccess(request, userId);
+  if (authContext instanceof Response) return authContext;
+  const { schoolId } = authContext;
 
   const row = await prisma.user.findFirst({
-    where: { id: params.id, schoolId },
+    where: { id: userId, schoolId },
     include: {
       studentProfile: { include: { class: true } },
       teacherProfile: true,
@@ -111,14 +122,18 @@ export async function GET(request: NextRequest, { params }: Params) {
   return jsonOk(row);
 }
 
-export async function PATCH(request: NextRequest, { params }: Params) {
-  const context = await authorizeProfileAccess(request, params.id);
-  if (context instanceof Response) return context;
-  const { auth, schoolId } = context;
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  const userId = await resolveUserId(context);
+  if (!userId) return jsonError("VALIDATION_ERROR", "User id tidak valid", 400);
+
+  const authContext = await authorizeProfileAccess(request, userId);
+  if (authContext instanceof Response) return authContext;
+  const { auth, schoolId } = authContext;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
+
   const derivedName =
     typeof body.name === "string" && body.name.trim().length
       ? body.name.trim()
@@ -138,6 +153,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     body.studentProfile.status !== ""
       ? toStudentLifecycleStatus(body.studentProfile.status)
       : null;
+
   if (
     body.studentProfile &&
     body.studentProfile.status !== undefined &&
@@ -147,10 +163,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   ) {
     return jsonError("VALIDATION_ERROR", "studentProfile.status tidak valid", 400);
   }
+
   try {
     const row = await prisma.$transaction(async (tx) => {
       const before = await tx.user.findUnique({
-        where: { id: params.id },
+        where: { id: userId },
         include: {
           studentProfile: true,
           teacherProfile: true,
@@ -160,7 +177,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       if (!before || before.schoolId !== schoolId) return null;
 
       const updatedUser = await tx.user.update({
-        where: { id: params.id },
+        where: { id: userId },
         data: {
           name: derivedName ? derivedName : undefined,
           email: emailValue,
@@ -180,6 +197,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           body.studentProfile.classId === undefined
             ? previousClassId
             : body.studentProfile.classId ?? null;
+
         if (nextClassId) {
           const targetClass = await tx.class.findFirst({
             where: { id: nextClassId, schoolId },
@@ -189,17 +207,18 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             throw new Error("FORBIDDEN_CLASS");
           }
         }
+
         const nextStatus =
           requestedStudentStatus ?? before.studentProfile?.status ?? "ACTIVE";
         await tx.studentProfile.upsert({
-          where: { userId: params.id },
+          where: { userId },
           update: {
             classId: nextClassId,
             gender: body.studentProfile.gender ?? null,
             status: nextStatus,
           },
           create: {
-            userId: params.id,
+            userId,
             classId: nextClassId,
             gender: body.studentProfile.gender ?? null,
             status: nextStatus,
@@ -210,7 +229,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           const now = new Date();
           await tx.studentClassEnrollment.updateMany({
             where: {
-              studentId: params.id,
+              studentId: userId,
               endedAt: null,
             },
             data: { endedAt: now },
@@ -223,7 +242,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             });
             await tx.studentClassEnrollment.create({
               data: {
-                studentId: params.id,
+                studentId: userId,
                 classId: nextClassId,
                 academicYearId: classRow?.academicYearId ?? null,
                 startedAt: now,
@@ -235,22 +254,22 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
       if (body.teacherProfile) {
         await tx.teacherProfile.upsert({
-          where: { userId: params.id },
+          where: { userId },
           update: { title: body.teacherProfile.title ?? null },
-          create: { userId: params.id, title: body.teacherProfile.title ?? null },
+          create: { userId, title: body.teacherProfile.title ?? null },
         });
       }
 
       if (body.parentProfile) {
         await tx.parentProfile.upsert({
-          where: { userId: params.id },
+          where: { userId },
           update: {},
-          create: { userId: params.id },
+          create: { userId },
         });
       }
 
       const after = await tx.user.findUnique({
-        where: { id: params.id },
+        where: { id: userId },
         include: {
           studentProfile: true,
           teacherProfile: true,
@@ -264,7 +283,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           actorRole: auth.role,
           action: "USER_PROFILE_UPDATED",
           entityType: "User",
-          entityId: params.id,
+          entityId: userId,
           beforeData: toProfileSnapshot(before),
           afterData: toProfileSnapshot(after),
         },

@@ -14,6 +14,7 @@ type SessionTokenPayload = {
   canUseDebugPanel: boolean;
   onboardingCompleted?: boolean;
   schoolId?: string | null;
+  mustChangePassword?: boolean;
   iat: number;
   exp: number;
 };
@@ -25,6 +26,7 @@ export type AuthSession = {
   canUseDebugPanel: boolean;
   onboardingCompleted: boolean;
   schoolId: string | null;
+  mustChangePassword: boolean;
   issuedAt: number;
   expiresAt: number;
 };
@@ -36,6 +38,7 @@ type SessionInput = {
   canUseDebugPanel: boolean;
   onboardingCompleted: boolean;
   schoolId?: string | null;
+  mustChangePassword?: boolean;
 };
 
 const roles = new Set<Role>(Object.values(ROLES));
@@ -156,6 +159,10 @@ const toSession = (payload: Partial<SessionTokenPayload>): AuthSession | null =>
     typeof payload.schoolId === "string" || payload.schoolId === null
       ? payload.schoolId
       : null;
+  const mustChangePassword =
+    typeof payload.mustChangePassword === "boolean"
+      ? payload.mustChangePassword
+      : false;
 
   return {
     userId: payload.userId,
@@ -164,6 +171,7 @@ const toSession = (payload: Partial<SessionTokenPayload>): AuthSession | null =>
     canUseDebugPanel: payload.canUseDebugPanel,
     onboardingCompleted,
     schoolId,
+    mustChangePassword,
     issuedAt: payload.iat,
     expiresAt: payload.exp,
   };
@@ -179,6 +187,7 @@ export const createSessionToken = async (session: SessionInput) => {
   const payload: SessionTokenPayload = {
     ...session,
     schoolId: session.schoolId ?? null,
+    mustChangePassword: session.mustChangePassword ?? false,
     iat: now,
     exp: now + SESSION_TTL_SECONDS,
   };

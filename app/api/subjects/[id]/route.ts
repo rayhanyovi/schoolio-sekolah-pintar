@@ -14,6 +14,20 @@ import { mockSubjects } from "@/lib/mockData";
 
 type Params = { params: { id: string } };
 
+const toStringIdList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    ids.push(trimmed);
+  }
+  return ids;
+};
+
 export async function GET(request: NextRequest, { params }: Params) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
@@ -38,6 +52,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     include: {
       teachers: { include: { teacher: true } },
       classes: true,
+      majors: { include: { major: { select: { id: true, code: true } } } },
     },
   });
   if (!row) return jsonError("NOT_FOUND", "Subject not found", 404);
@@ -54,6 +69,9 @@ export async function GET(request: NextRequest, { params }: Params) {
       name: link.teacher.name,
     })),
     classIds: row.classes.map((link) => link.classId),
+    majorIds: row.majors.map((link) => link.majorId),
+    majorCodes: row.majors.map((link) => link.major.code),
+    appliesToAllMajors: row.appliesToAllMajors,
     hoursPerWeek: row.hoursPerWeek,
   };
 
@@ -73,7 +91,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const body = parsedRequestBody;
   const existingSubject = await prisma.subject.findFirst({
     where: { id: params.id, schoolId },
-    select: { id: true },
+    select: { id: true, appliesToAllMajors: true },
   });
   if (!existingSubject) {
     return jsonError("NOT_FOUND", "Subject not found", 404);
@@ -101,6 +119,31 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       return jsonError("FORBIDDEN", "Ada kelas lintas sekolah", 403);
     }
   }
+  const hasMajorIdsPayload = Array.isArray(body.majorIds);
+  const majorIds = hasMajorIdsPayload ? toStringIdList(body.majorIds) : [];
+  if (majorIds.length) {
+    const majorCount = await prisma.major.count({
+      where: {
+        id: { in: majorIds },
+        schoolId,
+      },
+    });
+    if (majorCount !== majorIds.length) {
+      return jsonError("FORBIDDEN", "Ada jurusan lintas sekolah", 403);
+    }
+  }
+  const hasAppliesPayload = typeof body.appliesToAllMajors === "boolean";
+  const appliesToAllMajors = hasAppliesPayload
+    ? (body.appliesToAllMajors as boolean)
+    : hasMajorIdsPayload
+    ? majorIds.length === 0
+    : existingSubject.appliesToAllMajors;
+  if (!appliesToAllMajors && hasMajorIdsPayload && majorIds.length === 0) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "Pilih minimal satu jurusan atau aktifkan semua jurusan"
+    );
+  }
   const row = await prisma.subject.update({
     where: { id: params.id },
     data: {
@@ -110,6 +153,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       description: body.description,
       color: body.color ?? "bg-primary",
       hoursPerWeek: body.hoursPerWeek,
+      appliesToAllMajors,
     },
   });
 
@@ -139,16 +183,49 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
   }
 
+  if (hasMajorIdsPayload || hasAppliesPayload) {
+    await prisma.subjectMajor.deleteMany({ where: { subjectId: row.id } });
+    if (!appliesToAllMajors && majorIds.length) {
+      await prisma.subjectMajor.createMany({
+        data: majorIds.map((majorId) => ({
+          subjectId: row.id,
+          majorId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  const finalSubject = await prisma.subject.findUnique({
+    where: { id: row.id },
+    include: {
+      teachers: { include: { teacher: true } },
+      classes: true,
+      majors: { include: { major: { select: { id: true, code: true } } } },
+    },
+  });
+  if (!finalSubject) return jsonError("NOT_FOUND", "Subject not found", 404);
+
   const data = {
-    id: row.id,
-    name: row.name,
-    code: row.code,
-    category: row.category,
-    description: row.description ?? "",
-    color: row.color ?? "bg-primary",
-    teachers: [],
-    classIds: body.classIds ?? [],
-    hoursPerWeek: row.hoursPerWeek,
+    id: finalSubject.id,
+    name: finalSubject.name,
+    code: finalSubject.code,
+    category: finalSubject.category,
+    description: finalSubject.description ?? "",
+    color: finalSubject.color ?? "bg-primary",
+    teachers: finalSubject.teachers.map((link) => ({
+      id: link.teacherId,
+      name: link.teacher.name,
+    })),
+    classIds: finalSubject.classes.map((link) => link.classId),
+    majorIds: finalSubject.appliesToAllMajors
+      ? []
+      : finalSubject.majors.map((link) => link.majorId),
+    majorCodes: finalSubject.appliesToAllMajors
+      ? []
+      : finalSubject.majors.map((link) => link.major.code),
+    appliesToAllMajors: finalSubject.appliesToAllMajors,
+    hoursPerWeek: finalSubject.hoursPerWeek,
   };
 
   return jsonOk(data);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BookOpen, Users, ClipboardCheck, BarChart3, Eye, EyeOff, ArrowRight, Mail, Lock } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { APP_DESCRIPTION } from "@/lib/constants";
@@ -11,46 +11,96 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { setDebugAccess } from "@/lib/auth-session";
-import { login, register } from "@/lib/handlers/auth";
+import { forgotPassword, login, register, resetPassword } from "@/lib/handlers/auth";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [parentInviteCode, setParentInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
   const isDemoEnvironment = process.env.NODE_ENV !== "production";
+  const inviteSchoolId = searchParams.get("schoolId")?.trim() ?? "";
+  const inviteSchoolCode = searchParams.get("schoolCode")?.trim() ?? "";
+  const resetToken = searchParams.get("resetToken")?.trim() ?? "";
+  const isResetPasswordMode = resetToken.length > 0;
+
+  const mode: "login" | "register" | "forgot" | "reset" = isResetPasswordMode
+    ? "reset"
+    : isForgotPassword
+    ? "forgot"
+    : isLogin
+    ? "login"
+    : "register";
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
 
     try {
-      const result = isLogin
-        ? await login({
-            identifier: identifier.trim(),
-            password,
-          })
-        : await register({
-            email: identifier.trim(),
-            password,
-            confirmPassword,
-            parentInviteCode: parentInviteCode.trim() || undefined,
-          });
+      if (mode === "forgot") {
+        const result = await forgotPassword(identifier.trim());
+        toast({
+          title: "Permintaan diproses",
+          description: result.message,
+        });
+        return;
+      }
+
+      if (mode === "reset") {
+        await resetPassword({
+          token: resetToken,
+          password,
+          confirmPassword,
+        });
+        toast({
+          title: "Password berhasil direset",
+          description: "Silakan login dengan password baru.",
+        });
+        router.replace("/auth");
+        setPassword("");
+        setConfirmPassword("");
+        return;
+      }
+
+      const result =
+        mode === "login"
+          ? await login({
+              identifier: identifier.trim(),
+              password,
+            })
+          : await register({
+              email: identifier.trim(),
+              password,
+              confirmPassword,
+            });
 
       setDebugAccess(result.canUseDebugPanel);
       toast({
-        title: isLogin ? "Login berhasil" : "Registrasi berhasil",
+        title: mode === "login" ? "Login berhasil" : "Registrasi berhasil",
         description: result.onboardingCompleted
           ? "Anda akan diarahkan ke dashboard."
           : "Lanjutkan setup awal akun Anda.",
       });
-      router.push(result.onboardingCompleted ? "/dashboard" : "/onboarding");
+      if (result.mustChangePassword) {
+        router.push("/change-password");
+        return;
+      }
+      const onboardingParams = new URLSearchParams();
+      if (inviteSchoolId) onboardingParams.set("schoolId", inviteSchoolId);
+      if (!inviteSchoolId && inviteSchoolCode) {
+        onboardingParams.set("schoolCode", inviteSchoolCode);
+      }
+      const onboardingUrl = onboardingParams.toString()
+        ? `/onboarding?${onboardingParams.toString()}`
+        : "/onboarding";
+      router.push(result.onboardingCompleted ? "/dashboard" : onboardingUrl);
     } catch (error) {
       setDebugAccess(false);
       const message =
@@ -58,7 +108,14 @@ export default function Auth() {
           ? error.message
           : "Terjadi kesalahan saat proses autentikasi.";
       toast({
-        title: isLogin ? "Login gagal" : "Registrasi gagal",
+        title:
+          mode === "login"
+            ? "Login gagal"
+            : mode === "register"
+            ? "Registrasi gagal"
+            : mode === "forgot"
+            ? "Permintaan gagal"
+            : "Reset password gagal",
         description: message,
         variant: "destructive",
       });
@@ -132,71 +189,91 @@ export default function Auth() {
           <Card variant="elevated" className="border-0">
             <CardHeader className="space-y-1 text-center pb-4">
               <CardTitle className="text-2xl font-bold">
-                {isLogin ? "Selamat Datang Kembali" : "Buat Akun Baru"}
+                {mode === "login"
+                  ? "Selamat Datang Kembali"
+                  : mode === "register"
+                  ? "Buat Akun Baru"
+                  : mode === "forgot"
+                  ? "Lupa Password"
+                  : "Reset Password"}
               </CardTitle>
               <CardDescription className="text-base">
-                {isLogin
+                {mode === "login"
                   ? "Masuk ke akun Anda untuk melanjutkan"
-                  : "Daftar dulu dengan email, lalu lanjutkan wizard onboarding"}
+                  : mode === "register"
+                  ? "Daftar dulu dengan email, lalu lanjutkan wizard onboarding"
+                  : mode === "forgot"
+                  ? "Masukkan email akun Anda untuk instruksi reset password"
+                  : "Masukkan password baru untuk akun Anda"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="identifier">
-                    {isLogin ? "Email / Username" : "Email"}
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="identifier"
-                      type={isLogin ? "text" : "email"}
-                      placeholder={
-                        isLogin
-                          ? "nama@sekolah.sch.id atau username"
-                          : "nama@sekolah.sch.id"
-                      }
-                      className="pl-10"
-                      value={identifier}
-                      onChange={(event) => setIdentifier(event.target.value)}
-                      required
-                    />
+                {mode !== "reset" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="identifier">
+                      {mode === "login" ? "Email / Username" : "Email"}
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        id="identifier"
+                        type={mode === "login" ? "text" : "email"}
+                        placeholder={
+                          mode === "login"
+                            ? "nama@sekolah.sch.id atau username"
+                            : "nama@sekolah.sch.id"
+                        }
+                        className="pl-10"
+                        value={identifier}
+                        onChange={(event) => setIdentifier(event.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Kata Sandi</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Masukkan kata sandi"
-                      className="pl-10 pr-10"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
+                {mode !== "forgot" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">
+                      {mode === "reset" ? "Password Baru" : "Kata Sandi"}
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder={
+                          mode === "reset"
+                            ? "Masukkan password baru"
+                            : "Masukkan kata sandi"
+                        }
+                        className="pl-10 pr-10"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                    {mode !== "login" && (
+                      <p className="text-xs text-muted-foreground">
+                        Minimal 8 karakter.
+                      </p>
+                    )}
                   </div>
-                  {!isLogin && (
-                    <p className="text-xs text-muted-foreground">
-                      Minimal 8 karakter.
-                    </p>
-                  )}
-                </div>
+                )}
 
-                {!isLogin && (
+                {(mode === "register" || mode === "reset") && (
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Konfirmasi Kata Sandi</Label>
                     <Input
@@ -210,21 +287,15 @@ export default function Auth() {
                   </div>
                 )}
 
-                {!isLogin && (
-                  <div className="space-y-2">
-                    <Label htmlFor="parentInviteCode">
-                      Kode Undangan Ortu (opsional)
-                    </Label>
-                    <Input
-                      id="parentInviteCode"
-                      type="text"
-                      placeholder="Mis: ABCD-EFGH-JKLM"
-                      value={parentInviteCode}
-                      onChange={(event) => setParentInviteCode(event.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Isi hanya jika Anda mendaftar sebagai orang tua via undangan siswa.
-                    </p>
+                {mode === "login" && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      className="text-sm text-primary font-medium hover:underline"
+                      onClick={() => setIsForgotPassword(true)}
+                    >
+                      Lupa password?
+                    </button>
                   </div>
                 )}
 
@@ -242,7 +313,13 @@ export default function Auth() {
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      {isLogin ? "Masuk" : "Daftar"}
+                      {mode === "login"
+                        ? "Masuk"
+                        : mode === "register"
+                        ? "Daftar"
+                        : mode === "forgot"
+                        ? "Kirim Instruksi"
+                        : "Simpan Password Baru"}
                       <ArrowRight className="h-5 w-5" />
                     </span>
                   )}
@@ -250,16 +327,39 @@ export default function Auth() {
               </form>
 
               <div className="mt-6 text-center">
-                <span className="text-muted-foreground">
-                  {isLogin ? "Belum punya akun?" : "Sudah punya akun?"}
-                </span>{" "}
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-primary font-medium hover:underline"
-                >
-                  {isLogin ? "Daftar sekarang" : "Masuk di sini"}
-                </button>
+                {mode === "forgot" ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPassword(false)}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    Kembali ke login
+                  </button>
+                ) : mode === "reset" ? (
+                  <button
+                    type="button"
+                    onClick={() => router.replace("/auth")}
+                    className="text-primary font-medium hover:underline"
+                  >
+                    Kembali ke login
+                  </button>
+                ) : (
+                  <>
+                    <span className="text-muted-foreground">
+                      {isLogin ? "Belum punya akun?" : "Sudah punya akun?"}
+                    </span>{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(false);
+                        setIsLogin(!isLogin);
+                      }}
+                      className="text-primary font-medium hover:underline"
+                    >
+                      {isLogin ? "Daftar sekarang" : "Masuk di sini"}
+                    </button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

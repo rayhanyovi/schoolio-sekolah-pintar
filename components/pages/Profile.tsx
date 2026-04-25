@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 import { ROLE_LABELS } from "@/lib/constants";
 import { apiGet } from "@/lib/api-client";
+import { changePassword } from "@/lib/handlers/auth";
 import { getUserProfile, updateUserProfile } from "@/lib/handlers/users";
 import { UserProfileSummary } from "@/lib/schemas";
 import { format } from "date-fns";
@@ -153,11 +154,38 @@ export default function Profile() {
     }
   };
 
-  const handleChangePassword = () => {
-    toast({
-      title: "Belum tersedia",
-      description: "Fitur ganti password belum terhubung ke backend.",
-    });
+  const handleChangePassword = async () => {
+    if (passwords.new !== passwords.confirm) {
+      toast({
+        title: "Konfirmasi tidak cocok",
+        description: "Ulangi konfirmasi password baru.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await changePassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.new,
+        confirmPassword: passwords.confirm,
+      });
+      setPasswords({
+        current: "",
+        new: "",
+        confirm: "",
+      });
+      toast({
+        title: "Password diperbarui",
+        description: "Password akun Anda berhasil diganti.",
+      });
+    } catch (error) {
+      toast({
+        title: "Gagal mengubah password",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCopyStudentId = async () => {

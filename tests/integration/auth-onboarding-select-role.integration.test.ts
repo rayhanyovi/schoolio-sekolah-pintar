@@ -15,6 +15,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     schoolProfile: {
       findUnique: vi.fn(),
@@ -39,9 +40,11 @@ const buildTransactionMock = () => ({
     deleteMany: vi.fn(),
   },
   parentProfile: {
+    upsert: vi.fn(),
     deleteMany: vi.fn(),
   },
   parentStudent: {
+    upsert: vi.fn(),
     deleteMany: vi.fn(),
   },
 });
@@ -62,6 +65,7 @@ describe("auth onboarding select-role route", () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({
       id: "user-1",
       name: "User Baru",
+      schoolId: null,
       roleSelectedAt: null,
       onboardingCompletedAt: null,
     } as never);
@@ -87,7 +91,6 @@ describe("auth onboarding select-role route", () => {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        name: "Guru Baru",
         role: ROLES.TEACHER,
         schoolCode: "sch-demo01",
       }),
@@ -99,6 +102,43 @@ describe("auth onboarding select-role route", () => {
     expect(response.status).toBe(200);
     expect(payload.data.user.role).toBe(ROLES.TEACHER);
     expect(tx.teacherProfile.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("memilih role student dengan schoolId valid", async () => {
+    const tx = buildTransactionMock();
+    tx.user.update.mockResolvedValue({
+      id: "user-1",
+      name: "Siswa Baru",
+      role: ROLES.STUDENT,
+      schoolId: "school-1",
+    });
+
+    vi.mocked(prisma.schoolProfile.findUnique).mockResolvedValue({
+      id: "school-1",
+    } as never);
+    vi.mocked(prisma.$transaction).mockImplementation(
+      async (callback: (tx: typeof tx) => unknown) => callback(tx) as never
+    );
+
+    const request = new Request("http://localhost/api/auth/onboarding/select-role", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        role: ROLES.STUDENT,
+        schoolId: "school-1",
+      }),
+    });
+
+    const response = await selectRole(request as never);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.user.role).toBe(ROLES.STUDENT);
+    expect(tx.studentProfile.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.schoolProfile.findUnique).toHaveBeenCalledWith({
+      where: { id: "school-1" },
+      select: { id: true },
+    });
   });
 
   it("menolak role teacher tanpa schoolCode", async () => {
@@ -147,5 +187,59 @@ describe("auth onboarding select-role route", () => {
     expect(payload.data.user.role).toBe(ROLES.ADMIN);
     expect(payload.data.schoolId).toBe("school-2");
     expect(tx.schoolProfile.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("memilih role parent dengan studentCode valid", async () => {
+    const tx = buildTransactionMock();
+    tx.user.update.mockResolvedValue({
+      id: "user-1",
+      name: "Orang Tua Baru",
+      role: ROLES.PARENT,
+      schoolId: "school-3",
+    });
+
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      id: "student-1",
+      schoolId: "school-3",
+    } as never);
+    vi.mocked(prisma.$transaction).mockImplementation(
+      async (callback: (tx: typeof tx) => unknown) => callback(tx) as never
+    );
+
+    const request = new Request("http://localhost/api/auth/onboarding/select-role", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Orang Tua Baru",
+        role: ROLES.PARENT,
+        studentCode: "student-1",
+      }),
+    });
+
+    const response = await selectRole(request as never);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.user.role).toBe(ROLES.PARENT);
+    expect(payload.data.schoolId).toBe("school-3");
+    expect(tx.parentProfile.upsert).toHaveBeenCalledTimes(1);
+    expect(tx.parentStudent.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("menolak role parent tanpa studentCode", async () => {
+    const request = new Request("http://localhost/api/auth/onboarding/select-role", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "Orang Tua Tanpa Kode",
+        role: ROLES.PARENT,
+      }),
+    });
+
+    const response = await selectRole(request as never);
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("VALIDATION_ERROR");
   });
 });

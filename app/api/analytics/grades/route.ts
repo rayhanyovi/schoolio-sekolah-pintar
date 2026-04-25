@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonOk, requireAuth, requireRole } from "@/lib/api";
+import { jsonOk, requireAuth, requireRole, requireSchoolContext } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -9,12 +9,18 @@ export async function GET(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = {
+    assignment: {
+      subject: { schoolId },
+    },
+  };
   if (from || to) {
     where.createdAt = {
       ...(from ? { gte: new Date(from) } : {}),
@@ -23,7 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (auth.role === ROLES.TEACHER) {
-    where.assignment = { teacherId: auth.userId };
+    where.assignment = { teacherId: auth.userId, subject: { schoolId } };
   }
 
   const rows = await prisma.assignmentSubmission.findMany({

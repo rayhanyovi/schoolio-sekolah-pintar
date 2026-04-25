@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import { Prisma, StudentLifecycleStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/password";
+import { normalizeCredentialIdentifier } from "@/lib/auth-credential";
+import { getDefaultUserPassword } from "@/lib/default-password";
+import { isSaasMode } from "@/lib/app-mode";
 import {
   jsonError,
   jsonOk,
@@ -123,6 +127,23 @@ export async function POST(request: NextRequest) {
   const parsedBody = await parseJsonBody(request, createUserSchema);
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;
+  const selfHostMode = !isSaasMode();
+  const credentialIdentifier = body.email
+    ? normalizeCredentialIdentifier(body.email)
+    : "";
+
+  if (selfHostMode && !credentialIdentifier) {
+    return jsonError(
+      "VALIDATION_ERROR",
+      "Email wajib diisi agar akun bisa login di mode self-host",
+      400
+    );
+  }
+
+  const defaultPassword = selfHostMode ? getDefaultUserPassword() : null;
+  const defaultPasswordHash = selfHostMode
+    ? await hashPassword(defaultPassword!)
+    : null;
 
   const studentLifecycleStatus =
     body.studentLifecycleStatus === undefined ||
@@ -157,6 +178,27 @@ export async function POST(request: NextRequest) {
           birthDate: body.birthDate ? new Date(body.birthDate) : null,
         },
       });
+
+      if (selfHostMode) {
+        const existingCredential = await tx.authCredential.findUnique({
+          where: { identifier: credentialIdentifier },
+          select: { id: true },
+        });
+        if (existingCredential) {
+          throw new Error("CONFLICT_IDENTIFIER");
+        }
+
+        await tx.authCredential.create({
+          data: {
+            userId: created.id,
+            identifier: credentialIdentifier,
+            passwordHash: defaultPasswordHash!.passwordHash,
+            passwordSalt: defaultPasswordHash!.passwordSalt,
+            mustChangePassword: true,
+            isDefaultPassword: true,
+          },
+        });
+      }
 
       if (body.role === "STUDENT") {
         const targetClassId = body.classId ?? null;
@@ -219,13 +261,25 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return created;
+      return {
+        ...created,
+        credentialProvisioned: selfHostMode,
+      };
     });
 
     return jsonOk(row, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "CONFLICT_IDENTIFIER") {
+      return jsonError("CONFLICT", "Email sudah dipakai akun lain", 409);
+    }
     if (error instanceof Error && error.message === "FORBIDDEN_CLASS") {
       return jsonError("FORBIDDEN", "Kelas tidak valid untuk sekolah ini", 403);
+    }
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return jsonError("CONFLICT", "Data pengguna sudah terdaftar", 409);
     }
     throw error;
   }

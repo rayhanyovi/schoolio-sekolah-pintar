@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
       phone: true,
       address: true,
       bio: true,
+      birthDate: true,
       schoolId: true,
       roleSelectedAt: true,
       onboardingCompletedAt: true,
@@ -67,10 +68,13 @@ export async function GET(request: NextRequest) {
       })
     : null;
 
-  const roleSelectionRequired =
-    user.role !== ROLES.PARENT && !user.roleSelectedAt && !user.onboardingCompletedAt;
-  const availableRoles = [ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT];
-  const hasDisplayName = Boolean(user.name?.trim());
+  const roleSelectionRequired = !user.roleSelectedAt && !user.onboardingCompletedAt;
+  const availableRoles = [ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT, ROLES.PARENT];
+  const hasDisplayName = Boolean(
+    user.name?.trim() || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
+  );
+  const hasBirthDate = Boolean(user.birthDate);
+  const profileComplete = hasDisplayName && hasBirthDate;
 
   if (roleSelectionRequired) {
     return jsonOk({
@@ -81,12 +85,6 @@ export async function GET(request: NextRequest) {
       onboardingCompleted: false,
       schoolCode: null,
       steps: [
-        {
-          id: "profile-name",
-          title: "Isi nama akun",
-          required: true,
-          completed: hasDisplayName,
-        },
         {
           id: "role-selection",
           title: "Pilih role akun",
@@ -105,13 +103,12 @@ export async function GET(request: NextRequest) {
     if (!auth.schoolId) {
       return jsonError("FORBIDDEN", "Akun admin belum memiliki sekolah", 403);
     }
-    const [academicYearCount, scheduleTemplateCount, notificationPreferenceCount] =
+    const [academicYearCount, subjectCount, majorCount, classCount] =
       await Promise.all([
         prisma.academicYear.count({ where: { schoolId: auth.schoolId } }),
-        prisma.scheduleTemplate.count({ where: { schoolId: auth.schoolId } }),
-        prisma.notificationPreference.count({
-          where: { userId: auth.userId },
-        }),
+        prisma.subject.count({ where: { schoolId: auth.schoolId } }),
+        prisma.major.count({ where: { schoolId: auth.schoolId } }),
+        prisma.class.count({ where: { schoolId: auth.schoolId } }),
       ]);
     const schoolProfileComplete = Boolean(
       schoolProfile?.name?.trim() &&
@@ -119,13 +116,13 @@ export async function GET(request: NextRequest) {
         schoolProfile?.email?.trim() &&
         schoolProfile?.schoolCode
     );
-    const schoolContactOptionalComplete = Boolean(
-      schoolProfile?.phone?.trim() &&
-        schoolProfile?.website?.trim() &&
-        schoolProfile?.principalName?.trim()
-    );
-
     steps.push(
+      {
+        id: "profile-basic",
+        title: "Data diri (wajib)",
+        required: true,
+        completed: profileComplete,
+      },
       {
         id: "school-profile",
         title: "Profil sekolah (wajib)",
@@ -134,64 +131,60 @@ export async function GET(request: NextRequest) {
       },
       {
         id: "academic-year",
-        title: "Tahun ajaran awal (opsional)",
-        required: false,
+        title: "Tahun ajaran awal (wajib)",
+        required: true,
         completed: academicYearCount > 0,
       },
       {
-        id: "schedule-template",
-        title: "Template jam pelajaran (opsional)",
-        required: false,
-        completed: scheduleTemplateCount > 0,
+        id: "subject-template",
+        title: "Template mata pelajaran (wajib)",
+        required: true,
+        completed: subjectCount > 0,
       },
       {
-        id: "notification-preference",
-        title: "Preferensi notifikasi (opsional)",
+        id: "major-setup",
+        title: "Setup jurusan (opsional)",
         required: false,
-        completed: notificationPreferenceCount > 0,
+        completed: majorCount > 0,
+      },
+      {
+        id: "class-setup",
+        title: "Setup kelas (opsional)",
+        required: false,
+        completed: classCount > 0,
       }
     );
 
-    if (!schoolContactOptionalComplete) {
+    if (!profileComplete) {
       reminders.push({
-        id: "school-contact-optional",
-        title: "Lengkapi profil sekolah lanjutan",
+        id: "profile-basic",
+        title: "Lengkapi data diri",
         description:
-          "Tambahkan telepon, website, dan kepala sekolah agar profil lebih lengkap.",
-        href: SETTINGS_HREF,
+          "Isi nama lengkap dan tanggal lahir agar akun dapat digunakan penuh.",
+        href: PROFILE_HREF,
       });
     }
     if (academicYearCount === 0) {
       reminders.push({
         id: "academic-year",
-        title: "Tentukan tahun ajaran aktif",
-        description: "Buat tahun ajaran pertama agar modul akademik bisa dipakai penuh.",
+        title: "Buat tahun ajaran awal",
+        description: "Tambahkan minimal satu tahun ajaran untuk memulai operasional.",
         href: SETTINGS_HREF,
       });
     }
-    if (scheduleTemplateCount === 0) {
+    if (subjectCount === 0) {
       reminders.push({
-        id: "schedule-template",
-        title: "Atur template jam pelajaran",
-        description: "Template jadwal mempermudah penyusunan jadwal kelas.",
-        href: SETTINGS_HREF,
-      });
-    }
-    if (notificationPreferenceCount === 0) {
-      reminders.push({
-        id: "notification-preference",
-        title: "Atur preferensi notifikasi admin",
-        description: "Aktifkan preferensi notifikasi sesuai kebutuhan operasional.",
+        id: "subject-template",
+        title: "Tambahkan template mata pelajaran",
+        description:
+          "Buat minimal satu mata pelajaran agar modul kelas dan jadwal siap dipakai.",
         href: SETTINGS_HREF,
       });
     }
   } else {
-    const profileComplete = Boolean(
-      user.name || user.firstName || user.lastName || user.phone || user.address || user.bio
-    );
     steps.push({
-      id: "profile-quick",
-      title: "Profil cepat",
+      id: "profile-basic",
+      title: "Data diri (wajib)",
       required: true,
       completed: profileComplete,
     });
