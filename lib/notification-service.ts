@@ -1,4 +1,6 @@
 import { NotificationPreference, NotificationType, Prisma, PrismaClient } from "@prisma/client";
+import { buildNotificationEmail } from "@/lib/email-templates/notifications";
+import { isResendConfigured, sendNotificationEmail } from "@/lib/resend";
 
 type DbClient = Prisma.TransactionClient | PrismaClient;
 
@@ -26,6 +28,14 @@ const isTypeEnabledByPreference = (
     return preference.attendanceAlerts;
   }
   return true;
+};
+
+const isEmailEnabledByPreference = (
+  preference: NotificationPreference | null,
+  type: NotificationType
+) => {
+  if (preference && !preference.emailNotifications) return false;
+  return isTypeEnabledByPreference(preference, type);
 };
 
 export const ensureNotificationPreference = async (
@@ -75,6 +85,39 @@ export const createInAppNotifications = async (
       triggeredById: input.triggeredById ?? null,
     })),
   });
+
+  if (isResendConfigured()) {
+    const emailRecipientIds = uniqueRecipientIds.filter((recipientId) =>
+      isEmailEnabledByPreference(preferenceMap.get(recipientId) ?? null, input.type)
+    );
+    if (emailRecipientIds.length) {
+      const users = await db.user.findMany({
+        where: {
+          id: { in: emailRecipientIds },
+          email: { not: null },
+        },
+        select: { email: true },
+      });
+      const email = buildNotificationEmail({
+        type: input.type,
+        title: input.title,
+        message: input.message,
+        data: input.data,
+      });
+      for (const user of users) {
+        if (!user.email) continue;
+        const delivery = await sendNotificationEmail({
+          to: user.email,
+          ...email,
+        });
+        if (!delivery.ok) {
+          console.warn(
+            `[notification-email] failed to send type=${input.type} to=${user.email} error=${delivery.error}`
+          );
+        }
+      }
+    }
+  }
 
   return result.count;
 };

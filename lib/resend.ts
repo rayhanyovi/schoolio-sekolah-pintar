@@ -3,6 +3,13 @@ type SendPasswordResetEmailPayload = {
   resetUrl: string;
 };
 
+type SendEmailPayload = {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+};
+
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
 const getResendConfig = () => {
@@ -14,10 +21,7 @@ const getResendConfig = () => {
 
 export const isResendConfigured = () => Boolean(getResendConfig());
 
-export const sendPasswordResetEmail = async ({
-  to,
-  resetUrl,
-}: SendPasswordResetEmailPayload) => {
+export const sendEmail = async ({ to, subject, text, html }: SendEmailPayload) => {
   const config = getResendConfig();
   if (!config) {
     return { ok: false as const, error: "RESEND_NOT_CONFIGURED" as const };
@@ -32,9 +36,9 @@ export const sendPasswordResetEmail = async ({
     body: JSON.stringify({
       from: config.from,
       to: [to],
-      subject: "Reset Password Akun Sekolah Pintar",
-      text: `Kami menerima permintaan reset password. Buka tautan ini untuk lanjut: ${resetUrl}. Tautan berlaku 30 menit.`,
-      html: `<p>Kami menerima permintaan reset password.</p><p><a href="${resetUrl}">Klik di sini untuk reset password</a></p><p>Tautan berlaku 30 menit.</p>`,
+      subject,
+      text,
+      html,
     }),
   });
 
@@ -44,3 +48,16 @@ export const sendPasswordResetEmail = async ({
 
   return { ok: true as const };
 };
+
+export const sendPasswordResetEmail = ({
+  to,
+  resetUrl,
+}: SendPasswordResetEmailPayload) =>
+  sendEmail({
+    to,
+    subject: "Reset Password Akun Sekolah Pintar",
+    text: `Kami menerima permintaan reset password. Buka tautan ini untuk lanjut: ${resetUrl}. Tautan berlaku 30 menit.`,
+    html: `<p>Kami menerima permintaan reset password.</p><p><a href="${resetUrl}">Klik di sini untuk reset password</a></p><p>Tautan berlaku 30 menit.</p>`,
+  });
+
+export const sendNotificationEmail = sendEmail;
