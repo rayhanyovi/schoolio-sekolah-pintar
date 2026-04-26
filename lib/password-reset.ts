@@ -17,3 +17,33 @@ export const isPasswordResetTokenExpired = (
   expiresAt: Date,
   now: Date = new Date()
 ) => expiresAt.getTime() <= now.getTime();
+
+type PasswordResetTokenStore = {
+  passwordResetToken: {
+    updateMany: (args: {
+      where: {
+        credentialId: string;
+        usedAt: null;
+        id?: { not: string };
+      };
+      data: { usedAt: Date };
+    }) => Promise<unknown>;
+  };
+};
+
+export const invalidateOutstandingPasswordResetTokens = (
+  store: PasswordResetTokenStore,
+  credentialId: string,
+  options: { usedAt?: Date; exceptTokenId?: string } = {}
+) => {
+  const usedAt = options.usedAt ?? new Date();
+
+  return store.passwordResetToken.updateMany({
+    where: {
+      credentialId,
+      usedAt: null,
+      ...(options.exceptTokenId ? { id: { not: options.exceptTokenId } } : {}),
+    },
+    data: { usedAt },
+  });
+};

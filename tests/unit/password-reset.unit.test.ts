@@ -3,6 +3,7 @@ import {
   generatePasswordResetToken,
   getPasswordResetExpiry,
   hashPasswordResetToken,
+  invalidateOutstandingPasswordResetTokens,
   isPasswordResetTokenExpired,
 } from "@/lib/password-reset";
 
@@ -31,5 +32,49 @@ describe("password reset helpers", () => {
     expect(
       isPasswordResetTokenExpired(new Date("2026-03-07T00:30:01.000Z"), now)
     ).toBe(false);
+  });
+
+  it("menandai semua token reset aktif untuk credential sebagai used", async () => {
+    const usedAt = new Date("2026-03-07T00:30:00.000Z");
+    const store = {
+      passwordResetToken: {
+        updateMany: vi.fn().mockResolvedValue({ count: 2 }),
+      },
+    };
+
+    await invalidateOutstandingPasswordResetTokens(store, "credential-1", {
+      usedAt,
+    });
+
+    expect(store.passwordResetToken.updateMany).toHaveBeenCalledWith({
+      where: {
+        credentialId: "credential-1",
+        usedAt: null,
+      },
+      data: { usedAt },
+    });
+  });
+
+  it("dapat mengecualikan token reset yang sedang dipakai", async () => {
+    const usedAt = new Date("2026-03-07T00:30:00.000Z");
+    const store = {
+      passwordResetToken: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+
+    await invalidateOutstandingPasswordResetTokens(store, "credential-1", {
+      usedAt,
+      exceptTokenId: "token-current",
+    });
+
+    expect(store.passwordResetToken.updateMany).toHaveBeenCalledWith({
+      where: {
+        credentialId: "credential-1",
+        usedAt: null,
+        id: { not: "token-current" },
+      },
+      data: { usedAt },
+    });
   });
 });

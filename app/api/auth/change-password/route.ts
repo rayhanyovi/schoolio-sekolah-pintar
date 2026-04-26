@@ -9,12 +9,15 @@ import {
   requireAuth,
   requireRole,
 } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { ROLES } from "@/lib/constants";
 import {
   createSessionToken,
   SESSION_COOKIE_NAME,
   sessionCookieOptions,
 } from "@/lib/server-auth";
+import { invalidateOutstandingPasswordResetTokens } from "@/lib/password-reset";
+import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 
 const changePasswordSchema = z
   .object({
@@ -39,6 +42,12 @@ export async function POST(request: NextRequest) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const rateLimitError = enforceRateLimit(
+    request,
+    RATE_LIMIT_POLICIES.authChangePassword,
+    auth.userId
+  );
+  if (rateLimitError) return rateLimitError;
 
   const parsedBody = await parseJsonBody(request, changePasswordSchema);
   if (parsedBody instanceof Response) return parsedBody;
@@ -50,6 +59,8 @@ export async function POST(request: NextRequest) {
       id: true,
       passwordSalt: true,
       passwordHash: true,
+      mustChangePassword: true,
+      isDefaultPassword: true,
       user: {
         select: {
           id: true,
@@ -88,14 +99,39 @@ export async function POST(request: NextRequest) {
   }
 
   const password = await hashPassword(body.newPassword);
-  await prisma.authCredential.update({
-    where: { id: credential.id },
-    data: {
-      passwordHash: password.passwordHash,
-      passwordSalt: password.passwordSalt,
-      mustChangePassword: false,
-      isDefaultPassword: false,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.authCredential.update({
+      where: { id: credential.id },
+      data: {
+        passwordHash: password.passwordHash,
+        passwordSalt: password.passwordSalt,
+        mustChangePassword: false,
+        isDefaultPassword: false,
+      },
+    });
+
+    await invalidateOutstandingPasswordResetTokens(tx, credential.id);
+
+    await recordAudit(
+      auth,
+      {
+        action: "AUTH_PASSWORD_CHANGED",
+        entityType: "User",
+        entityId: auth.userId,
+        beforeData: {
+          mustChangePassword: credential.mustChangePassword,
+          isDefaultPassword: credential.isDefaultPassword,
+        },
+        afterData: {
+          mustChangePassword: false,
+          isDefaultPassword: false,
+        },
+        metadata: {
+          credentialId: credential.id,
+        },
+      },
+      tx
+    );
   });
 
   const onboardingCompleted = Boolean(credential.user.onboardingCompletedAt);

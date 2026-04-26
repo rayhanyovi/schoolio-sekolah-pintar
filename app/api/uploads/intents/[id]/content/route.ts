@@ -2,15 +2,20 @@ import { NextRequest } from "next/server";
 import { jsonError, jsonOk } from "@/lib/api";
 import { putObject, computeSha256 } from "@/lib/object-storage";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 import { hashUploadToken } from "@/lib/upload-intent";
 
-type Params = {
-  params: {
-    id: string;
-  };
-};
+type Params = { params: Promise<{ id: string; }> };
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
+  const rateLimitError = enforceRateLimit(
+    request,
+    RATE_LIMIT_POLICIES.uploadContent,
+    routeParams.id
+  );
+  if (rateLimitError) return rateLimitError;
+
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token") ?? "";
   if (!token) {
@@ -18,7 +23,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 
   const intent = await prisma.uploadIntent.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: {
       id: true,
       fileType: true,

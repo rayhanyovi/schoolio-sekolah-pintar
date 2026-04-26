@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  getOrCreateRequestCsrfToken,
+  hasValidCsrfTokenPair,
+  isSafeCsrfMethod,
+  setCsrfCookie,
+} from "@/lib/csrf";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/server-auth";
 
 const PUBLIC_API_PATHS = new Set([
@@ -23,27 +29,59 @@ const attachCorrelationId = (response: NextResponse, correlationId: string) => {
   return response;
 };
 
-const buildUnauthorizedApiResponse = (correlationId: string) =>
-  attachCorrelationId(
+const finalizeResponse = (
+  request: NextRequest,
+  response: NextResponse,
+  correlationId: string
+) => {
+  attachCorrelationId(response, correlationId);
+  return setCsrfCookie(response, getOrCreateRequestCsrfToken(request));
+};
+
+const buildUnauthorizedApiResponse = (
+  request: NextRequest,
+  correlationId: string
+) =>
+  finalizeResponse(
+    request,
     NextResponse.json(
-    {
-      error: {
-        code: "UNAUTHORIZED",
-        message: "Authentication required",
+      {
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Authentication required",
+        },
       },
-    },
-    { status: 401 }
+      { status: 401 }
     ),
     correlationId
   );
 
-const buildMustChangePasswordApiResponse = (correlationId: string) =>
-  attachCorrelationId(
+const buildMustChangePasswordApiResponse = (
+  request: NextRequest,
+  correlationId: string
+) =>
+  finalizeResponse(
+    request,
     NextResponse.json(
       {
         error: {
           code: "FORBIDDEN",
           message: "Password harus diganti terlebih dahulu",
+        },
+      },
+      { status: 403 }
+    ),
+    correlationId
+  );
+
+const buildCsrfApiResponse = (request: NextRequest, correlationId: string) =>
+  finalizeResponse(
+    request,
+    NextResponse.json(
+      {
+        error: {
+          code: "FORBIDDEN",
+          message: "Token CSRF tidak valid",
         },
       },
       { status: 403 }
@@ -62,7 +100,7 @@ const createForwardResponse = (
       headers: requestHeaders,
     },
   });
-  return attachCorrelationId(response, correlationId);
+  return finalizeResponse(request, response, correlationId);
 };
 
 export async function middleware(request: NextRequest) {
@@ -88,6 +126,12 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  if (isApiRoute && !isSafeCsrfMethod(request.method)) {
+    if (!hasValidCsrfTokenPair(request)) {
+      return buildCsrfApiResponse(request, correlationId);
+    }
+  }
+
   if (!shouldProtectRoute) {
     return createForwardResponse(request, correlationId);
   }
@@ -97,12 +141,13 @@ export async function middleware(request: NextRequest) {
   if (session) {
     if (session.mustChangePassword) {
       if (isApiRoute && !isMustChangePasswordAllowedApiPath(pathname)) {
-        return buildMustChangePasswordApiResponse(correlationId);
+        return buildMustChangePasswordApiResponse(request, correlationId);
       }
       if (!isApiRoute && !isChangePasswordRoute) {
         const changePasswordUrl = new URL("/change-password", request.url);
         changePasswordUrl.searchParams.set("from", pathname);
-        return attachCorrelationId(
+        return finalizeResponse(
+          request,
           NextResponse.redirect(changePasswordUrl),
           correlationId
         );
@@ -110,9 +155,12 @@ export async function middleware(request: NextRequest) {
       return createForwardResponse(request, correlationId);
     }
     if (isChangePasswordRoute) {
-      const destination = session.onboardingCompleted ? "/dashboard" : "/onboarding";
+      const destination = session.onboardingCompleted
+        ? "/dashboard"
+        : "/onboarding";
       const destinationUrl = new URL(destination, request.url);
-      return attachCorrelationId(
+      return finalizeResponse(
+        request,
         NextResponse.redirect(destinationUrl),
         correlationId
       );
@@ -120,14 +168,16 @@ export async function middleware(request: NextRequest) {
     if (isDashboardRoute && !session.onboardingCompleted) {
       const onboardingUrl = new URL("/onboarding", request.url);
       onboardingUrl.searchParams.set("from", pathname);
-      return attachCorrelationId(
+      return finalizeResponse(
+        request,
         NextResponse.redirect(onboardingUrl),
         correlationId
       );
     }
     if (isOnboardingRoute && session.onboardingCompleted) {
       const dashboardUrl = new URL("/dashboard", request.url);
-      return attachCorrelationId(
+      return finalizeResponse(
+        request,
         NextResponse.redirect(dashboardUrl),
         correlationId
       );
@@ -136,16 +186,22 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isApiRoute) {
-    return buildUnauthorizedApiResponse(correlationId);
+    return buildUnauthorizedApiResponse(request, correlationId);
   }
 
   const authUrl = new URL("/auth", request.url);
   authUrl.searchParams.set("from", pathname);
-  return attachCorrelationId(NextResponse.redirect(authUrl), correlationId);
+  return finalizeResponse(
+    request,
+    NextResponse.redirect(authUrl),
+    correlationId
+  );
 }
 
 export const config = {
   matcher: [
+    "/auth",
+    "/auth/:path*",
     "/dashboard/:path*",
     "/onboarding",
     "/onboarding/:path*",

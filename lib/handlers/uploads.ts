@@ -1,4 +1,5 @@
 import { apiPost } from "@/lib/api-client";
+import { CSRF_HEADER_NAME, getCsrfTokenFromCookie } from "@/lib/csrf";
 import { uploadConfirmResultSchema, uploadIntentSchema } from "@/lib/schemas";
 
 export type CreateUploadIntentPayload = {
@@ -17,16 +18,19 @@ export const uploadContentWithSignedUrl = async (input: {
   fileType: string;
   data: Blob | ArrayBuffer | Uint8Array;
 }) => {
-  const body =
-    input.data instanceof Uint8Array
+  const body: BodyInit =
+    input.data instanceof Blob
       ? input.data
-      : input.data instanceof Blob
-      ? input.data
-      : new Uint8Array(input.data);
+      : new Blob([input.data as BlobPart], { type: input.fileType });
+  const headers = new Headers({ "content-type": input.fileType });
+  const csrfToken = getCsrfTokenFromCookie();
+  if (csrfToken) {
+    headers.set(CSRF_HEADER_NAME, csrfToken);
+  }
 
   const response = await fetch(input.uploadUrl, {
     method: "PUT",
-    headers: { "content-type": input.fileType },
+    headers,
     body,
   });
   const payload = await response.json();

@@ -1,3 +1,9 @@
+import {
+  CSRF_HEADER_NAME,
+  getCsrfTokenFromCookie,
+  isSafeCsrfMethod,
+} from "@/lib/csrf";
+
 export type ApiError = {
   code: string;
   message: string;
@@ -71,12 +77,16 @@ export const apiRequest = async <T>(
 ): Promise<T> => {
   const method = options.method ?? "GET";
   const url = `${path}${buildQuery(params)}`;
-  const headers: HeadersInit = {
-    ...(options.headers ?? {}),
-  };
+  const headers = new Headers(options.headers);
   const hasBody = options.body !== undefined && !["GET", "HEAD"].includes(method);
   if (hasBody) {
-    headers["Content-Type"] = "application/json";
+    headers.set("Content-Type", "application/json");
+  }
+  if (!isSafeCsrfMethod(method)) {
+    const csrfToken = getCsrfTokenFromCookie();
+    if (csrfToken) {
+      headers.set(CSRF_HEADER_NAME, csrfToken);
+    }
   }
 
   const response = await fetch(url, {

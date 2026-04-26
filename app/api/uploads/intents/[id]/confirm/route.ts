@@ -2,23 +2,27 @@ import { NextRequest } from "next/server";
 import { jsonError, jsonOk, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 import { toFileSizeLabel } from "@/lib/upload-intent";
 import { queueUploadScan } from "@/lib/upload-scan";
 
-type Params = {
-  params: {
-    id: string;
-  };
-};
+type Params = { params: Promise<{ id: string; }> };
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const rateLimitError = enforceRateLimit(
+    request,
+    RATE_LIMIT_POLICIES.uploadConfirm,
+    auth.userId
+  );
+  if (rateLimitError) return rateLimitError;
 
   const current = await prisma.uploadIntent.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     include: {
       material: {
         select: {

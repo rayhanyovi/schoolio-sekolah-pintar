@@ -12,6 +12,7 @@ import {
 } from "@/lib/server-auth";
 import { Role, ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
+import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1).optional(),
@@ -146,6 +147,12 @@ export async function POST(request: NextRequest) {
   if (!identifier) {
     return jsonError("VALIDATION_ERROR", "identifier and password are required");
   }
+  const rateLimitError = enforceRateLimit(
+    request,
+    RATE_LIMIT_POLICIES.authLogin,
+    identifier
+  );
+  if (rateLimitError) return rateLimitError;
 
   const demoAccount =
     isDemoLoginEnabled() ? findAccount(identifier, parsed.data.password) : null;

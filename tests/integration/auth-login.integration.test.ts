@@ -2,6 +2,7 @@ import { POST as login } from "@/app/api/auth/login/route";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
+import { RATE_LIMIT_POLICIES, resetRateLimitForTests } from "@/lib/rate-limit";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -35,6 +36,7 @@ describe("auth login route", () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    resetRateLimitForTests();
     process.env.NODE_ENV = "test";
   });
 
@@ -144,5 +146,37 @@ describe("auth login route", () => {
 
     expect(response.status).toBe(401);
     expect(payload.error.code).toBe("UNAUTHORIZED");
+  });
+
+  it("membatasi percobaan login berulang untuk identifier dan IP yang sama", async () => {
+    vi.mocked(prisma.authCredential.findUnique).mockResolvedValue(null as never);
+
+    const buildRequest = () =>
+      new Request("http://localhost/api/auth/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.20",
+        },
+        body: JSON.stringify({
+          identifier: "target@example.com",
+          password: "salah",
+        }),
+      });
+
+    for (let index = 0; index < RATE_LIMIT_POLICIES.authLogin.limit; index += 1) {
+      const response = await login(buildRequest() as never);
+      expect(response.status).toBe(401);
+    }
+
+    const response = await login(buildRequest() as never);
+    const payload = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(payload.error.code).toBe("RATE_LIMITED");
+    expect(response.headers.get("Retry-After")).toBe("6");
+    expect(prisma.authCredential.findUnique).toHaveBeenCalledTimes(
+      RATE_LIMIT_POLICIES.authLogin.limit
+    );
   });
 });

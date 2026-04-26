@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 import {
   buildUploadStorageKey,
   createUploadToken,
@@ -39,6 +40,12 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const rateLimitError = enforceRateLimit(
+    request,
+    RATE_LIMIT_POLICIES.uploadIntent,
+    auth.userId
+  );
+  if (rateLimitError) return rateLimitError;
 
   const parsedBody = await parseJsonBody(request, createUploadIntentSchema);
   if (parsedBody instanceof Response) return parsedBody;

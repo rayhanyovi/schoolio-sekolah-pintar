@@ -2,6 +2,7 @@ import { POST as createUploadIntent } from "@/app/api/uploads/intents/route";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireRole } from "@/lib/api";
+import { resetRateLimitForTests } from "@/lib/rate-limit";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -26,6 +27,7 @@ vi.mock("@/lib/api", async () => {
 describe("POST /api/uploads/intents validation", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    resetRateLimitForTests();
   });
 
   it("menolak fileType yang tidak diizinkan", async () => {

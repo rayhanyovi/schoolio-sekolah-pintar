@@ -8,7 +8,9 @@ import {
   generatePasswordResetToken,
   getPasswordResetExpiry,
   hashPasswordResetToken,
+  invalidateOutstandingPasswordResetTokens,
 } from "@/lib/password-reset";
+import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 import { isResendConfigured, sendPasswordResetEmail } from "@/lib/resend";
 
 const forgotPasswordSchema = z.object({
@@ -24,6 +26,13 @@ export async function POST(request: NextRequest) {
   const parsedBody = await parseJsonBody(request, forgotPasswordSchema);
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;
+  const identifier = normalizeCredentialIdentifier(body.email);
+  const rateLimitError = enforceRateLimit(
+    request,
+    RATE_LIMIT_POLICIES.authForgotPassword,
+    identifier
+  );
+  if (rateLimitError) return rateLimitError;
 
   if (!isSaasMode()) {
     return jsonOk({
@@ -41,7 +50,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const identifier = normalizeCredentialIdentifier(body.email);
   const credential = await prisma.authCredential.findUnique({
     where: { identifier },
     select: {
@@ -59,15 +67,7 @@ export async function POST(request: NextRequest) {
     const resetUrl = `${appBaseUrl.replace(/\/$/, "")}/auth?resetToken=${encodeURIComponent(rawToken)}`;
 
     await prisma.$transaction(async (tx) => {
-      await tx.passwordResetToken.updateMany({
-        where: {
-          credentialId: credential.id,
-          usedAt: null,
-        },
-        data: {
-          usedAt: new Date(),
-        },
-      });
+      await invalidateOutstandingPasswordResetTokens(tx, credential.id);
 
       await tx.passwordResetToken.create({
         data: {

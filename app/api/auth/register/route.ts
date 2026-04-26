@@ -16,6 +16,7 @@ import {
   normalizeParentInviteCode,
   isParentInviteExpired,
 } from "@/lib/parent-invite-code";
+import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 
 const registerSchema = z.object({
   email: z.string().trim().email("email tidak valid"),
@@ -37,6 +38,12 @@ export async function POST(request: NextRequest) {
   if (!identifier) {
     return jsonError("VALIDATION_ERROR", "email wajib diisi", 400);
   }
+  const rateLimitError = enforceRateLimit(
+    request,
+    RATE_LIMIT_POLICIES.authRegister,
+    identifier
+  );
+  if (rateLimitError) return rateLimitError;
 
   try {
     const existingCredential = await prisma.authCredential.findUnique({

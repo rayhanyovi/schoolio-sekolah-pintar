@@ -3,11 +3,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { isSaasMode } from "@/lib/app-mode";
 import {
   hashPasswordResetToken,
+  invalidateOutstandingPasswordResetTokens,
   isPasswordResetTokenExpired,
 } from "@/lib/password-reset";
+import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 
 const resetPasswordSchema = z
   .object({
@@ -23,6 +26,12 @@ const resetPasswordSchema = z
   });
 
 export async function POST(request: NextRequest) {
+  const rateLimitError = enforceRateLimit(
+    request,
+    RATE_LIMIT_POLICIES.authResetPassword
+  );
+  if (rateLimitError) return rateLimitError;
+
   if (!isSaasMode()) {
     return jsonError(
       "FORBIDDEN",
@@ -43,6 +52,17 @@ export async function POST(request: NextRequest) {
       credentialId: true,
       expiresAt: true,
       usedAt: true,
+      credential: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              role: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
   });
   if (
@@ -55,6 +75,8 @@ export async function POST(request: NextRequest) {
 
   const password = await hashPassword(body.password);
   await prisma.$transaction(async (tx) => {
+    const usedAt = new Date();
+
     await tx.authCredential.update({
       where: { id: resetToken.credentialId },
       data: {
@@ -67,17 +89,36 @@ export async function POST(request: NextRequest) {
 
     await tx.passwordResetToken.update({
       where: { id: resetToken.id },
-      data: { usedAt: new Date() },
+      data: { usedAt },
     });
 
-    await tx.passwordResetToken.updateMany({
-      where: {
-        credentialId: resetToken.credentialId,
-        usedAt: null,
-        id: { not: resetToken.id },
-      },
-      data: { usedAt: new Date() },
+    await invalidateOutstandingPasswordResetTokens(tx, resetToken.credentialId, {
+      usedAt,
+      exceptTokenId: resetToken.id,
     });
+
+    await recordAudit(
+      {
+        userId: resetToken.credential.user.id,
+        role: resetToken.credential.user.role,
+      },
+      {
+        action: "AUTH_PASSWORD_RESET_COMPLETED",
+        entityType: "User",
+        entityId: resetToken.credential.user.id,
+        beforeData: null,
+        afterData: {
+          id: resetToken.credential.user.id,
+          email: resetToken.credential.user.email,
+          resetTokenId: resetToken.id,
+        },
+        metadata: {
+          credentialId: resetToken.credentialId,
+          tokenExpiresAt: resetToken.expiresAt,
+        },
+      },
+      tx
+    );
   });
 
   return jsonOk({ success: true });
