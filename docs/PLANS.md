@@ -24,12 +24,15 @@
 
 Sebelum mulai task apa pun, baca file-file ini dulu (urutan):
 
-1. **`prisma/schema.prisma`** — domain model & enum (sumber kebenaran data).
-2. **`lib/api.ts`** — `requireAuth`, `requireRole`, `requireSchoolContext`, `parseJsonBody`, `jsonOk`, `jsonError`.
-3. **`lib/authz.ts`** — RBAC + ownership helpers.
-4. **`lib/schemas.ts`** — semua Zod schema (jangan inline; tambah di sini).
-5. **`middleware.ts`** — auth gating, onboarding gating, must-change-password gating, correlation-id.
-6. Untuk fitur tertentu: `app/api/<feature>/route.ts` + `lib/handlers/<feature>.ts` + `components/pages/<Feature>.tsx`.
+1. **`llms.txt`** — fast AI handoff; ringkasan aturan dan link ke dokumen kanonis.
+2. **`docs/PLANS.md`** — roadmap kanonis, arsitektur, backlog, open decisions.
+3. **`docs/build_logs.md`** — histori kerja AI; baca sebelum lanjut dan append setelah task selesai.
+4. **`prisma/schema.prisma`** — domain model & enum (sumber kebenaran data).
+5. **`lib/api.ts`** — `requireAuth`, `requireRole`, `requireSchoolContext`, `parseJsonBody`, `jsonOk`, `jsonError`.
+6. **`lib/authz.ts`** — RBAC + ownership helpers.
+7. **`lib/schemas.ts`** — semua Zod schema (jangan inline; tambah di sini).
+8. **`middleware.ts`** — auth gating, onboarding gating, must-change-password gating, CSRF enforcement, correlation-id.
+9. Untuk fitur tertentu: `app/api/<feature>/route.ts` + `lib/handlers/<feature>.ts` + `components/pages/<Feature>.tsx`.
 
 **Commands:**
 
@@ -53,6 +56,7 @@ npm run governance:refresh        # sync techplan + readiness
 - Auth: `actor = await requireAuth(req)` di awal **setiap** protected route.
 - **Jangan pernah** terima `authorId / studentId / teacherId / userId` dari request body — derive dari `actor`.
 - **Jangan pernah** bypass `requireSchoolContext(actor)` — semua query Prisma scoped by `schoolId`.
+- Setelah setiap task yang diimplementasikan AI, append ringkasan singkat ke `docs/build_logs.md`.
 - Indonesian conventional commits: `feat:`, `fix:`, `test:`, `refactor:`, `docs:`, `chore:`.
 
 ---
@@ -86,7 +90,7 @@ npm run governance:refresh        # sync techplan + readiness
 | YAML              | yaml                                        | 2.8                             | governance docs                       |
 | Tests             | Vitest                                      | 4.0                             | Node env                              |
 | Lint              | ESLint + eslint-config-next                 | 9 / 16.1.1                      | **tidak pakai Prettier**              |
-| Email (planned)   | Resend (`lib/resend.ts`)                    | wired but not delivered         |                                       |
+| Email             | Resend (`lib/resend.ts`)                    | password reset + notification delivery | requires `RESEND_API_KEY` + `RESEND_FROM_EMAIL` |
 | i18n (planned)    | next-intl                                   | NOT YET INSTALLED               | tambah di Phase 2                     |
 
 > NOTE: Jangan tambahkan library UI alternatif (MUI, Chakra, Mantine, Ant). Ekosistem sudah dipilih dan konsisten.
@@ -96,7 +100,7 @@ npm run governance:refresh        # sync techplan + readiness
 ## Section 3 — Architecture & Layering
 
 ```
-User ──▶ middleware.ts (auth + onboarding + mustChangePassword gating + correlation-id)
+User ──▶ middleware.ts (auth + onboarding + mustChangePassword gating + CSRF + correlation-id)
          ├─▶ /app/dashboard/*       (server components → components/pages/<Feature>.tsx)
          └─▶ /app/api/*/route.ts    (parseJsonBody+Zod → lib/handlers/* → Prisma → jsonOk/jsonError)
 
@@ -110,7 +114,8 @@ Helpers (lib/):
   notification-service  In-app notification creation
   upload-intent / upload-scan / object-storage   File upload pipeline
   audit (planned)       Audit log writer
-  rate-limit (planned)  Token bucket rate limiter
+  csrf.ts              Double-submit CSRF cookie/header helpers
+  rate-limit.ts        Token bucket rate limiter
 ```
 
 **Request lifecycle (mandatory order in every protected route):**
@@ -136,9 +141,9 @@ Helpers (lib/):
 | `APP_MODE`            | `self_host`                                   | `saas`                                            |
 | DB URL                | `DATABASE_URL` (local PG)                     | `SUPABASE_DATABASE_URL` (fallback `DATABASE_URL`) |
 | Resolver              | `lib/database-url.ts`                         | `lib/database-url.ts`                             |
-| Rate limiter          | in-memory                                     | Upstash (Phase 1)                                 |
+| Rate limiter          | in-memory                                     | Upstash (deferred hardening)                      |
 | Default password flow | aktif (admin set default → user wajib change) | nonaktif default                                  |
-| File scanner          | ClamAV (Phase 1)                              | hosted scanner (Phase 1)                          |
+| File scanner          | ClamAV (deferred hardening)                   | hosted scanner (deferred hardening)               |
 | Auth provider         | internal credential                           | internal credential (+ optional SSO Phase 4)      |
 | Background jobs       | pg-boss (Phase 4)                             | pg-boss (Phase 4)                                 |
 
@@ -424,7 +429,7 @@ Error codes: AUTH_REQUIRED | FORBIDDEN | NOT_FOUND | VALIDATION_FAILED | CONFLIC
 | PUT                | `/api/uploads/intents/[id]/content`              | resumable content upload | ADMIN, TEACHER (owner) | BUILT |
 | POST               | `/api/uploads/intents/[id]/confirm`              | confirm complete         | ADMIN, TEACHER (owner) | BUILT |
 
-> NOTE: scanner provider integration belum lengkap → Phase 1.
+> NOTE: scanner provider integration belum lengkap dan sengaja ditunda sampai setelah rilis school-usability.
 
 ### 6.10 Forum
 
@@ -619,7 +624,7 @@ Error codes: AUTH_REQUIRED | FORBIDDEN | NOT_FOUND | VALIDATION_FAILED | CONFLIC
 
 ### 8.3 Forgot/Reset Password
 
-1. `POST /api/auth/forgot-password` `{ identifier }` → generate `PasswordResetToken` (random), hash + store, send token via email (`lib/resend.ts` — currently logs to console; Phase 1 wires real send).
+1. `POST /api/auth/forgot-password` `{ identifier }` → generate `PasswordResetToken` (random), hash + store, send token via email (`lib/resend.ts` when configured).
 2. `POST /api/auth/reset-password` `{ token, newPassword }` → validate hash, expiry, `usedAt=null`. Update `passwordHash/Salt`, mark `usedAt=now`, **invalidate all other tokens for this credentialId** (Phase 1 hardening).
 3. Set `mustChangePassword=false`, `isDefaultPassword=false`.
 
@@ -635,11 +640,11 @@ Error codes: AUTH_REQUIRED | FORBIDDEN | NOT_FOUND | VALIDATION_FAILED | CONFLIC
 
 ### 8.6 Known gaps (addressed in roadmap)
 
-- **No rate limiting** on `/api/auth/*` → Phase 1.
-- **No CSRF tokens** — relies on `SameSite=Lax` → Phase 1.
+- **Rate limiting partial** on credential auth + upload endpoints via in-memory token bucket; distributed SaaS backend is deferred hardening.
+- **CSRF tokens enabled** via double-submit cookie/header middleware; server-action coverage still needs review before adding server actions.
 - **No MFA** → Phase 4.
 - **No SSO** → Phase 4.
-- **Reset tokens not invalidated on password change** → Phase 1.
+- **Reset-token invalidation enabled** after password change/reset; Resend email delivery is wired when configured.
 
 ---
 
@@ -738,7 +743,7 @@ Status: `BUILT` (production-quality) | `PARTIAL` (works but gaps) | `MISSING` (n
 | Academic year + activation + rollover script             | BUILT   | ✓                | ✓       | partial | `npm run academic-year:rollover`     |
 | Classes / Subjects / Majors CRUD                         | BUILT   | ✓                | ✓       | ✓       |                                      |
 | Subject ↔ Major curriculum mapping                       | BUILT   | ✓                | ✓       | partial | recent migration `20260307121000`    |
-| Class schedule + templates                               | BUILT   | ✓                | ✓       | ✓       | clash detection in UI only           |
+| Class schedule + templates                               | BUILT   | ✓                | ✓       | ✓       | server-side clash detection          |
 | Attendance — student sessions/records                    | BUILT   | ✓                | ✓       | ✓       | sessionKey unique                    |
 | Attendance — teacher attendance                          | BUILT   | ✓                | ✓       | ✓       |                                      |
 | Attendance override / substitute                         | BUILT   | ✓                | ✓       | ✓       | overriddenById trail                 |
@@ -751,7 +756,7 @@ Status: `BUILT` (production-quality) | `PARTIAL` (works but gaps) | `MISSING` (n
 | Forum threads/replies/upvote/pin/lock                    | BUILT   | ✓                | ✓       | ✓       | parent blocked                       |
 | Notes (private/class)                                    | BUILT   | ✓                | ✓       | partial |                                      |
 | Calendar events + class linkage                          | BUILT   | ✓                | ✓       | partial |                                      |
-| Notifications (in-app) + preferences                     | PARTIAL | ✓                | ✓       | partial | **email delivery not wired**         |
+| Notifications (in-app) + preferences                     | BUILT   | ✓                | ✓       | partial | Resend delivery honors preferences   |
 | Analytics (overview/attendance/grades/demographics)      | BUILT   | ✓                | ✓       | partial |                                      |
 | Settings (school/template/notifications)                 | BUILT   | ✓                | ✓       | partial |                                      |
 | Governance / release-readiness tracker                   | BUILT   | ✓                | ✓       | ✓       | admin only                           |
@@ -763,11 +768,11 @@ Status: `BUILT` (production-quality) | `PARTIAL` (works but gaps) | `MISSING` (n
 | **Certificates / diploma**                               | MISSING | –                | –       | –       |                                      |
 | **e-Rapor / Kemdikbud DAPODIK export**                   | MISSING | –                | –       | –       |                                      |
 | **i18n framework (next-intl)**                           | MISSING | –                | –       | –       | Indonesian hardcoded                 |
-| **Rate limiting**                                        | MISSING | –                | –       | –       | P0 hardening                         |
-| **CSRF tokens**                                          | MISSING | –                | –       | –       | P0 hardening                         |
+| **Rate limiting**                                        | PARTIAL | ✓                | –       | ✓       | in-memory token bucket; Upstash deferred |
+| **CSRF tokens**                                          | BUILT   | ✓                | –       | ✓       | double-submit cookie/header middleware |
 | **MFA / SSO**                                            | MISSING | –                | –       | –       | Phase 4                              |
 | **Background job queue**                                 | MISSING | –                | –       | –       | Phase 4 (pg-boss)                    |
-| **Email delivery (Resend wired in)**                     | PARTIAL | client           | –       | –       | console-only currently               |
+| **Email delivery (Resend wired in)**                     | BUILT   | fetch client     | –       | ✓       | best-effort notification email       |
 | **Structured logging / metrics**                         | PARTIAL | metrics endpoint | –       | –       | no pino/Prometheus                   |
 | **API versioning**                                       | MISSING | –                | –       | –       | introduce `/api/v1/*` Phase 4        |
 | **Component tests (RTL)**                                | MISSING | –                | –       | –       | zero coverage on UI                  |
@@ -789,16 +794,16 @@ Status: `BUILT` (production-quality) | `PARTIAL` (works but gaps) | `MISSING` (n
 - Stakeholder sign-offs: Kepala Sekolah, Product Owner, Engineering Manager, QA Lead.
 - Run: `npm run governance:refresh` to update tracker.
 
-### Phase 1 — Production Hardening (Wajib Sebelum GA)
+### Phase 1 — Production Hardening (Core Done; Some Deferred)
 
 | #   | Task                           | Files / Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | --- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1.1 | **Rate limiter**               | New `lib/rate-limit.ts` (token bucket). Wrap `/api/auth/login`, `/api/auth/register`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/uploads/*`. Backend: in-memory (self-host) / Upstash (saas) — branch via `APP_MODE`.                                                                                                                                                                                                                                                                         |
+| 1.1 | **Rate limiter**               | **DONE 2026-04-25.** `lib/rate-limit.ts` in-memory token bucket wraps credential auth and upload endpoints. Distributed Upstash backend is deferred hardening. |
 | 1.2 | **CSRF protection**            | Double-submit cookie middleware in `middleware.ts`. Exempt safe methods (GET/HEAD/OPTIONS). Token in cookie + matching header `X-CSRF-Token`. Helper in `lib/csrf.ts`.                                                                                                                                                                                                                                                                                                                                            |
-| 1.3 | **Audit log writer**           | New `lib/audit.ts`: `recordAudit(actor, action, before, after, metadata, reason?)`. Wire into: `/api/submissions/[id]` PATCH, `/api/attendance/sessions/[id]` PATCH (override path), `/api/users/[id]` PATCH/DELETE, `/api/users/[id]/profile` PATCH, `/api/parent-links` POST/DELETE, `/api/users/[id]/reset-password` POST, `/api/auth/reset-password` POST, `/api/auth/change-password` POST, `/api/settings/school-profile` PATCH, `/api/academic-years/[id]/activate` POST, `/api/grades/report-cards` POST. |
+| 1.3 | **Audit log writer**           | **DONE 2026-04-25.** New `lib/audit.ts`: `recordAudit(actor, event, client?)`. Wired into submission grading/status changes, attendance overrides, user/profile/password changes, parent links, school profile updates, academic-year activation/rollover, and report-card publishing. |
 | 1.4 | **Reset token hardening**      | In `/api/auth/reset-password` and `/api/auth/change-password`: after success, run `prisma.passwordResetToken.updateMany({ where: { credentialId, usedAt: null }, data: { usedAt: new Date() } })`. Update `lib/password-reset.ts`.                                                                                                                                                                                                                                                                                |
-| 1.5 | **Email delivery**             | Wire `lib/resend.ts` into `lib/notification-service.ts`. Honor `NotificationPreference.emailNotifications`. Templates in `lib/email-templates/*.tsx` (plain HTML acceptable). Templates needed: password-reset, default-password-issued, assignment-new, assignment-deadline, grade-published, attendance-alert.                                                                                                                                                                                                  |
-| 1.6 | **Upload scanner integration** | Self-host: ClamAV via clamd TCP. SaaS: hosted scanner (Cloudmersive or similar). Update `lib/upload-scan.ts` to dispatch to provider per `APP_MODE`; persist to `UploadScanJob.provider` and `result`.                                                                                                                                                                                                                                                                                                            |
+| 1.5 | **Email delivery**             | **DONE 2026-04-25.** `lib/resend.ts` sends password reset and notification email. `lib/notification-service.ts` sends best-effort notification email when Resend is configured and honors `NotificationPreference.emailNotifications` plus per-type preferences. Templates live under `lib/email-templates/`. |
+| 1.6 | **Upload scanner integration** | **DEFERRED 2026-04-25.** Keep as security hardening backlog, but not a short-term release blocker. Current release target prioritizes making the app usable by schools first. Self-host target: ClamAV via clamd TCP. SaaS target: hosted scanner (Cloudmersive or similar). Update `lib/upload-scan.ts` to dispatch to provider per `APP_MODE`; persist to `UploadScanJob.provider` and `result`. |
 
 **Verification per task:** integration test added under `tests/integration/`; manual smoke via `npm run dev`; `npm run test:release-authz-integrity`.
 
@@ -963,21 +968,22 @@ model Loan {
 
 Format: `- [Priority][Domain] Task — file/area`. Pull from this list during idle cycles.
 
-- [P0][AUTH] Invalidate outstanding `PasswordResetToken` on successful password change — `lib/password-reset.ts`, `lib/auth-credential.ts`.
-- [P0][AUTHZ] Audit AUTHZ_MATRIX vs `lib/authz.ts` actuals; close any gap rows — `tests/integration/authz-*.test.ts`.
-- [P0][SEC] Rate limit `/api/auth/*` and `/api/uploads/*` — Phase 1.1.
-- [P0][SEC] CSRF middleware — Phase 1.2.
-- [P1][AUDIT] Wire `recordAudit` into 11 sensitive endpoints — Phase 1.3.
-- [P1][SCHED] Server-side schedule clash detection — Phase 2.7.
-- [P1][FORUM] Server enforcement of thread `LOCKED` status on reply create — `app/api/forum/threads/[id]/replies/route.ts`.
-- [P1][ATTEND] Validate `AttendanceSession` business uniqueness via `sessionKey` only (already unique; verify no client-supplied path bypasses).
-- [P1][NOTIF] Wire email delivery via Resend — Phase 1.5.
+- [DONE][AUTH] Invalidate outstanding `PasswordResetToken` on successful password change — `lib/password-reset.ts`.
+- [DONE][AUTHZ] Audit AUTHZ_MATRIX vs `lib/authz.ts` actuals; closed teacher subject/class tenant-scope gap — `tests/unit/authz-policy.unit.test.ts`.
+- [DONE][SEC] Rate limit credential auth endpoints and `/api/uploads/*` — Phase 1.1 (`lib/rate-limit.ts`, in-memory backend; Upstash deferred).
+- [DONE][SEC] CSRF middleware — Phase 1.2 (`lib/csrf.ts`, `middleware.ts`, client `X-CSRF-Token` header).
+- [DONE][BUILD] Restore production build gate after Next 16/React 19/TypeScript compatibility fixes — `npm run build`.
+- [DONE][AUDIT] Wire `recordAudit` into sensitive endpoints — Phase 1.3 (`lib/audit.ts`).
+- [DONE][SCHED] Server-side schedule clash detection — Phase 2.7 (`app/api/schedules/*`, tenant-scoped class/teacher/room conflicts).
+- [DONE][FORUM] Server enforcement of thread `LOCKED` status on reply create/edit — `app/api/forum/threads/[id]/replies/route.ts`, `app/api/forum/replies/[id]/route.ts`.
+- [DONE][ATTEND] Validate `AttendanceSession` business uniqueness via server-generated `sessionKey` only; client-supplied path cannot bypass.
+- [DONE][NOTIF] Wire email delivery via Resend — Phase 1.5 (`lib/resend.ts`, `lib/notification-service.ts`).
 - [P2][UI] Standardize EmptyState component across all list pages — Phase 2.3.
 - [P2][UI] Error boundary on every dashboard route — Phase 2.4.
 - [P2][UI] Role-scoped dashboard widgets — Phase 2.1.
 - [P2][I18N] Install next-intl + extract hardcoded strings — Phase 2.2.
 - [P2][PROFILE] Remove list-fallback path in `components/pages/Profile.tsx`.
-- [P2][UPLOAD] ClamAV + hosted scanner integration — Phase 1.6.
+- [P4][SEC] ClamAV + hosted scanner integration — Phase 1.6, deferred until after school-usability release.
 - [P3][EXAM] New Exam module — Phase 3.1.
 - [P3][LIB] Library module — Phase 3.2.
 - [P3][REPORT] Multi-year transcripts — Phase 3.3.
@@ -1214,8 +1220,9 @@ When state changes (feature shipped, decision approved, dependency upgraded):
 1. Update **Section 10 Feature Status Matrix** row.
 2. Update **Section 12 Continuous Backlog** — strike done items.
 3. Update **Section 17 Open Questions** if a decision is finalized.
-4. Bump **Section 0 Last updated** date.
-5. Commit with `docs: update PLANS.md — <what changed>`.
+4. Append a concise entry to **`docs/build_logs.md`** for every AI-implemented task, including verification and follow-ups.
+5. Bump **Section 0 Last updated** date.
+6. Commit with `docs: update PLANS.md — <what changed>`.
 
 > NOTE: Jangan biarkan PLANS.md basi. Ini adalah file paling-berharga buat AI agent berikutnya. Out-of-date single-source-of-truth lebih buruk dari tidak ada single-source-of-truth.
 

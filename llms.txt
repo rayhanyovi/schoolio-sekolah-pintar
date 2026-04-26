@@ -1,0 +1,56 @@
+# Schoolio / Sekolah Pintar AI Handoff
+
+Schoolio is an Indonesian-first, multi-tenant school management web app. It uses Next.js App Router, React, TypeScript, Prisma, and PostgreSQL. The tenant boundary is `SchoolProfile.id`.
+
+## Start Here
+
+Read these files before doing any project work:
+
+1. `docs/PLANS.md` - canonical roadmap, architecture, conventions, backlog, and open decisions.
+2. `docs/build_logs.md` - chronological AI work log and handoff trail.
+3. `prisma/schema.prisma` - domain models, enums, and relations.
+4. `lib/api.ts` - `requireAuth`, `requireRole`, `requireSchoolContext`, `parseJsonBody`, `jsonOk`, `jsonError`.
+5. `lib/authz.ts` - RBAC and ownership helpers.
+6. `lib/schemas.ts` - shared Zod schemas. Add schemas here instead of inlining them.
+7. `middleware.ts` - auth gating, onboarding gating, must-change-password gating, CSRF enforcement, correlation ID.
+
+For feature work, also read the matching route, handler, and page/component files:
+
+- `app/api/<feature>/route.ts`
+- `lib/handlers/<feature>.ts`
+- `components/pages/<Feature>.tsx`
+
+## Mandatory Engineering Rules
+
+- Keep `docs/PLANS.md` as the canonical source of truth. This file is only a fast entrypoint.
+- After every AI-implemented task, append a concise entry to `docs/build_logs.md`.
+- Always derive actor-owned IDs such as `authorId`, `studentId`, `teacherId`, and `userId` from the authenticated actor, not from request bodies.
+- Every protected route starts with `requireAuth(request)`.
+- Never bypass `requireSchoolContext(actor)` for tenant-scoped data.
+- Every Prisma query must be scoped by `schoolId` directly or through a tenant-scoped parent relation.
+- Put request/response validation schemas in `lib/schemas.ts`.
+- Keep route handlers thin: auth, role check, school context, ownership check, validation, handler call, response.
+- Put business logic in `lib/handlers/<feature>.ts`.
+- Return API responses with `jsonOk(data)` or `jsonError(code, message, status)`.
+- Browser unsafe API requests must include the double-submit CSRF token from `schoolio_csrf` as `X-CSRF-Token`; use `lib/api-client.ts` helpers.
+- Use existing shadcn/Radix UI components under `components/ui/`; do not introduce an alternate UI library.
+- Use Indonesian conventional commits: `feat:`, `fix:`, `test:`, `refactor:`, `docs:`, `chore:`.
+
+## Common Commands
+
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run test
+npm run test:watch
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:studio
+npm run academic-year:rollover
+npm run governance:refresh
+```
+
+## Current Release Focus
+
+Follow `docs/PLANS.md` Section 11 and Section 12. The P0/P1 release-hardening items completed so far include reset-token invalidation, tenant-scoped authz fixes, rate limiting, CSRF, audit logging, schedule clash enforcement, attendance session uniqueness, forum lock enforcement, email notification delivery, and a green production build. Current release focus is school usability: manual smoke, role dashboards, empty states, error boundaries, setup/readiness docs, and flows needed by real school staff. Upload scanner provider integration and distributed SaaS rate limits remain tracked security hardening, but are intentionally deferred until after the school-usability release.
