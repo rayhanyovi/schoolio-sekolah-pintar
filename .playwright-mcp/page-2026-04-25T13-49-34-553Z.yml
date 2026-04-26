@@ -1,0 +1,184 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e11]:
+          - paragraph [ref=e12]: Schoolio
+          - paragraph [ref=e13]: Sekolah Pintar
+      - navigation "Navigasi utama" [ref=e14]:
+        - link "Platform" [ref=e15] [cursor=pointer]:
+          - /url: "#platform"
+        - link "Peran" [ref=e16] [cursor=pointer]:
+          - /url: "#roles"
+        - link "Keamanan" [ref=e17] [cursor=pointer]:
+          - /url: "#trust"
+      - generic [ref=e18]:
+        - link "Masuk" [ref=e19] [cursor=pointer]:
+          - /url: /auth
+        - link "Mulai" [ref=e20] [cursor=pointer]:
+          - /url: /auth
+          - text: Mulai
+          - img
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: Platform operasional sekolah
+        - heading "Sekolah berjalan lebih tenang." [level=1] [ref=e26]
+        - paragraph [ref=e27]: Schoolio menyatukan jadwal, absensi, tugas, nilai, komunikasi, dan akses orang tua dalam satu sistem kerja yang rapi.
+        - generic [ref=e28]:
+          - link "Coba Schoolio" [ref=e29] [cursor=pointer]:
+            - /url: /auth
+            - text: Coba Schoolio
+            - img
+          - link "Lihat alur kerja" [ref=e30] [cursor=pointer]:
+            - /url: "#platform"
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - strong [ref=e33]: 4 peran
+            - generic [ref=e34]: Admin, guru, siswa, orang tua
+          - generic [ref=e35]:
+            - strong [ref=e36]: 1 sumber
+            - generic [ref=e37]: Data sekolah tersusun
+          - generic [ref=e38]:
+            - strong [ref=e39]: Harian
+            - generic [ref=e40]: Jadwal sampai rapor
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - paragraph [ref=e47]: Hari ini
+            - heading "Ruang Operasi Sekolah" [level=3] [ref=e48]
+          - generic [ref=e49]: 4 peran aktif
+        - generic [ref=e50]:
+          - generic [ref=e51]:
+            - paragraph [ref=e52]: 94%
+            - paragraph [ref=e53]: Kehadiran
+          - generic [ref=e54]:
+            - paragraph [ref=e55]: "18"
+            - paragraph [ref=e56]: Kelas aktif
+          - generic [ref=e57]:
+            - paragraph [ref=e58]: "9"
+            - paragraph [ref=e59]: Perlu dinilai
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - generic [ref=e62]:
+              - paragraph [ref=e63]: Jadwal berjalan
+              - img [ref=e64]
+            - generic [ref=e66]:
+              - generic [ref=e67]:
+                - generic [ref=e68]: "07.15"
+                - generic [ref=e69]:
+                  - strong [ref=e70]: XII IPA 1
+                  - text: Matematika
+              - generic [ref=e71]:
+                - generic [ref=e72]: "09.00"
+                - generic [ref=e73]:
+                  - strong [ref=e74]: XI IPS 2
+                  - text: Ekonomi
+              - generic [ref=e75]:
+                - generic [ref=e76]: "10.45"
+                - generic [ref=e77]:
+                  - strong [ref=e78]: X IPA 3
+                  - text: Absensi
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - img [ref=e81]
+              - paragraph [ref=e84]: Akses terjaga
+            - generic [ref=e85]:
+              - paragraph [ref=e86]: Guru melihat kelasnya.
+              - paragraph [ref=e87]: Siswa melihat tugasnya.
+              - paragraph [ref=e88]: Orang tua melihat anaknya.
+    - generic [ref=e90]:
+      - generic [ref=e91]:
+        - generic [ref=e92]:
+          - paragraph [ref=e93]: Platform
+          - heading "Kerja sekolah tanpa tercecer." [level=2] [ref=e94]
+        - paragraph [ref=e95]: "Setiap modul dibuat untuk pekerjaan nyata di sekolah: cepat dibuka, mudah dibaca, dan jelas siapa yang boleh melakukan apa."
+      - generic [ref=e96]:
+        - article [ref=e97]:
+          - img [ref=e99]
+          - heading "Jadwal rapi" [level=3] [ref=e101]
+          - paragraph [ref=e102]: Kelas, guru, ruang, dan waktu tersusun dalam satu konteks akademik.
+        - article [ref=e103]:
+          - img [ref=e105]
+          - heading "Absensi jelas" [level=3] [ref=e109]
+          - paragraph [ref=e110]: Sesi kehadiran mengikuti jadwal, dengan status yang mudah diperiksa.
+        - article [ref=e111]:
+          - img [ref=e113]
+          - heading "Tugas terkendali" [level=3] [ref=e116]
+          - paragraph [ref=e117]: Materi, soal, pengumpulan, koreksi, dan umpan balik berada di alur yang sama.
+        - article [ref=e118]:
+          - img [ref=e120]
+          - heading "Nilai siap dibaca" [level=3] [ref=e124]
+          - paragraph [ref=e125]: Bobot nilai, rekap, dan rapor membantu sekolah menjaga catatan tetap stabil.
+    - generic [ref=e127]:
+      - generic [ref=e128]:
+        - generic [ref=e129]:
+          - paragraph [ref=e130]: Peran
+          - heading "Satu sekolah. Empat ruang kerja." [level=2] [ref=e131]
+        - paragraph [ref=e132]: Schoolio tidak memaksa semua orang melihat layar yang sama. Setiap peran mendapat konteks yang cukup untuk bertindak.
+      - generic [ref=e133]:
+        - article [ref=e134]:
+          - generic [ref=e135]: "1"
+          - heading "Admin" [level=3] [ref=e136]
+          - paragraph [ref=e137]: Mengatur struktur sekolah, pengguna, kelas, jadwal, dan kesiapan operasional.
+        - article [ref=e138]:
+          - generic [ref=e139]: "2"
+          - heading "Guru" [level=3] [ref=e140]
+          - paragraph [ref=e141]: Melihat jadwal hari ini, mencatat absensi, membagikan materi, dan menilai tugas.
+        - article [ref=e142]:
+          - generic [ref=e143]: "3"
+          - heading "Siswa" [level=3] [ref=e144]
+          - paragraph [ref=e145]: Menerima jadwal, materi, tugas, nilai, catatan, dan pengumuman dengan jelas.
+        - article [ref=e146]:
+          - generic [ref=e147]: "4"
+          - heading "Orang tua" [level=3] [ref=e148]
+          - paragraph [ref=e149]: Memantau informasi anak yang relevan tanpa masuk ke ruang kerja sekolah.
+    - generic [ref=e151]:
+      - generic [ref=e152]:
+        - paragraph [ref=e153]: Keamanan dan tata kelola
+        - heading "Tertib sejak awal." [level=2] [ref=e154]
+        - paragraph [ref=e155]: Data sekolah butuh batas yang jelas. Schoolio menjaga struktur, hak akses, dan catatan penting agar operasi tetap dapat diaudit.
+      - generic [ref=e156]:
+        - generic [ref=e157]:
+          - img [ref=e159]
+          - generic [ref=e162]: Akses berbasis peran
+        - generic [ref=e163]:
+          - img [ref=e165]
+          - generic [ref=e168]: Data per sekolah
+        - generic [ref=e169]:
+          - img [ref=e171]
+          - generic [ref=e174]: Tautan orang tua-anak
+        - generic [ref=e175]:
+          - img [ref=e177]
+          - generic [ref=e180]: Riwayat keputusan penting
+        - generic [ref=e181]:
+          - img [ref=e183]
+          - generic [ref=e186]: Rapor sebagai snapshot
+        - generic [ref=e187]:
+          - img [ref=e189]
+          - generic [ref=e192]: Alur unggah terkontrol
+    - generic [ref=e195]:
+      - generic [ref=e196]:
+        - paragraph [ref=e197]: Mulai dari pekerjaan harian
+        - heading "Buat sekolah lebih mudah dijalankan." [level=2] [ref=e198]
+        - paragraph [ref=e199]: Masuk sebagai peran yang tepat, mulai dari data kelas, lalu biarkan alur harian sekolah bergerak lebih rapi.
+      - generic [ref=e200]:
+        - link "Mulai sekarang" [ref=e201] [cursor=pointer]:
+          - /url: /auth
+          - text: Mulai sekarang
+          - img
+        - link "Lihat dashboard" [ref=e202] [cursor=pointer]:
+          - /url: /dashboard
+    - generic [ref=e204]:
+      - generic [ref=e205]:
+        - img [ref=e207]
+        - generic [ref=e210]:
+          - paragraph [ref=e211]: Schoolio
+          - paragraph [ref=e212]: Sekolah Pintar
+      - generic [ref=e213]:
+        - generic [ref=e214]: Schoolio / Sekolah Pintar
+        - generic [ref=e215]: Operasional sekolah dalam satu sistem.
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - alert [ref=e216]

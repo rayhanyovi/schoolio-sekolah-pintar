@@ -1,0 +1,224 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e11]:
+          - paragraph [ref=e12]: Schoolio
+          - paragraph [ref=e13]: Sekolah Pintar
+      - navigation "Main navigation" [ref=e14]:
+        - link "Platform" [ref=e15] [cursor=pointer]:
+          - /url: "#platform"
+        - link "Workflows" [ref=e16] [cursor=pointer]:
+          - /url: "#workflows"
+        - link "Trust" [ref=e17] [cursor=pointer]:
+          - /url: "#trust"
+      - generic [ref=e18]:
+        - link "Sign in" [ref=e19] [cursor=pointer]:
+          - /url: /auth
+        - link "Start" [ref=e20] [cursor=pointer]:
+          - /url: /auth
+          - text: Start
+          - img
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: School operations, not just school software
+        - heading "The operating desk for modern schools." [level=1] [ref=e26]
+        - paragraph [ref=e27]: Schoolio brings school structure, daily classroom work, reporting, analytics, and parent visibility into one role-based system.
+        - generic [ref=e28]:
+          - link "Open Schoolio" [ref=e29] [cursor=pointer]:
+            - /url: /auth
+            - text: Open Schoolio
+            - img
+          - link "See the platform" [ref=e30] [cursor=pointer]:
+            - /url: "#platform"
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - strong [ref=e33]: 4 portals
+            - generic [ref=e34]: Admin, teacher, student, parent
+          - generic [ref=e35]:
+            - strong [ref=e36]: 1 backbone
+            - generic [ref=e37]: School data stays connected
+          - generic [ref=e38]:
+            - strong [ref=e39]: Daily ready
+            - generic [ref=e40]: Schedule to report card
+      - generic [ref=e41]:
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - paragraph [ref=e49]: Today
+              - heading "School command view" [level=3] [ref=e50]
+            - generic [ref=e51]: 4 roles live
+          - generic [ref=e52]:
+            - generic [ref=e53]:
+              - paragraph [ref=e54]: 94%
+              - paragraph [ref=e55]: Attendance
+            - generic [ref=e56]:
+              - paragraph [ref=e57]: "18"
+              - paragraph [ref=e58]: Active classes
+            - generic [ref=e59]:
+              - paragraph [ref=e60]: "9"
+              - paragraph [ref=e61]: Need review
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]:
+                - paragraph [ref=e65]: Running schedule
+                - img [ref=e66]
+              - generic [ref=e69]:
+                - generic [ref=e70]:
+                  - generic [ref=e71]: "07.15"
+                  - generic [ref=e72]:
+                    - strong [ref=e73]: XII Science 1
+                    - text: Mathematics
+                - generic [ref=e74]:
+                  - generic [ref=e75]: "09.00"
+                  - generic [ref=e76]:
+                    - strong [ref=e77]: XI Social 2
+                    - text: Economics
+                - generic [ref=e78]:
+                  - generic [ref=e79]: "10.45"
+                  - generic [ref=e80]:
+                    - strong [ref=e81]: X Science 3
+                    - text: Attendance
+            - generic [ref=e82]:
+              - generic [ref=e83]:
+                - img [ref=e84]
+                - paragraph [ref=e88]: Scoped access
+              - generic [ref=e89]:
+                - paragraph [ref=e90]: Teachers see assigned classes.
+                - paragraph [ref=e91]: Students see their work.
+                - paragraph [ref=e92]: Parents see linked children.
+        - generic:
+          - generic [ref=e93]:
+            - img [ref=e95]
+            - paragraph [ref=e99]: Attendance
+            - paragraph [ref=e100]: Session ready
+          - generic [ref=e101]:
+            - img [ref=e103]
+            - paragraph [ref=e107]: Materials
+            - paragraph [ref=e108]: Upload flow
+          - generic [ref=e109]:
+            - img [ref=e111]
+            - paragraph [ref=e114]: Notifications
+            - paragraph [ref=e115]: 37 unread
+          - generic [ref=e116]:
+            - img [ref=e118]
+            - paragraph [ref=e120]: Forum
+            - paragraph [ref=e121]: Pinned thread
+    - generic [ref=e123]:
+      - generic [ref=e124]:
+        - paragraph [ref=e125]: What you are selling
+        - heading "One system for the work schools repeat every day." [level=2] [ref=e126]
+        - paragraph [ref=e127]: "The value is not another feature list. It is operational continuity: every role works from the same school reality."
+      - generic [ref=e128]:
+        - article [ref=e129]:
+          - img [ref=e131]
+          - heading "Academic structure" [level=3] [ref=e133]
+          - paragraph [ref=e134]: Academic years, classes, subjects, majors, rosters, schedules, rooms, and teacher mappings stay connected.
+        - article [ref=e135]:
+          - img [ref=e137]
+          - heading "Daily classroom flow" [level=3] [ref=e141]
+          - paragraph [ref=e142]: Teachers can move from schedule to attendance, materials, assignments, submissions, grading, and feedback.
+        - article [ref=e143]:
+          - img [ref=e145]
+          - heading "Four role portals" [level=3] [ref=e149]
+          - paragraph [ref=e150]: Admins, teachers, students, and parents get focused access without flattening every workflow into one screen.
+        - article [ref=e151]:
+          - img [ref=e153]
+          - heading "Stable records" [level=3] [ref=e157]
+          - paragraph [ref=e158]: Grade weights, summaries, report-card snapshots, governance tracking, and audit-aware actions keep records usable.
+    - generic [ref=e160]:
+      - generic [ref=e161]:
+        - paragraph [ref=e162]: Workflow framing
+        - heading "From setup to school day to records." [level=2] [ref=e163]
+        - paragraph [ref=e164]: Schoolio sells control over the full operating loop, not just isolated classroom tools.
+      - generic [ref=e165]:
+        - article [ref=e166]:
+          - text: "01"
+          - heading "Set the school structure" [level=3] [ref=e167]
+          - paragraph [ref=e168]: Profiles, users, academic years, classes, subjects, majors, and teacher assignments.
+        - article [ref=e169]:
+          - text: "02"
+          - heading "Run the school day" [level=3] [ref=e170]
+          - paragraph [ref=e171]: Schedules, attendance sessions, materials, assignments, notes, forums, and calendar events.
+        - article [ref=e172]:
+          - text: "03"
+          - heading "Close the loop" [level=3] [ref=e173]
+          - paragraph [ref=e174]: Submissions, grading, feedback, report-card snapshots, analytics, and parent visibility.
+    - generic [ref=e176]:
+      - generic [ref=e177]:
+        - paragraph [ref=e178]: Role-specific by default
+        - heading "The same school, different desks." [level=2] [ref=e179]
+        - paragraph [ref=e180]: Each portal is intentionally scoped so people can act without seeing work that does not belong to them.
+      - generic [ref=e181]:
+        - article [ref=e182]:
+          - generic [ref=e183]: "1"
+          - heading "Administrator" [level=3] [ref=e184]
+          - paragraph [ref=e185]: Configure the school, users, academic structure, parent links, analytics, settings, and readiness.
+        - article [ref=e186]:
+          - generic [ref=e187]: "2"
+          - heading "Teacher" [level=3] [ref=e188]
+          - paragraph [ref=e189]: Manage class work, attendance, learning materials, assignments, submissions, grades, discussions, and notes.
+        - article [ref=e190]:
+          - generic [ref=e191]: "3"
+          - heading "Student" [level=3] [ref=e192]
+          - paragraph [ref=e193]: Follow schedules, access materials, submit work, view grades, join allowed discussions, and track updates.
+        - article [ref=e194]:
+          - generic [ref=e195]: "4"
+          - heading "Parent" [level=3] [ref=e196]
+          - paragraph [ref=e197]: "View selected information for linked children: attendance, grades, assignments, notifications, and school updates."
+    - generic [ref=e199]:
+      - generic [ref=e200]:
+        - paragraph [ref=e201]: Trust layer
+        - heading "Built for records that have to hold up." [level=2] [ref=e202]
+        - paragraph [ref=e203]: Schools need more than convenience. They need tenant boundaries, permissions, stable reporting, and a path to governance readiness.
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - img [ref=e207]
+          - generic [ref=e210]: School-level tenant boundaries
+        - generic [ref=e211]:
+          - img [ref=e213]
+          - generic [ref=e216]: Role-based access control
+        - generic [ref=e217]:
+          - img [ref=e219]
+          - generic [ref=e222]: Parent-child linking
+        - generic [ref=e223]:
+          - img [ref=e225]
+          - generic [ref=e228]: Report cards stored as snapshots
+        - generic [ref=e229]:
+          - img [ref=e231]
+          - generic [ref=e234]: CSRF protection
+        - generic [ref=e235]:
+          - img [ref=e237]
+          - generic [ref=e240]: Controlled upload flow
+        - generic [ref=e241]:
+          - img [ref=e243]
+          - generic [ref=e246]: Audit persistence for sensitive actions
+        - generic [ref=e247]:
+          - img [ref=e249]
+          - generic [ref=e252]: Self-host and SaaS database modes
+    - generic [ref=e255]:
+      - img [ref=e257]
+      - heading "Give every school role a calmer way to work." [level=2] [ref=e259]
+      - paragraph [ref=e260]: "Start with the operational core: structure, schedules, attendance, assignments, grades, reporting, and visibility."
+      - generic [ref=e261]:
+        - link "Start now" [ref=e262] [cursor=pointer]:
+          - /url: /auth
+          - text: Start now
+          - img
+        - link "View dashboard" [ref=e263] [cursor=pointer]:
+          - /url: /dashboard
+    - generic [ref=e265]:
+      - generic [ref=e266]:
+        - img [ref=e268]
+        - generic [ref=e271]:
+          - paragraph [ref=e272]: Schoolio
+          - paragraph [ref=e273]: Sekolah Pintar
+      - generic [ref=e274]:
+        - generic [ref=e275]: Schoolio / Sekolah Pintar
+        - generic [ref=e276]: A multi-role school operations platform.
+  - region "Notifications (F8)":
+    - list
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e282] [cursor=pointer]:
+    - img [ref=e283]

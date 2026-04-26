@@ -1,0 +1,195 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation "Navigasi utama" [ref=e3]:
+      - link "Schoolio" [ref=e4] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e7]: Schoolio
+      - button "Mulai sekolah" [ref=e9] [cursor=pointer]
+  - main [ref=e10]:
+    - region "Sekolah berjalan lebih tenang." [ref=e11]:
+      - generic [ref=e12]:
+        - strong [ref=e14]: Ruang kendali sekolah
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e21]: Jadwal hari ini
+            - generic [ref=e22]:
+              - generic [ref=e23]:
+                - generic [ref=e24]: "07.00"
+                - generic [ref=e26]: X IPA
+              - generic [ref=e27]:
+                - generic [ref=e28]: "08.30"
+                - generic [ref=e30]: XI A
+              - generic [ref=e31]:
+                - generic [ref=e32]: "10.15"
+                - generic [ref=e34]: XII B
+              - generic [ref=e35]:
+                - generic [ref=e36]: "13.00"
+                - generic [ref=e38]: VII C
+            - generic [ref=e39]: Absensi cepat
+          - generic [ref=e57]:
+            - generic [ref=e58]: Perlu perhatian
+            - generic [ref=e59]:
+              - generic [ref=e62]: 3 izin sakit
+              - generic [ref=e65]: 12 tugas masuk
+              - generic [ref=e68]: 4 nilai baru
+          - generic [ref=e69]:
+            - generic [ref=e70]: Orang tua
+            - generic [ref=e71]:
+              - generic [ref=e74]: Rangkuman anak
+              - generic [ref=e77]: Notifikasi nilai
+      - generic [ref=e78]:
+        - generic [ref=e79]:
+          - generic [ref=e80]: Sistem sekolah multi-role
+          - heading "Sekolah berjalan lebih tenang." [level=1] [ref=e81]
+          - paragraph [ref=e82]: Schoolio menyatukan administrasi, jadwal, absensi, tugas, nilai, materi, forum kelas, dan portal orang tua dalam satu ruang kerja yang dibuat untuk ritme sekolah Indonesia.
+          - generic [ref=e83]:
+            - button "Jadwalkan demo" [ref=e84] [cursor=pointer]
+            - button "Lihat alur guru" [ref=e85] [cursor=pointer]
+          - generic "Ringkasan produk" [ref=e86]:
+            - generic [ref=e87]:
+              - strong [ref=e88]: "4"
+              - generic [ref=e89]: role utama
+            - generic [ref=e90]:
+              - strong [ref=e91]: "19"
+              - generic [ref=e92]: halaman dashboard
+            - generic [ref=e93]:
+              - strong [ref=e94]: "86"
+              - generic [ref=e95]: API route
+        - complementary [ref=e96]:
+          - strong [ref=e97]: Didesain untuk sekolah yang butuh operasional rapi, bukan software yang ribut.
+          - paragraph [ref=e98]: Admin melihat gambaran sekolah. Guru mengajar dan menilai. Siswa mengikuti tugas. Orang tua memantau anak.
+    - generic [ref=e100]:
+      - generic [ref=e101]:
+        - heading "Satu sistem, empat sudut pandang." [level=2] [ref=e102]
+        - paragraph [ref=e103]: Setiap peran masuk ke ruang kerja yang berbeda. Akses, data, dan tindakan mengikuti konteks sekolah dan tanggung jawab pengguna.
+      - generic [ref=e104]:
+        - tablist "Pilih peran" [ref=e105]:
+          - tab "A Admin Kelola data inti sekolah 01" [selected] [ref=e106] [cursor=pointer]:
+            - generic [ref=e107]: A
+            - generic [ref=e108]:
+              - strong [ref=e109]: Admin
+              - generic [ref=e110]: Kelola data inti sekolah
+            - generic [ref=e111]: "01"
+          - tab "G Guru Jadwal, materi, tugas, nilai 02" [ref=e112] [cursor=pointer]:
+            - generic [ref=e113]: G
+            - generic [ref=e114]:
+              - strong [ref=e115]: Guru
+              - generic [ref=e116]: Jadwal, materi, tugas, nilai
+            - generic [ref=e117]: "02"
+          - tab "S Siswa Tugas, materi, absensi 03" [ref=e118] [cursor=pointer]:
+            - generic [ref=e119]: S
+            - generic [ref=e120]:
+              - strong [ref=e121]: Siswa
+              - generic [ref=e122]: Tugas, materi, absensi
+            - generic [ref=e123]: "03"
+          - tab "O Orang tua Pantau perkembangan anak 04" [ref=e124] [cursor=pointer]:
+            - generic [ref=e125]: O
+            - generic [ref=e126]:
+              - strong [ref=e127]: Orang tua
+              - generic [ref=e128]: Pantau perkembangan anak
+            - generic [ref=e129]: "04"
+        - generic [ref=e130]:
+          - generic [ref=e131]: Admin sekolah
+          - heading "Kontrol data tanpa kehilangan konteks." [level=3] [ref=e132]
+          - paragraph [ref=e133]: Admin mengatur user, kelas, mapel, jurusan, tahun ajaran, profil sekolah, dan hubungan orang tua-siswa.
+          - generic [ref=e134]:
+            - generic [ref=e135]:
+              - generic [ref=e136]: Tenant aman
+              - generic [ref=e137]: Data sekolah dipisah berdasarkan profil sekolah.
+            - generic [ref=e138]:
+              - generic [ref=e139]: Data akademik
+              - generic [ref=e140]: Kelas, mapel, jadwal, dan tahun ajaran tersusun.
+            - generic [ref=e141]:
+              - generic [ref=e142]: Audit penting
+              - generic [ref=e143]: Perubahan sensitif punya jejak tindakan.
+            - generic [ref=e144]:
+              - generic [ref=e145]: Siap onboarding
+              - generic [ref=e146]: Role pengguna bisa dipilih dan diselesaikan bertahap.
+    - generic [ref=e148]:
+      - generic [ref=e149]:
+        - heading "Modul inti yang langsung dipakai." [level=2] [ref=e150]
+        - paragraph [ref=e151]: Fokus pertama bukan fitur yang terdengar mewah, tapi pekerjaan harian sekolah yang harus selesai dengan cepat dan konsisten.
+      - generic [ref=e152]:
+        - article [ref=e153]:
+          - generic [ref=e154]: JADWAL
+          - generic [ref=e155]:
+            - heading "Jadwal kelas dan guru" [level=3] [ref=e156]
+            - paragraph [ref=e157]: Bentrok kelas, guru, dan ruangan dicegah dari server.
+        - article [ref=e158]:
+          - generic [ref=e159]: ABSENSI
+          - generic [ref=e160]:
+            - heading "Sesi absensi" [level=3] [ref=e161]
+            - paragraph [ref=e162]: Absensi berbasis sesi dengan kunci unik agar tidak dobel.
+        - article [ref=e163]:
+          - generic [ref=e164]: NILAI
+          - generic [ref=e165]:
+            - heading "Penilaian" [level=3] [ref=e166]
+            - paragraph [ref=e167]: Tugas, submission, feedback, dan publikasi nilai.
+        - article [ref=e168]:
+          - generic [ref=e169]: ORANG TUA
+          - generic [ref=e170]:
+            - heading "Portal pantau anak" [level=3] [ref=e171]
+            - paragraph [ref=e172]: Orang tua melihat informasi anak tanpa membuka data siswa lain.
+        - article [ref=e173]:
+          - generic [ref=e174]: MATERI
+          - generic [ref=e175]:
+            - heading "Materi belajar" [level=3] [ref=e176]
+            - paragraph [ref=e177]: Guru mengunggah materi, siswa mengakses sesuai kelas.
+        - article [ref=e178]:
+          - generic [ref=e179]: FORUM
+          - generic [ref=e180]:
+            - heading "Diskusi kelas" [level=3] [ref=e181]
+            - paragraph [ref=e182]: Thread, balasan, pin, lock, dan moderasi guru.
+    - generic [ref=e184]:
+      - generic "Contoh hari operasional" [ref=e185]:
+        - generic [ref=e186]:
+          - strong [ref=e187]: Senin
+          - generic [ref=e188]: Hari aktif
+        - generic [ref=e189]:
+          - generic [ref=e190]: "06.45"
+          - generic [ref=e191]:
+            - text: Admin cek kesiapan kelas
+            - text: Jadwal dan guru piket terlihat.
+          - generic [ref=e192]: Pagi
+        - generic [ref=e193]:
+          - generic [ref=e194]: "08.00"
+          - generic [ref=e195]:
+            - text: Guru ambil absensi
+            - text: Sesi tercatat, siswa sakit atau izin langsung tampak.
+          - generic [ref=e196]: Kelas
+        - generic [ref=e197]:
+          - generic [ref=e198]: "14.20"
+          - generic [ref=e199]:
+            - text: Nilai dipublikasikan
+            - text: Siswa dan orang tua menerima notifikasi.
+          - generic [ref=e200]: Update
+      - generic [ref=e201]:
+        - heading "Bukan hanya catatan. Ini ritme kerja sekolah." [level=2] [ref=e202]
+        - paragraph [ref=e203]: "Schoolio dibuat untuk mengurangi koordinasi manual: data siswa, kelas, jadwal, absensi, tugas, dan nilai berada di satu tempat yang konsisten."
+        - generic [ref=e204]:
+          - generic [ref=e205]:
+            - generic [ref=e206]: ✓
+            - generic [ref=e207]:
+              - text: Data mengikuti role
+              - text: Setiap pengguna melihat data sesuai tanggung jawab.
+          - generic [ref=e208]:
+            - generic [ref=e209]: ✓
+            - generic [ref=e210]:
+              - text: Siap untuk sekolah multi-kelas
+              - text: Mapel, jurusan, kelas, tahun ajaran, dan wali murid saling terhubung.
+          - generic [ref=e211]:
+            - generic [ref=e212]: ✓
+            - generic [ref=e213]:
+              - text: Release fokus ke pemakaian nyata
+              - text: "Prioritas sekarang: app jalan, flow jelas, dan pengguna sekolah bisa mulai bekerja."
+    - generic [ref=e215]:
+      - generic [ref=e216]:
+        - heading "Bawa operasional sekolah ke satu layar." [level=2] [ref=e217]
+        - paragraph [ref=e218]: Landing page ini hanya preview. Produk utama tetap dashboard Schoolio untuk admin, guru, siswa, dan orang tua.
+      - generic [ref=e219]:
+        - button "Coba sekarang" [ref=e220] [cursor=pointer]
+        - button "Hubungi tim" [ref=e221] [cursor=pointer]
+  - contentinfo [ref=e222]:
+    - generic [ref=e223]:
+      - generic [ref=e224]: Schoolio / Sekolah Pintar
+      - generic [ref=e225]: Landing page concept, standalone HTML.
