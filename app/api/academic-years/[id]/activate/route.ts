@@ -6,6 +6,7 @@ import {
   requireRole,
   requireSchoolContext,
 } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { ROLES } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
@@ -43,10 +44,9 @@ export async function POST(request: Request, { params }: Params) {
         data: { isActive: true },
       });
 
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: "ACADEMIC_YEAR_ACTIVATED",
           entityType: "AcademicYear",
           entityId: activated.id,
@@ -58,7 +58,8 @@ export async function POST(request: Request, { params }: Params) {
             activatedAcademicYearId: activated.id,
           },
         },
-      });
+        tx
+      );
 
       return activated;
     });

@@ -8,9 +8,10 @@ import {
 import { ROLES } from "@/lib/constants";
 import { mockEvents } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [
@@ -22,13 +23,13 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (roleError) return roleError;
 
   if (isMockEnabled()) {
-    const item = mockEvents.find((row) => row.id === params.id);
+    const item = mockEvents.find((row) => row.id === routeParams.id);
     if (!item) return jsonError("NOT_FOUND", "Event not found", 404);
     return jsonOk(item);
   }
 
   const row = await prisma.calendarEvent.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     include: { classes: true },
   });
   if (!row) return jsonError("NOT_FOUND", "Event not found", 404);
@@ -71,13 +72,14 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
   const existing = await prisma.calendarEvent.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { createdById: true },
   });
   if (!existing) return jsonError("NOT_FOUND", "Event not found", 404);
@@ -89,7 +91,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
   const row = await prisma.calendarEvent.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: {
       title: body.title,
       description: body.description,
@@ -117,13 +119,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
   const existing = await prisma.calendarEvent.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { createdById: true },
   });
   if (!existing) return jsonError("NOT_FOUND", "Event not found", 404);
@@ -131,6 +134,6 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "Anda tidak bisa menghapus event ini", 403);
   }
 
-  await prisma.calendarEvent.delete({ where: { id: params.id } });
-  return jsonOk({ id: params.id });
+  await prisma.calendarEvent.delete({ where: { id: routeParams.id } });
+  return jsonOk({ id: routeParams.id });
 }

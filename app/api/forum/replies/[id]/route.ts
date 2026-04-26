@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBody, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
 
@@ -14,7 +15,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const existing = await prisma.forumReply.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     include: { thread: { select: { status: true } } },
   });
   if (!existing) return jsonError("NOT_FOUND", "Reply not found", 404);
@@ -52,7 +53,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const row = await prisma.forumReply.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data,
   });
   return jsonOk(row);

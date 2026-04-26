@@ -15,9 +15,10 @@ import {
 import { ROLES } from "@/lib/constants";
 import { mockSubjects } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: Request, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [
@@ -31,7 +32,7 @@ export async function GET(request: Request, { params }: Params) {
   if (schoolId instanceof Response) return schoolId;
 
   const classRow = await prisma.class.findFirst({
-    where: { id: params.id, schoolId },
+    where: { id: routeParams.id, schoolId },
     select: { id: true },
   });
   if (!classRow) {
@@ -39,26 +40,26 @@ export async function GET(request: Request, { params }: Params) {
   }
   if (auth.role === ROLES.STUDENT) {
     const ownClassId = await getStudentClassId(auth.userId);
-    if (!ownClassId || ownClassId !== params.id) {
+    if (!ownClassId || ownClassId !== routeParams.id) {
       return jsonError("FORBIDDEN", "Anda tidak memiliki akses ke kelas ini", 403);
     }
   }
   if (auth.role === ROLES.PARENT) {
     const linkedClassIds = await listLinkedClassIdsForParent(auth.userId);
-    if (!linkedClassIds.includes(params.id)) {
+    if (!linkedClassIds.includes(routeParams.id)) {
       return jsonError("FORBIDDEN", "Anda tidak memiliki akses ke kelas ini", 403);
     }
   }
 
   if (isMockEnabled()) {
     const data = mockSubjects.filter((subject) =>
-      subject.classIds.includes(params.id)
+      subject.classIds.includes(routeParams.id)
     );
     return jsonOk(data);
   }
 
   const rows = await prisma.subjectClass.findMany({
-    where: { classId: params.id, subject: { schoolId } },
+    where: { classId: routeParams.id, subject: { schoolId } },
     include: { subject: true },
   });
 
@@ -75,6 +76,7 @@ export async function GET(request: Request, { params }: Params) {
 }
 
 export async function PUT(request: Request, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
@@ -90,7 +92,7 @@ export async function PUT(request: Request, { params }: Params) {
     return jsonError("VALIDATION_ERROR", "subjectIds array is required");
   }
   const classRow = await prisma.class.findFirst({
-    where: { id: params.id, schoolId },
+    where: { id: routeParams.id, schoolId },
     select: { id: true },
   });
   if (!classRow) {
@@ -108,16 +110,16 @@ export async function PUT(request: Request, { params }: Params) {
     }
   }
 
-  await prisma.subjectClass.deleteMany({ where: { classId: params.id } });
+  await prisma.subjectClass.deleteMany({ where: { classId: routeParams.id } });
   if (subjectIds.length) {
     await prisma.subjectClass.createMany({
       data: subjectIds.map((subjectId) => ({
-        classId: params.id,
+        classId: routeParams.id,
         subjectId,
       })),
       skipDuplicates: true,
     });
   }
 
-  return jsonOk({ id: params.id, subjectIds });
+  return jsonOk({ id: routeParams.id, subjectIds });
 }

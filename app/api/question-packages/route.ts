@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: Record<string, unknown> = {};
+  const where: Prisma.QuestionPackageWhereInput = {};
   if (q) {
     where.OR = [
       { name: { contains: q, mode: "insensitive" } },
@@ -36,14 +36,14 @@ export async function GET(request: NextRequest) {
   }
   if (subject) {
     where.OR = [
-      ...(where.OR ?? []),
+      ...(Array.isArray(where.OR) ? where.OR : []),
       { subject: { name: { equals: subject } } },
       { subjectText: { equals: subject } },
     ];
   }
 
   const rows = await prisma.questionPackage.findMany({
-    where: where as Prisma.QuestionPackageWhereInput,
+    where,
     include: { items: true, subject: true },
     orderBy: { createdAt: "desc" },
   });

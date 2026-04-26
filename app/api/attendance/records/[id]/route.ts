@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import {
   canTeacherWriteAttendance,
   needsAdminAttendanceOverride,
@@ -9,16 +10,17 @@ import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
 import { AttendanceStatus } from "@prisma/client";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
   const existing = await prisma.attendanceRecord.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     include: {
       session: {
         select: {
@@ -91,7 +93,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     const updated = await tx.attendanceRecord.update({
-      where: { id: params.id },
+      where: { id: routeParams.id },
       data: {
         status: nextStatus as AttendanceStatus | undefined,
         note: body.note as string | null | undefined,
@@ -122,10 +124,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     if (mustUseAdminOverride) {
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: "ATTENDANCE_RECORD_OVERRIDE",
           entityType: "AttendanceRecord",
           entityId: updated.id,
@@ -143,7 +144,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             studentId: existing.studentId,
           },
         },
-      });
+        tx
+      );
     }
 
     return updated;

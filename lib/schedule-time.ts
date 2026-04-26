@@ -31,7 +31,7 @@ export const isOverlappingTimeRange = (
   bEnd: string
 ) => toMinutes(aStart) < toMinutes(bEnd) && toMinutes(bStart) < toMinutes(aEnd);
 
-export const findClassOverlapSchedule = async (
+export const findClassOverlapSchedule = (
   schedules: Array<{
     id: string;
     classId: string;

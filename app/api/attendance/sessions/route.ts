@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, parseJsonBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import {
   canTeacherManageSubjectClass,
@@ -33,24 +40,28 @@ export async function GET(request: NextRequest) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const subjectId = searchParams.get("subjectId");
   const teacherId = searchParams.get("teacherId");
   const date = searchParams.get("date");
-  const yearScopeResult = await resolveAcademicYearScope(request);
+  const yearScopeResult = await resolveAcademicYearScope(request, { schoolId });
   if (yearScopeResult.error) return yearScopeResult.error;
   const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
   if (!includeAllAcademicYears && !academicYearId) {
     return jsonOk([]);
   }
 
-  const where: Record<string, unknown> = {};
+  const classWhere: Prisma.ClassWhereInput = { schoolId };
+  if (academicYearId) classWhere.academicYearId = academicYearId;
+
+  const where: Prisma.AttendanceSessionWhereInput = { class: classWhere };
   if (classId) where.classId = classId;
   if (subjectId) where.subjectId = subjectId;
   if (teacherId) where.teacherId = teacherId;
-  if (academicYearId) where.class = { academicYearId };
   if (date) {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
@@ -63,9 +74,7 @@ export async function GET(request: NextRequest) {
     const teacherFilter: Prisma.AttendanceSessionWhereInput = {
       OR: [{ teacherId: auth.userId }, { takenByTeacherId: auth.userId }],
     };
-    Object.assign(where, {
-      AND: [teacherFilter],
-    });
+    where.AND = [teacherFilter];
   }
 
   if (auth.role === ROLES.STUDENT) {
@@ -91,7 +100,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.attendanceSession.findMany({
-    where: where as Prisma.AttendanceSessionWhereInput,
+    where,
     include: {
       class: true,
       subject: true,
@@ -133,6 +142,8 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedBody = await parseJsonBody(request, createAttendanceSessionSchema);
   if (parsedBody instanceof Response) return parsedBody;
@@ -142,10 +153,29 @@ export async function POST(request: NextRequest) {
     return jsonError("VALIDATION_ERROR", "date is invalid");
   }
 
+  const [classRow, subject] = await Promise.all([
+    prisma.class.findFirst({
+      where: { id: body.classId, schoolId },
+      select: { id: true },
+    }),
+    prisma.subject.findFirst({
+      where: { id: body.subjectId, schoolId },
+      select: { id: true },
+    }),
+  ]);
+  if (!classRow || !subject) {
+    return jsonError(
+      "FORBIDDEN",
+      "Kelas atau mapel tidak valid untuk sekolah ini",
+      403
+    );
+  }
+
   if (auth.role === ROLES.TEACHER) {
     const allowed = await canTeacherManageSubjectClass(
       auth.userId,
       body.subjectId,
+      schoolId,
       body.classId
     );
     if (!allowed) {

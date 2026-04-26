@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBodyAllowEmpty, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   if (auth.role === ROLES.PARENT) {
@@ -15,7 +16,7 @@ export async function POST(request: Request, { params }: Params) {
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
   const existing = await prisma.forumThread.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { status: true },
   });
 
@@ -25,7 +26,7 @@ export async function POST(request: Request, { params }: Params) {
       : existing?.status !== "LOCKED";
 
   const row = await prisma.forumThread.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: { status: shouldLock ? "LOCKED" : "OPEN" },
   });
 

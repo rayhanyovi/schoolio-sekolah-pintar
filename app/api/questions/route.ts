@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockQuestions } from "@/lib/questionTypes";
-import { Prisma } from "@prisma/client";
+import { AssignmentDeliveryType, DifficultyLevel, Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -31,9 +31,9 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: Record<string, unknown> = {};
-  if (type) where.type = type;
-  if (difficulty) where.difficulty = difficulty;
+  const where: Prisma.QuestionWhereInput = {};
+  if (type) where.type = type as AssignmentDeliveryType;
+  if (difficulty) where.difficulty = difficulty as DifficultyLevel;
   if (q) {
     where.OR = [
       { text: { contains: q, mode: "insensitive" } },
@@ -42,14 +42,14 @@ export async function GET(request: NextRequest) {
   }
   if (subject) {
     where.OR = [
-      ...(where.OR ?? []),
+      ...(Array.isArray(where.OR) ? where.OR : []),
       { subject: { name: { equals: subject } } },
       { subjectText: { equals: subject } },
     ];
   }
 
   const rows = await prisma.question.findMany({
-    where: where as Prisma.QuestionWhereInput,
+    where,
     include: { subject: true },
     orderBy: { createdAt: "desc" },
   });
@@ -89,11 +89,11 @@ export async function POST(request: NextRequest) {
   const subjectId = body.subjectId ?? null;
   const row = await prisma.question.create({
     data: {
-      type: body.type,
+      type: body.type as AssignmentDeliveryType,
       subjectId,
       subjectText: subjectId ? null : body.subject ?? null,
       topic: body.topic,
-      difficulty: body.difficulty,
+      difficulty: body.difficulty as DifficultyLevel,
       text: body.text,
       options: body.options ?? [],
       correctAnswers: body.correctAnswers ?? [],

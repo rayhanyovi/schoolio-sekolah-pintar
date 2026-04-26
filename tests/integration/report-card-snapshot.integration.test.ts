@@ -6,7 +6,10 @@ import { requireAuth, requireRole } from "@/lib/api";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     academicYear: {
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    class: {
+      findFirst: vi.fn(),
     },
     assignmentSubmission: {
       findMany: vi.fn(),
@@ -17,6 +20,7 @@ vi.mock("@/lib/prisma", () => ({
     reportCardSnapshot: {
       create: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
 }));
 
@@ -37,15 +41,28 @@ describe("POST /api/grades/report-cards", () => {
   it("membuat snapshot baru setiap publish (immutable history)", async () => {
     const mockedRequireAuth = vi.mocked(requireAuth);
     const mockedRequireRole = vi.mocked(requireRole);
-    const mockedFindAcademicYear = vi.mocked(prisma.academicYear.findUnique);
+    const mockedFindAcademicYear = vi.mocked(prisma.academicYear.findFirst);
+    const mockedFindClass = vi.mocked(prisma.class.findFirst);
     const mockedFindSubmissions = vi.mocked(prisma.assignmentSubmission.findMany);
     const mockedFindWeights = vi.mocked(prisma.gradeWeight.findMany);
-    const mockedCreateSnapshot = vi.mocked(prisma.reportCardSnapshot.create);
+    const mockedCreateSnapshot = vi.fn();
+    const transactionClient = {
+      reportCardSnapshot: {
+        create: mockedCreateSnapshot,
+      },
+      auditLog: {
+        create: vi.fn(),
+      },
+    };
+    vi.mocked(prisma.$transaction).mockImplementation(
+      async (callback: (tx: typeof transactionClient) => unknown) =>
+        callback(transactionClient) as never
+    );
 
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedFindAcademicYear.mockResolvedValue({
@@ -54,6 +71,11 @@ describe("POST /api/grades/report-cards", () => {
       semester: "ODD",
       startDate: new Date("2025-07-01T00:00:00.000Z"),
       endDate: new Date("2025-12-31T23:59:59.999Z"),
+    } as never);
+    mockedFindClass.mockResolvedValue({
+      id: "class-1",
+      name: "10",
+      section: "A",
     } as never);
     mockedFindSubmissions.mockResolvedValue([
       {
@@ -109,5 +131,6 @@ describe("POST /api/grades/report-cards", () => {
     expect(payload2.data.id).toBe("snapshot-2");
     expect(payload1.data.id).not.toBe(payload2.data.id);
     expect(mockedCreateSnapshot).toHaveBeenCalledTimes(2);
+    expect(transactionClient.auditLog.create).toHaveBeenCalledTimes(2);
   });
 });

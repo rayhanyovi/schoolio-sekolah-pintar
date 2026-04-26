@@ -2,9 +2,11 @@ import { ROLES } from "@/lib/constants";
 import {
   ActorContext,
   canAccessOwnUser,
+  canTeacherManageSubjectClass,
   canViewParent,
   canViewStudent,
   hasAnyRole,
+  listLinkedClassIdsForParent,
 } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 
@@ -13,8 +15,24 @@ vi.mock("@/lib/prisma", () => ({
     user: {
       findFirst: vi.fn(),
     },
+    subject: {
+      findFirst: vi.fn(),
+    },
+    class: {
+      findFirst: vi.fn(),
+    },
+    subjectTeacher: {
+      findUnique: vi.fn(),
+    },
+    subjectClass: {
+      findUnique: vi.fn(),
+    },
+    studentProfile: {
+      findMany: vi.fn(),
+    },
     parentStudent: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
   },
 }));
@@ -80,5 +98,91 @@ describe("Authz policy unit", () => {
     await expect(canViewParent(parent, "parent-1")).resolves.toBe(true);
     await expect(canViewParent(parent, "parent-2")).resolves.toBe(false);
     await expect(canViewParent(student, "parent-1")).resolves.toBe(false);
+  });
+
+  it("canTeacherManageSubjectClass wajib subject dan class berada di sekolah actor", async () => {
+    vi.mocked(prisma.subject.findFirst).mockResolvedValue({ id: "subject-1" } as never);
+    vi.mocked(prisma.class.findFirst).mockResolvedValue({ id: "class-1" } as never);
+    vi.mocked(prisma.subjectTeacher.findUnique).mockResolvedValue({
+      teacherId: "teacher-1",
+    } as never);
+    vi.mocked(prisma.subjectClass.findUnique).mockResolvedValue({
+      classId: "class-1",
+    } as never);
+
+    await expect(
+      canTeacherManageSubjectClass(
+        "teacher-1",
+        "subject-1",
+        "school-1",
+        "class-1"
+      )
+    ).resolves.toBe(true);
+
+    expect(prisma.subject.findFirst).toHaveBeenCalledWith({
+      where: { id: "subject-1", schoolId: "school-1" },
+      select: { id: true },
+    });
+    expect(prisma.class.findFirst).toHaveBeenCalledWith({
+      where: { id: "class-1", schoolId: "school-1" },
+      select: { id: true },
+    });
+  });
+
+  it("canTeacherManageSubjectClass menolak subject lintas sekolah", async () => {
+    vi.mocked(prisma.subject.findFirst).mockResolvedValue(null);
+
+    await expect(
+      canTeacherManageSubjectClass(
+        "teacher-1",
+        "subject-other-school",
+        "school-1",
+        "class-1"
+      )
+    ).resolves.toBe(false);
+
+    expect(prisma.subjectTeacher.findUnique).not.toHaveBeenCalled();
+    expect(prisma.subjectClass.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("canTeacherManageSubjectClass menolak class lintas sekolah", async () => {
+    vi.mocked(prisma.subject.findFirst).mockResolvedValue({ id: "subject-1" } as never);
+    vi.mocked(prisma.class.findFirst).mockResolvedValue(null);
+
+    await expect(
+      canTeacherManageSubjectClass(
+        "teacher-1",
+        "subject-1",
+        "school-1",
+        "class-other-school"
+      )
+    ).resolves.toBe(false);
+
+    expect(prisma.subjectTeacher.findUnique).not.toHaveBeenCalled();
+    expect(prisma.subjectClass.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("listLinkedClassIdsForParent hanya mengembalikan class unik dari anak tertaut", async () => {
+    vi.mocked(prisma.parentStudent.findMany).mockResolvedValue([
+      { studentId: "student-1" },
+      { studentId: "student-2" },
+      { studentId: "student-3" },
+    ] as never);
+    vi.mocked(prisma.studentProfile.findMany).mockResolvedValue([
+      { classId: "class-1" },
+      { classId: "class-1" },
+      { classId: "class-2" },
+      { classId: null },
+    ] as never);
+
+    await expect(listLinkedClassIdsForParent("parent-1")).resolves.toEqual([
+      "class-1",
+      "class-2",
+    ]);
+
+    expect(prisma.studentProfile.findMany).toHaveBeenCalledWith({
+      where: { userId: { in: ["student-1", "student-2", "student-3"] } },
+      select: { classId: true },
+    });
   });
 });

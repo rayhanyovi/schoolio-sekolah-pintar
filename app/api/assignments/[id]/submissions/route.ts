@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { canSubmitAssignmentAt } from "@/lib/assignment-policy";
 import { ROLES } from "@/lib/constants";
@@ -150,10 +151,9 @@ export async function POST(request: NextRequest, { params }: Params) {
       (existing.submittedAt?.getTime() ?? null) !==
         (saved.submittedAt?.getTime() ?? null);
     if (shouldLogLifecycle) {
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: existing ? "SUBMISSION_STATUS_CHANGED" : "SUBMISSION_CREATED",
           entityType: "AssignmentSubmission",
           entityId: saved.id,
@@ -174,7 +174,8 @@ export async function POST(request: NextRequest, { params }: Params) {
             studentId: saved.studentId,
           },
         },
-      });
+        tx
+      );
     }
 
     return saved;

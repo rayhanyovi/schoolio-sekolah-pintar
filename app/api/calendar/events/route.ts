@@ -11,7 +11,7 @@ import {
 } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 import { mockEvents } from "@/lib/mockData";
-import { Prisma } from "@prisma/client";
+import { EventType, Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
     return jsonOk(data);
   }
 
-  const where: Record<string, unknown> = {};
-  if (type) where.type = type;
+  const where: Prisma.CalendarEventWhereInput = {};
+  if (type) where.type = type as EventType;
   if (classId) where.classes = { some: { classId } };
   if (dateFrom || dateTo) {
     where.date = {};
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
   }
 
   const rows = await prisma.calendarEvent.findMany({
-    where: where as Prisma.CalendarEventWhereInput,
+    where,
     include: { classes: true },
     orderBy: { date: "asc" },
   });
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       description: body.description ?? "",
       date: new Date(body.date),
       endDate: body.endDate ? new Date(body.endDate) : null,
-      type: body.type ?? "ACADEMIC",
+      type: (body.type as EventType | undefined) ?? "ACADEMIC",
       isRecurring: Boolean(body.isRecurring),
       createdById: auth.userId,
     },

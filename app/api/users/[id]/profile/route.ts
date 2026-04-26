@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { StudentLifecycleStatus } from "@prisma/client";
+import { Prisma, StudentLifecycleStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   jsonError,
@@ -8,6 +8,7 @@ import {
   requireAuth,
   requireSchoolContext,
 } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { ROLES } from "@/lib/constants";
 
 type RouteContext = {
@@ -53,7 +54,7 @@ const toProfileSnapshot = (
       }
     | null
 ) => {
-  if (!row) return null;
+  if (!row) return Prisma.JsonNull;
   return {
     name: row.name,
     email: row.email,
@@ -277,17 +278,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         },
       });
 
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: "USER_PROFILE_UPDATED",
           entityType: "User",
           entityId: userId,
           beforeData: toProfileSnapshot(before),
           afterData: toProfileSnapshot(after),
         },
-      });
+        tx
+      );
 
       return updatedUser;
     });

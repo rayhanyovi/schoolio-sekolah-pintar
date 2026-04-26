@@ -162,28 +162,25 @@ export const createTeacherAttendance = (payload: Record<string, unknown>) =>
     teacherAttendanceSchema.parse(normalizeTeacherAttendance(data))
   );
 
-const normalizeTeacherAttendance = (value: UnknownRecord) => {
+const normalizeTeacherAttendance = (value: unknown) => {
+  if (!value || typeof value !== "object") return value;
+  const record = value as UnknownRecord;
   const teacherValue =
-    value.teacher && typeof value.teacher === "object"
-      ? (value.teacher as UnknownRecord)
+    record.teacher && typeof record.teacher === "object"
+      ? (record.teacher as UnknownRecord)
       : null;
 
-  if (value && typeof value === "object") {
-    return {
-      id: value.id,
-      teacherId: value.teacherId,
-      teacherName:
-        (typeof teacherValue?.name === "string"
-          ? teacherValue.name
-          : undefined) ??
-        value.teacherName ??
-        "",
-      sessionId: value.sessionId ?? null,
-      date: value.date,
-      status: value.status,
-      note: value.note ?? "",
-      isAllDay: Boolean(value.isAllDay),
-    };
-  }
-  return value;
+  return {
+    id: record.id,
+    teacherId: record.teacherId,
+    teacherName:
+      (typeof teacherValue?.name === "string" ? teacherValue.name : undefined) ??
+      record.teacherName ??
+      "",
+    sessionId: record.sessionId ?? null,
+    date: record.date,
+    status: record.status,
+    note: record.note ?? "",
+    isAllDay: Boolean(record.isAllDay),
+  };
 };

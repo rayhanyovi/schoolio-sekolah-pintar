@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
-import { Prisma } from "@prisma/client";
+import { AttendanceStatus, Prisma } from "@prisma/client";
 
 const parseDate = (value?: string | null) => {
   if (!value) return null;
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     auth.role === ROLES.ADMIN
       ? (body?.teacherId as string | undefined)
       : auth.userId;
-  const status = body?.status as string | undefined;
+  const status = body?.status as AttendanceStatus | undefined;
   const sessionId = body?.sessionId as string | undefined;
   const isAllDay = Boolean(body?.isAllDay);
   const note = body?.note ?? null;

@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBodyAllowEmpty, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT]);
@@ -14,7 +15,7 @@ export async function POST(request: Request, { params }: Params) {
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
   const existing = await prisma.note.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { isPinned: true, authorId: true },
   });
   if (!existing) return jsonError("NOT_FOUND", "Note not found", 404);
@@ -27,7 +28,7 @@ export async function POST(request: Request, { params }: Params) {
       : !(existing?.isPinned ?? false);
 
   const row = await prisma.note.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: { isPinned: next },
   });
 

@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { resolveDatabaseUrl } from "../lib/database-url";
+import { recordAudit } from "../lib/audit";
 
 type RolloverMode = "FREEZE" | "CLONE_CLASSES";
 
@@ -100,6 +101,7 @@ const run = async () => {
     where: { id: parsed.targetAcademicYearId },
     select: {
       id: true,
+      schoolId: true,
       year: true,
       semester: true,
       isActive: true,
@@ -195,6 +197,7 @@ const run = async () => {
         const createdClass = await tx.class.create({
           data: {
             name: sourceClass.name,
+            schoolId: targetYear.schoolId,
             grade: sourceClass.grade,
             major: sourceClass.major,
             section: sourceClass.section,
@@ -223,9 +226,9 @@ const run = async () => {
     }
 
     if (parsed.actorId) {
-      await tx.auditLog.create({
-        data: {
-          actorId: parsed.actorId,
+      await recordAudit(
+        { userId: parsed.actorId },
+        {
           action: "ACADEMIC_YEAR_ROLLOVER_EXECUTED",
           entityType: "AcademicYear",
           entityId: targetYear.id,
@@ -238,7 +241,8 @@ const run = async () => {
             clonedSubjectLinks,
           },
         },
-      });
+        tx
+      );
     }
 
     return {

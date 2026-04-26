@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
@@ -19,11 +20,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return jsonError("VALIDATION_ERROR", "questionIds array is required");
   }
 
-  await prisma.questionPackageItem.deleteMany({ where: { packageId: params.id } });
+  await prisma.questionPackageItem.deleteMany({ where: { packageId: routeParams.id } });
   if (questionIds.length) {
     await prisma.questionPackageItem.createMany({
       data: questionIds.map((questionId, index) => ({
-        packageId: params.id,
+        packageId: routeParams.id,
         questionId,
         position: index + 1,
       })),
@@ -31,5 +32,5 @@ export async function PUT(request: NextRequest, { params }: Params) {
     });
   }
 
-  return jsonOk({ id: params.id, questionIds });
+  return jsonOk({ id: routeParams.id, questionIds });
 }

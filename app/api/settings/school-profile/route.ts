@@ -10,6 +10,7 @@ import {
   requireRole,
   requireSchoolContext,
 } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { ROLES } from "@/lib/constants";
 import { mockSchoolProfile } from "@/lib/mockData";
 import { normalizeSchoolCode } from "@/lib/school-code";
@@ -62,25 +63,61 @@ export async function PATCH(request: NextRequest) {
     typeof body.principalName === "string" ? body.principalName : "";
   const existing = await prisma.schoolProfile.findUnique({
     where: { id: schoolId },
-    select: { id: true },
+    select: {
+      id: true,
+      schoolCode: true,
+      name: true,
+      address: true,
+      phone: true,
+      email: true,
+      website: true,
+      principalName: true,
+      logoUrl: true,
+    },
   });
   if (!existing) {
     return jsonError("NOT_FOUND", "Sekolah tidak ditemukan", 404);
   }
 
   try {
-    const row = await prisma.schoolProfile.update({
-      where: { id: schoolId },
-      data: {
-        schoolCode,
-        name: body.name,
-        address: body.address,
-        phone,
-        email: body.email,
-        website,
-        principalName,
-        logoUrl: body.logoUrl,
-      },
+    const row = await prisma.$transaction(async (tx) => {
+      const updated = await tx.schoolProfile.update({
+        where: { id: schoolId },
+        data: {
+          schoolCode,
+          name: body.name,
+          address: body.address,
+          phone,
+          email: body.email,
+          website,
+          principalName,
+          logoUrl: body.logoUrl,
+        },
+      });
+
+      await recordAudit(
+        auth,
+        {
+          action: "SCHOOL_PROFILE_UPDATED",
+          entityType: "SchoolProfile",
+          entityId: schoolId,
+          beforeData: existing,
+          afterData: {
+            id: updated.id,
+            schoolCode: updated.schoolCode,
+            name: updated.name,
+            address: updated.address,
+            phone: updated.phone,
+            email: updated.email,
+            website: updated.website,
+            principalName: updated.principalName,
+            logoUrl: updated.logoUrl,
+          },
+        },
+        tx
+      );
+
+      return updated;
     });
     return jsonOk(row);
   } catch (error) {

@@ -9,6 +9,7 @@ import {
   requireSchoolContext,
 } from "@/lib/api";
 import { canAccessOwnUser } from "@/lib/authz";
+import { recordAudit } from "@/lib/audit";
 import { ROLES } from "@/lib/constants";
 
 type Params = { params: Promise<{ id: string }> };
@@ -71,10 +72,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       },
     });
     const action = existing.role !== updated.role ? "USER_ROLE_CHANGED" : "USER_UPDATED";
-    await tx.auditLog.create({
-      data: {
-        actorId: auth.userId,
-        actorRole: auth.role,
+    await recordAudit(
+      auth,
+      {
         action,
         entityType: "User",
         entityId: updated.id,
@@ -95,7 +95,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           bio: updated.bio,
         },
       },
-    });
+      tx
+    );
     return updated;
   });
   return jsonOk(row);
@@ -122,10 +123,9 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
   await prisma.$transaction(async (tx) => {
     await tx.user.delete({ where: { id } });
-    await tx.auditLog.create({
-      data: {
-        actorId: auth.userId,
-        actorRole: auth.role,
+    await recordAudit(
+      auth,
+      {
         action: "USER_DELETED",
         entityType: "User",
         entityId: id,
@@ -136,7 +136,8 @@ export async function DELETE(request: NextRequest, { params }: Params) {
         },
         afterData: null,
       },
-    });
+      tx
+    );
   });
   return jsonOk({ id });
 }

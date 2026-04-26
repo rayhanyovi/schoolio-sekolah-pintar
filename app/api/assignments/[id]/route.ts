@@ -4,6 +4,7 @@ import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, req
 import { listLinkedStudentIds } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 import { mockAssignments } from "@/lib/mockData";
+import { GradingPolicy } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -228,12 +229,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       400
     );
   }
-  const nextGradingPolicy =
+  const nextGradingPolicy = (
     body.gradingPolicy !== undefined
       ? body.gradingPolicy === null || body.gradingPolicy === ""
         ? "LATEST"
         : String(body.gradingPolicy).toUpperCase()
-      : existing.gradingPolicy;
+      : existing.gradingPolicy
+  ) as GradingPolicy;
   if (!["LATEST", "HIGHEST", "MANUAL"].includes(nextGradingPolicy)) {
     return jsonError(
       "VALIDATION_ERROR",

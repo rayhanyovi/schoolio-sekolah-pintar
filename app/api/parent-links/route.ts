@@ -7,6 +7,7 @@ import {
   requireRole,
   requireSchoolContext,
 } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { ROLES } from "@/lib/constants";
 
 export async function POST(request: Request) {
@@ -46,10 +47,9 @@ export async function POST(request: Request) {
           studentId: body.studentId,
         },
       });
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: "PARENT_STUDENT_LINK_CREATED",
           entityType: "ParentStudent",
           entityId: `${body.parentId}:${body.studentId}`,
@@ -59,7 +59,8 @@ export async function POST(request: Request) {
             studentId: body.studentId,
           },
         },
-      });
+        tx
+      );
       return created;
     });
 
@@ -120,10 +121,9 @@ export async function DELETE(request: Request) {
         },
       },
     });
-    await tx.auditLog.create({
-      data: {
-        actorId: auth.userId,
-        actorRole: auth.role,
+    await recordAudit(
+      auth,
+      {
         action: "PARENT_STUDENT_LINK_REMOVED",
         entityType: "ParentStudent",
         entityId: `${body.parentId}:${body.studentId}`,
@@ -133,7 +133,8 @@ export async function DELETE(request: Request) {
         },
         afterData: null,
       },
-    });
+      tx
+    );
     return existing;
   });
   if (!removed) {

@@ -4,7 +4,7 @@ import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth } fr
 import { ROLES } from "@/lib/constants";
 import { mockThreads } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 const guardForumAccess = async (request: NextRequest) => {
   const auth = await requireAuth(request);
@@ -16,17 +16,18 @@ const guardForumAccess = async (request: NextRequest) => {
 };
 
 export async function GET(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await guardForumAccess(request);
   if (auth instanceof Response) return auth;
 
   if (isMockEnabled()) {
-    const item = mockThreads.find((row) => row.id === params.id);
+    const item = mockThreads.find((row) => row.id === routeParams.id);
     if (!item) return jsonError("NOT_FOUND", "Thread not found", 404);
     return jsonOk(item);
   }
 
   const row = await prisma.forumThread.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     include: { subject: true, author: true, class: true },
   });
   if (!row) return jsonError("NOT_FOUND", "Thread not found", 404);
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await guardForumAccess(request);
   if (auth instanceof Response) return auth;
 
@@ -60,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
   const row = await prisma.forumThread.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: {
       title: body.title,
       content: body.content,
@@ -73,9 +75,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await guardForumAccess(request);
   if (auth instanceof Response) return auth;
 
-  await prisma.forumThread.delete({ where: { id: params.id } });
-  return jsonOk({ id: params.id });
+  await prisma.forumThread.delete({ where: { id: routeParams.id } });
+  return jsonOk({ id: routeParams.id });
 }

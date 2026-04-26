@@ -1,6 +1,14 @@
 import { NextRequest } from "next/server";
 import { GradeComponent, Prisma, Semester } from "@prisma/client";
-import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/constants";
@@ -67,12 +75,14 @@ export async function GET(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { searchParams } = new URL(request.url);
   const classId = searchParams.get("classId");
   const semesterParam = searchParams.get("semester");
   const includeSnapshot = searchParams.get("includeSnapshot") === "true";
-  const yearScopeResult = await resolveAcademicYearScope(request);
+  const yearScopeResult = await resolveAcademicYearScope(request, { schoolId });
   if (yearScopeResult.error) return yearScopeResult.error;
   const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
   if (!includeAllAcademicYears && !academicYearId) {
@@ -83,7 +93,7 @@ export async function GET(request: NextRequest) {
     return jsonError("VALIDATION_ERROR", "semester harus ODD atau EVEN", 400);
   }
 
-  const where: Prisma.ReportCardSnapshotWhereInput = {};
+  const where: Prisma.ReportCardSnapshotWhereInput = { class: { schoolId } };
   if (classId) where.classId = classId;
   if (academicYearId) where.academicYearId = academicYearId;
   if (semester) where.semester = semester;
@@ -131,6 +141,8 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
@@ -143,8 +155,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const academicYear = await prisma.academicYear.findUnique({
-    where: { id: body.academicYearId },
+  const academicYear = await prisma.academicYear.findFirst({
+    where: { id: body.academicYearId, schoolId },
     select: {
       id: true,
       year: true,
@@ -155,6 +167,18 @@ export async function POST(request: NextRequest) {
   });
   if (!academicYear) {
     return jsonError("NOT_FOUND", "Academic year not found", 404);
+  }
+
+  const classRow = await prisma.class.findFirst({
+    where: { id: body.classId, schoolId },
+    select: {
+      id: true,
+      name: true,
+      section: true,
+    },
+  });
+  if (!classRow) {
+    return jsonError("NOT_FOUND", "Class not found", 404);
   }
 
   const gradedRows = await prisma.assignmentSubmission.findMany({
@@ -317,14 +341,42 @@ export async function POST(request: NextRequest) {
     students,
   };
 
-  const published = await prisma.reportCardSnapshot.create({
-    data: {
-      classId: body.classId,
-      academicYearId: academicYear.id,
-      semester: academicYear.semester,
-      publishedById: auth.userId,
-      snapshot: snapshotPayload,
-    },
+  const published = await prisma.$transaction(async (tx) => {
+    const created = await tx.reportCardSnapshot.create({
+      data: {
+        classId: body.classId,
+        academicYearId: academicYear.id,
+        semester: academicYear.semester,
+        publishedById: auth.userId,
+        snapshot: snapshotPayload,
+      },
+    });
+
+    await recordAudit(
+      auth,
+      {
+        action: "REPORT_CARD_SNAPSHOT_PUBLISHED",
+        entityType: "ReportCardSnapshot",
+        entityId: created.id,
+        beforeData: null,
+        afterData: {
+          id: created.id,
+          classId: created.classId,
+          academicYearId: created.academicYearId,
+          semester: created.semester,
+          publishedById: created.publishedById,
+          publishedAt: created.publishedAt,
+          studentCount: students.length,
+        },
+        metadata: {
+          schoolId,
+          className: `${classRow.name} ${classRow.section}`.trim(),
+        },
+      },
+      tx
+    );
+
+    return created;
   });
 
   return jsonOk(

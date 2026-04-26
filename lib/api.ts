@@ -5,6 +5,10 @@ import { ActorContext, hasAnyRole, toActorContext } from "@/lib/authz";
 import { monitorApiError } from "@/lib/error-monitoring";
 import { ZodType, z } from "zod";
 
+// Route handlers that call parseJsonRecordBody perform field-level validation locally.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LooseJsonRecord = Record<string, any>;
+
 export const isMockEnabled = () => process.env.DEBUG_WITH_MOCK_DATA === "true";
 
 export const jsonOk = <T>(data: T, init?: ResponseInit) =>
@@ -83,12 +87,14 @@ export const parseJsonBody = async <T>(
 
 export const parseJsonRecordBody = (
   request: Request,
-): Promise<Record<string, unknown> | NextResponse> =>
-  parseJsonBody(request, z.record(z.unknown()));
+): Promise<LooseJsonRecord | NextResponse> =>
+  parseJsonBody(request, z.record(z.unknown())) as Promise<
+    LooseJsonRecord | NextResponse
+  >;
 
 export const parseJsonRecordBodyAllowEmpty = async (
   request: Request,
-): Promise<Record<string, unknown> | NextResponse> => {
+): Promise<LooseJsonRecord | NextResponse> => {
   let rawBody: string;
   try {
     rawBody = await request.text();
@@ -120,5 +126,7 @@ export const parseJsonRecordBodyAllowEmpty = async (
 
 export const parseJsonRecordArrayBody = (
   request: Request,
-): Promise<Record<string, unknown>[] | NextResponse> =>
-  parseJsonBody(request, z.array(z.record(z.unknown())));
+): Promise<LooseJsonRecord[] | NextResponse> =>
+  parseJsonBody(request, z.array(z.record(z.unknown()))) as Promise<
+    LooseJsonRecord[] | NextResponse
+  >;

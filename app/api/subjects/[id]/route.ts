@@ -12,7 +12,7 @@ import {
 import { ROLES } from "@/lib/constants";
 import { mockSubjects } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 const toStringIdList = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
@@ -29,6 +29,7 @@ const toStringIdList = (value: unknown): string[] => {
 };
 
 export async function GET(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [
@@ -42,13 +43,13 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (schoolId instanceof Response) return schoolId;
 
   if (isMockEnabled()) {
-    const item = mockSubjects.find((row) => row.id === params.id);
+    const item = mockSubjects.find((row) => row.id === routeParams.id);
     if (!item) return jsonError("NOT_FOUND", "Subject not found", 404);
     return jsonOk(item);
   }
 
   const row = await prisma.subject.findFirst({
-    where: { id: params.id, schoolId },
+    where: { id: routeParams.id, schoolId },
     include: {
       teachers: { include: { teacher: true } },
       classes: true,
@@ -79,6 +80,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
@@ -90,7 +92,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
   const existingSubject = await prisma.subject.findFirst({
-    where: { id: params.id, schoolId },
+    where: { id: routeParams.id, schoolId },
     select: { id: true, appliesToAllMajors: true },
   });
   if (!existingSubject) {
@@ -145,7 +147,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     );
   }
   const row = await prisma.subject.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: {
       name: body.name,
       code: body.code,
@@ -232,6 +234,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
@@ -240,12 +243,12 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (schoolId instanceof Response) return schoolId;
 
   const existingSubject = await prisma.subject.findFirst({
-    where: { id: params.id, schoolId },
+    where: { id: routeParams.id, schoolId },
     select: { id: true },
   });
   if (!existingSubject) {
     return jsonError("NOT_FOUND", "Subject not found", 404);
   }
-  await prisma.subject.delete({ where: { id: params.id } });
-  return jsonOk({ id: params.id });
+  await prisma.subject.delete({ where: { id: routeParams.id } });
+  return jsonOk({ id: routeParams.id });
 }

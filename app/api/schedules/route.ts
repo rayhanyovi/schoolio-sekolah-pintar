@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   const classId = searchParams.get("classId");
   const teacherId = searchParams.get("teacherId");
   const dayOfWeek = searchParams.get("dayOfWeek");
-  const yearScopeResult = await resolveAcademicYearScope(request);
+  const yearScopeResult = await resolveAcademicYearScope(request, { schoolId });
   if (yearScopeResult.error) return yearScopeResult.error;
   const { academicYearId, includeAllAcademicYears } = yearScopeResult.scope;
   if (!includeAllAcademicYears && !academicYearId) {
@@ -113,6 +113,8 @@ export async function POST(request: NextRequest) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const parsedRequestBody = await parseJsonRecordBody(request);
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
@@ -133,10 +135,29 @@ export async function POST(request: NextRequest) {
   const resolvedRoom =
     typeof body.room === "string" ? body.room.trim() : "";
 
+  const [classRow, subject] = await Promise.all([
+    prisma.class.findFirst({
+      where: { id: body.classId, schoolId },
+      select: { id: true },
+    }),
+    prisma.subject.findFirst({
+      where: { id: body.subjectId, schoolId },
+      select: { id: true, color: true },
+    }),
+  ]);
+  if (!classRow || !subject) {
+    return jsonError(
+      "FORBIDDEN",
+      "Kelas atau mapel tidak valid untuk sekolah ini",
+      403
+    );
+  }
+
   const classSchedules = await prisma.classSchedule.findMany({
     where: {
       classId: body.classId,
       dayOfWeek: body.dayOfWeek,
+      class: { schoolId },
     },
     select: {
       id: true,
@@ -165,6 +186,7 @@ export async function POST(request: NextRequest) {
       where: {
         teacherId: resolvedTeacherId,
         dayOfWeek: body.dayOfWeek,
+        class: { schoolId },
       },
       select: {
         id: true,
@@ -194,6 +216,7 @@ export async function POST(request: NextRequest) {
       where: {
         dayOfWeek: body.dayOfWeek,
         room: { not: null },
+        class: { schoolId },
       },
       select: {
         id: true,
@@ -222,6 +245,7 @@ export async function POST(request: NextRequest) {
     const allowed = await canTeacherManageSubjectClass(
       auth.userId,
       body.subjectId,
+      schoolId,
       body.classId
     );
     if (!allowed) {
@@ -232,11 +256,6 @@ export async function POST(request: NextRequest) {
       );
     }
   }
-
-  const subject = await prisma.subject.findUnique({
-    where: { id: body.subjectId },
-    select: { color: true },
-  });
 
   const row = await prisma.classSchedule.create({
     data: {

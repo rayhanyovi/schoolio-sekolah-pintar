@@ -69,6 +69,22 @@ export const isTeacherAssignedToSubject = async (
   return Boolean(relation);
 };
 
+export const isSubjectInSchool = async (subjectId: string, schoolId: string) => {
+  const subject = await prisma.subject.findFirst({
+    where: { id: subjectId, schoolId },
+    select: { id: true },
+  });
+  return Boolean(subject);
+};
+
+export const isClassInSchool = async (classId: string, schoolId: string) => {
+  const classRow = await prisma.class.findFirst({
+    where: { id: classId, schoolId },
+    select: { id: true },
+  });
+  return Boolean(classRow);
+};
+
 export const isSubjectLinkedToClass = async (
   subjectId: string,
   classId: string
@@ -103,8 +119,17 @@ export const isSubjectLinkedToAllClasses = async (
 export const canTeacherManageSubjectClass = async (
   teacherId: string,
   subjectId: string,
+  schoolId: string,
   classId?: string | null
 ) => {
+  const subjectInSchool = await isSubjectInSchool(subjectId, schoolId);
+  if (!subjectInSchool) return false;
+
+  if (classId) {
+    const classInSchool = await isClassInSchool(classId, schoolId);
+    if (!classInSchool) return false;
+  }
+
   const hasSubjectAccess = await isTeacherAssignedToSubject(teacherId, subjectId);
   if (!hasSubjectAccess) return false;
   if (!classId) return true;

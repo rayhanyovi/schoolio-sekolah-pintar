@@ -8,6 +8,12 @@ vi.mock("@/lib/prisma", () => ({
     attendanceSession: {
       upsert: vi.fn(),
     },
+    class: {
+      findFirst: vi.fn(),
+    },
+    subject: {
+      findFirst: vi.fn(),
+    },
   },
 }));
 
@@ -35,13 +41,17 @@ describe("POST /api/attendance/sessions - duplicate guard", () => {
     const mockedRequireAuth = vi.mocked(requireAuth);
     const mockedRequireRole = vi.mocked(requireRole);
     const mockedUpsert = vi.mocked(prisma.attendanceSession.upsert);
+    const mockedFindClass = vi.mocked(prisma.class.findFirst);
+    const mockedFindSubject = vi.mocked(prisma.subject.findFirst);
 
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
+    mockedFindClass.mockResolvedValue({ id: "class-1" } as never);
+    mockedFindSubject.mockResolvedValue({ id: "subject-1" } as never);
 
     const sessionMap = new Map<string, { id: string; sessionKey: string }>();
     mockedUpsert.mockImplementation(async (args: never) => {
@@ -93,5 +103,53 @@ describe("POST /api/attendance/sessions - duplicate guard", () => {
     ).where.sessionKey;
 
     expect(firstSessionKey).toBe(secondSessionKey);
+  });
+
+  it("mengabaikan sessionKey dari body dan selalu menghitung business key server-side", async () => {
+    const mockedRequireAuth = vi.mocked(requireAuth);
+    const mockedRequireRole = vi.mocked(requireRole);
+    const mockedUpsert = vi.mocked(prisma.attendanceSession.upsert);
+    const mockedFindClass = vi.mocked(prisma.class.findFirst);
+    const mockedFindSubject = vi.mocked(prisma.subject.findFirst);
+
+    mockedRequireAuth.mockResolvedValue({
+      userId: "admin-1",
+      role: ROLES.ADMIN,
+      schoolId: "school-1",
+    } as never);
+    mockedRequireRole.mockReturnValue(null);
+    mockedFindClass.mockResolvedValue({ id: "class-1" } as never);
+    mockedFindSubject.mockResolvedValue({ id: "subject-1" } as never);
+    mockedUpsert.mockResolvedValue({
+      id: "session-1",
+      sessionKey: "manual:class-1:subject-1:2026-02-22:08:00:09:00",
+    } as never);
+
+    const request = new Request("http://localhost/api/attendance/sessions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        sessionKey: "manual:evil:subject-1:2026-02-22:00:00:01:00",
+        classId: "class-1",
+        subjectId: "subject-1",
+        teacherId: "teacher-1",
+        date: "2026-02-22",
+        startTime: "08:00",
+        endTime: "09:00",
+      }),
+    });
+
+    const response = await POST(request as never);
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.id).toBe("session-1");
+    expect(mockedUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sessionKey: "manual:class-1:subject-1:2026-02-22:08:00:09:00",
+        },
+      })
+    );
   });
 });

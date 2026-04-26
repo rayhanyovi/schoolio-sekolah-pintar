@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBodyAllowEmpty, requireAuth } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   if (auth.role === ROLES.PARENT) {
@@ -17,7 +18,7 @@ export async function POST(request: Request, { params }: Params) {
   const delta = Number(body?.delta ?? 1);
 
   const row = await prisma.forumThread.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: { upvotes: { increment: Number.isFinite(delta) ? delta : 1 } },
   });
 

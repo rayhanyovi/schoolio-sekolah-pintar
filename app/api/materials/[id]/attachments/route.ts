@@ -3,16 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
   const material = await prisma.material.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { teacherId: true },
   });
   if (!material) return jsonError("NOT_FOUND", "Material not found", 404);
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       attachment: true,
     },
   });
-  if (!intent || intent.materialId !== params.id) {
+  if (!intent || intent.materialId !== routeParams.id) {
     return jsonError("NOT_FOUND", "Upload intent tidak ditemukan", 404);
   }
   if (intent.status !== "CONFIRMED") {

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 import { mockNotes } from "@/lib/mockData";
-import { Prisma } from "@prisma/client";
+import { NoteVisibility, Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   }
 
   const where: Prisma.NoteWhereInput = {};
-  if (visibility) where.visibility = visibility;
+  if (visibility) where.visibility = visibility as NoteVisibility;
   if (subjectId) where.subjectId = subjectId;
   if (q) where.title = { contains: q, mode: "insensitive" };
 
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       subjectId: body.subjectId ?? null,
       classId: body.classId ?? null,
       authorId: auth.userId,
-      visibility: body.visibility ?? "PRIVATE",
+      visibility: (body.visibility as NoteVisibility | undefined) ?? "PRIVATE",
       isPinned: Boolean(body.isPinned),
       color: body.color ?? null,
       tags: body.tags ?? [],

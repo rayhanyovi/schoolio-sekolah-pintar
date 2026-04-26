@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import {
   canTeacherManageSubjectClass,
   getStudentClassId,
@@ -13,11 +20,13 @@ import {
   validateScheduleTimeRange,
 } from "@/lib/schedule-time";
 import { ROLES } from "@/lib/constants";
+import { DayOfWeek } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
 const canTeacherManageSchedule = async (
   teacherId: string,
+  schoolId: string,
   schedule: {
     teacherId: string | null;
     subjectId: string;
@@ -25,7 +34,12 @@ const canTeacherManageSchedule = async (
   }
 ) => {
   if (schedule.teacherId === teacherId) return true;
-  return canTeacherManageSubjectClass(teacherId, schedule.subjectId, schedule.classId);
+  return canTeacherManageSubjectClass(
+    teacherId,
+    schedule.subjectId,
+    schoolId,
+    schedule.classId
+  );
 };
 
 export async function GET(request: NextRequest, { params }: Params) {
@@ -38,19 +52,21 @@ export async function GET(request: NextRequest, { params }: Params) {
     ROLES.PARENT,
   ]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
     return jsonError("VALIDATION_ERROR", "id is required");
   }
-  const row = await prisma.classSchedule.findUnique({
-    where: { id },
+  const row = await prisma.classSchedule.findFirst({
+    where: { id, class: { schoolId } },
     include: { class: true, subject: true, teacher: true },
   });
   if (!row) return jsonError("NOT_FOUND", "Schedule not found", 404);
 
   if (auth.role === ROLES.TEACHER) {
-    const allowed = await canTeacherManageSchedule(auth.userId, row);
+    const allowed = await canTeacherManageSchedule(auth.userId, schoolId, row);
     if (!allowed) {
       return jsonError("FORBIDDEN", "Anda tidak memiliki akses ke jadwal ini", 403);
     }
@@ -78,13 +94,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
     return jsonError("VALIDATION_ERROR", "id is required");
   }
-  const existing = await prisma.classSchedule.findUnique({
-    where: { id },
+  const existing = await prisma.classSchedule.findFirst({
+    where: { id, class: { schoolId } },
     select: {
       id: true,
       classId: true,
@@ -98,7 +116,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   });
   if (!existing) return jsonError("NOT_FOUND", "Schedule not found", 404);
   if (auth.role === ROLES.TEACHER) {
-    const canManage = await canTeacherManageSchedule(auth.userId, existing);
+    const canManage = await canTeacherManageSchedule(auth.userId, schoolId, existing);
     if (!canManage) {
       return jsonError("FORBIDDEN", "Anda tidak bisa mengubah jadwal ini", 403);
     }
@@ -109,8 +127,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const body = parsedRequestBody;
   const nextClassId =
     typeof body.classId === "string" ? body.classId : existing.classId;
-  const nextDayOfWeek =
-    typeof body.dayOfWeek === "string" ? body.dayOfWeek : existing.dayOfWeek;
+  const nextSubjectId =
+    typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
+  const nextDayOfWeek = (
+    typeof body.dayOfWeek === "string" ? body.dayOfWeek : existing.dayOfWeek
+  ) as DayOfWeek;
   const nextTeacherId =
     auth.role === ROLES.ADMIN
       ? body.teacherId !== undefined
@@ -134,10 +155,29 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return jsonError("VALIDATION_ERROR", timeRangeError);
   }
 
+  const [classRow, subject] = await Promise.all([
+    prisma.class.findFirst({
+      where: { id: nextClassId, schoolId },
+      select: { id: true },
+    }),
+    prisma.subject.findFirst({
+      where: { id: nextSubjectId, schoolId },
+      select: { id: true },
+    }),
+  ]);
+  if (!classRow || !subject) {
+    return jsonError(
+      "FORBIDDEN",
+      "Kelas atau mapel tidak valid untuk sekolah ini",
+      403
+    );
+  }
+
   const classSchedules = await prisma.classSchedule.findMany({
     where: {
       classId: nextClassId,
       dayOfWeek: nextDayOfWeek,
+      class: { schoolId },
     },
     select: {
       id: true,
@@ -170,6 +210,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       where: {
         teacherId: nextTeacherId,
         dayOfWeek: nextDayOfWeek,
+        class: { schoolId },
       },
       select: {
         id: true,
@@ -203,6 +244,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       where: {
         dayOfWeek: nextDayOfWeek,
         room: { not: null },
+        class: { schoolId },
       },
       select: {
         id: true,
@@ -232,11 +274,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   if (auth.role === ROLES.TEACHER) {
-    const nextSubjectId =
-      typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
     const allowed = await canTeacherManageSubjectClass(
       auth.userId,
       nextSubjectId,
+      schoolId,
       nextClassId
     );
     if (!allowed) {
@@ -275,13 +316,15 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
     return jsonError("VALIDATION_ERROR", "id is required");
   }
-  const existing = await prisma.classSchedule.findUnique({
-    where: { id },
+  const existing = await prisma.classSchedule.findFirst({
+    where: { id, class: { schoolId } },
     select: {
       classId: true,
       subjectId: true,
@@ -290,7 +333,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   });
   if (!existing) return jsonError("NOT_FOUND", "Schedule not found", 404);
   if (auth.role === ROLES.TEACHER) {
-    const allowed = await canTeacherManageSchedule(auth.userId, existing);
+    const allowed = await canTeacherManageSchedule(auth.userId, schoolId, existing);
     if (!allowed) {
       return jsonError("FORBIDDEN", "Anda tidak bisa menghapus jadwal ini", 403);
     }

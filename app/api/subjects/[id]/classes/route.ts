@@ -9,9 +9,10 @@ import {
 } from "@/lib/api";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(request: Request, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN]);
@@ -27,7 +28,7 @@ export async function PUT(request: Request, { params }: Params) {
     return jsonError("VALIDATION_ERROR", "classIds array is required");
   }
   const subject = await prisma.subject.findFirst({
-    where: { id: params.id, schoolId },
+    where: { id: routeParams.id, schoolId },
     select: { id: true },
   });
   if (!subject) {
@@ -45,16 +46,16 @@ export async function PUT(request: Request, { params }: Params) {
     }
   }
 
-  await prisma.subjectClass.deleteMany({ where: { subjectId: params.id } });
+  await prisma.subjectClass.deleteMany({ where: { subjectId: routeParams.id } });
   if (classIds.length) {
     await prisma.subjectClass.createMany({
       data: classIds.map((classId) => ({
-        subjectId: params.id,
+        subjectId: routeParams.id,
         classId,
       })),
       skipDuplicates: true,
     });
   }
 
-  return jsonOk({ id: params.id, classIds });
+  return jsonOk({ id: routeParams.id, classIds });
 }

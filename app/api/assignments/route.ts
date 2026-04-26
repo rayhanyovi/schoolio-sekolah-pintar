@@ -12,7 +12,13 @@ import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { listLinkedStudentIds } from "@/lib/authz";
 import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
-import { Prisma } from "@prisma/client";
+import {
+  AssignmentDeliveryType,
+  AssignmentKind,
+  AssignmentStatus,
+  GradingPolicy,
+  Prisma,
+} from "@prisma/client";
 import { z } from "zod";
 
 const isTeacherAssignedToSubject = async (teacherId: string, subjectId: string) => {
@@ -326,11 +332,14 @@ export async function POST(request: NextRequest) {
       allowLateSubmission,
       lateUntil: allowLateSubmission ? lateUntil : null,
       maxAttempts,
-      gradingPolicy,
+      gradingPolicy: gradingPolicy as GradingPolicy,
       gradeComponent,
-      kind: body.kind ?? null,
-      deliveryType: body.deliveryType ?? body.type ?? null,
-      status: body.status ?? "ACTIVE",
+      kind: (body.kind as AssignmentKind | null | undefined) ?? null,
+      deliveryType:
+        (body.deliveryType as AssignmentDeliveryType | null | undefined) ??
+        (body.type as AssignmentDeliveryType | null | undefined) ??
+        null,
+      status: (body.status as AssignmentStatus | null | undefined) ?? "ACTIVE",
     },
   });
 

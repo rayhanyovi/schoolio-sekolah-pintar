@@ -9,8 +9,11 @@ vi.mock("@/lib/prisma", () => ({
       findMany: vi.fn(),
       create: vi.fn(),
     },
+    class: {
+      findFirst: vi.fn(),
+    },
     subject: {
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
 }));
@@ -39,14 +42,21 @@ describe("POST /api/schedules - overlap guard", () => {
     const mockedRequireAuth = vi.mocked(requireAuth);
     const mockedRequireRole = vi.mocked(requireRole);
     const mockedFindMany = vi.mocked(prisma.classSchedule.findMany);
+    const mockedFindClass = vi.mocked(prisma.class.findFirst);
+    const mockedFindSubject = vi.mocked(prisma.subject.findFirst);
     const mockedCreate = vi.mocked(prisma.classSchedule.create);
 
     mockedRequireAuth.mockResolvedValue({
       userId: "admin-1",
       role: ROLES.ADMIN,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
+    mockedFindClass.mockResolvedValue({ id: "class-1" } as never);
+    mockedFindSubject.mockResolvedValue({
+      id: "subject-1",
+      color: "bg-primary",
+    } as never);
     mockedFindMany.mockResolvedValue([
       {
         id: "schedule-existing",
@@ -74,6 +84,86 @@ describe("POST /api/schedules - overlap guard", () => {
 
     expect(response.status).toBe(409);
     expect(payload.error.code).toBe("CONFLICT");
+    expect(mockedFindMany).toHaveBeenCalledWith({
+      where: {
+        classId: "class-1",
+        dayOfWeek: "MON",
+        class: { schoolId: "school-1" },
+      },
+      select: {
+        id: true,
+        classId: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
+  it("membatasi deteksi bentrok ruang ke sekolah actor", async () => {
+    const mockedRequireAuth = vi.mocked(requireAuth);
+    const mockedRequireRole = vi.mocked(requireRole);
+    const mockedFindMany = vi.mocked(prisma.classSchedule.findMany);
+    const mockedFindClass = vi.mocked(prisma.class.findFirst);
+    const mockedFindSubject = vi.mocked(prisma.subject.findFirst);
+    const mockedCreate = vi.mocked(prisma.classSchedule.create);
+
+    mockedRequireAuth.mockResolvedValue({
+      userId: "admin-1",
+      role: ROLES.ADMIN,
+      schoolId: "school-1",
+    } as never);
+    mockedRequireRole.mockReturnValue(null);
+    mockedFindClass.mockResolvedValue({ id: "class-1" } as never);
+    mockedFindSubject.mockResolvedValue({
+      id: "subject-1",
+      color: "bg-primary",
+    } as never);
+    mockedFindMany
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([
+        {
+          id: "schedule-room",
+          room: "Lab 1",
+          dayOfWeek: "MON",
+          startTime: "08:00",
+          endTime: "09:00",
+        },
+      ] as never);
+
+    const request = new Request("http://localhost/api/schedules", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        classId: "class-1",
+        subjectId: "subject-1",
+        dayOfWeek: "MON",
+        startTime: "08:30",
+        endTime: "09:30",
+        room: " lab 1 ",
+      }),
+    });
+
+    const response = await POST(request as never);
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.error.code).toBe("CONFLICT");
+    expect(mockedFindMany).toHaveBeenNthCalledWith(2, {
+      where: {
+        dayOfWeek: "MON",
+        room: { not: null },
+        class: { schoolId: "school-1" },
+      },
+      select: {
+        id: true,
+        room: true,
+        dayOfWeek: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
     expect(mockedCreate).not.toHaveBeenCalled();
   });
 });

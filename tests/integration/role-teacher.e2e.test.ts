@@ -26,6 +26,12 @@ vi.mock("@/lib/prisma", () => ({
     attendanceSession: {
       upsert: vi.fn(),
     },
+    class: {
+      findFirst: vi.fn(),
+    },
+    subject: {
+      findFirst: vi.fn(),
+    },
     assignmentSubmission: {
       findUnique: vi.fn(),
     },
@@ -64,6 +70,8 @@ describe("E2E role journey - TEACHER", () => {
     const mockedCreateAssignmentClass = vi.mocked(prisma.assignmentClass.createMany);
     const mockedFindStudentProfiles = vi.mocked(prisma.studentProfile.findMany);
     const mockedUpsertSession = vi.mocked(prisma.attendanceSession.upsert);
+    const mockedFindClass = vi.mocked(prisma.class.findFirst);
+    const mockedFindSubject = vi.mocked(prisma.subject.findFirst);
     const mockedFindSubmission = vi.mocked(prisma.assignmentSubmission.findUnique);
     const mockedTransaction = vi.mocked(prisma.$transaction);
     const mockedCanTeacherManage = vi.mocked(canTeacherManageSubjectClass);
@@ -71,12 +79,14 @@ describe("E2E role journey - TEACHER", () => {
     mockedRequireAuth.mockResolvedValue({
       userId: "teacher-1",
       role: ROLES.TEACHER,
-      schoolId: null,
+      schoolId: "school-1",
     } as never);
     mockedRequireRole.mockReturnValue(null);
     mockedCanTeacherManage.mockResolvedValue(true as never);
     mockedSubjectTeacher.mockResolvedValue({ teacherId: "teacher-1" } as never);
     mockedSubjectClass.mockResolvedValue([{ classId: "class-1" }] as never);
+    mockedFindClass.mockResolvedValue({ id: "class-1" } as never);
+    mockedFindSubject.mockResolvedValue({ id: "subject-1" } as never);
     mockedCreateAssignment.mockResolvedValue({
       id: "assignment-1",
       title: "Latihan Bab 1",

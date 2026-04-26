@@ -201,6 +201,7 @@ export async function POST(request: Request) {
 
   const rootDir = process.cwd();
   const packet = parsedBody.packet;
+  const decision = parsedBody.decision ?? "Approved";
   const targetPath = resolveGovernanceDocPath(rootDir, packetPathByType[packet]);
   const originalMarkdown = readFileSync(targetPath, "utf8");
   const decisionDate = parsedBody.date ?? new Date().toISOString().slice(0, 10);
@@ -220,7 +221,7 @@ export async function POST(request: Request) {
         matchValue: targetLabel,
         mutateColumns: (columns) => {
           if (approverName) columns[1] = approverName;
-          columns[2] = parsedBody.decision;
+          columns[2] = decision;
           columns[3] = decisionDate;
           columns[4] = note || columns[4] || "-";
         },
@@ -235,7 +236,7 @@ export async function POST(request: Request) {
         matchColumnIndex: 0,
         matchValue: targetLabel,
         mutateColumns: (columns) => {
-          columns[2] = parsedBody.decision;
+          columns[2] = decision;
           columns[3] = decisionDate;
           const noteWithName = approverName
             ? note
@@ -255,7 +256,7 @@ export async function POST(request: Request) {
         matchColumnIndex: 0,
         matchValue: targetLabel,
         mutateColumns: (columns) => {
-          columns[2] = parsedBody.decision;
+          columns[2] = decision;
         },
       });
       updatedMarkdown = updateTableRow({
@@ -266,7 +267,7 @@ export async function POST(request: Request) {
         mutateColumns: (columns) => {
           if (parsedBody.owner) columns[1] = parsedBody.owner;
           if (parsedBody.dueDate) columns[2] = parsedBody.dueDate;
-          columns[3] = parsedBody.decision;
+          columns[3] = decision;
           columns[4] = decisionDate;
           columns[5] = note || columns[5] || "-";
         },
@@ -288,7 +289,7 @@ export async function POST(request: Request) {
       rootDir,
       packet: packet.toUpperCase(),
       target: targetLabel,
-      decision: parsedBody.decision,
+      decision,
       actor: parsedBody.actor ?? auth.userId,
       note,
       date: decisionDate,
@@ -322,7 +323,7 @@ export async function POST(request: Request) {
     changed,
     packet,
     target: targetLabel,
-    decision: parsedBody.decision,
+    decision,
     date: decisionDate,
     snapshot,
   });

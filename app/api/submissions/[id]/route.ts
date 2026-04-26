@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { canSubmitAssignmentAt } from "@/lib/assignment-policy";
 import { createInAppNotifications } from "@/lib/notification-service";
 import { ROLES } from "@/lib/constants";
+import { SubmissionStatus } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -69,12 +71,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "Status submission tidak valid untuk siswa", 403);
   }
 
-  const status =
+  const status = (
     requestedStatus !== undefined
       ? requestedStatus
       : auth.role === ROLES.STUDENT
         ? "SUBMITTED"
-        : undefined;
+        : undefined
+  ) as SubmissionStatus | undefined;
   const isStudentSubmissionAttempt =
     auth.role === ROLES.STUDENT && status === "SUBMITTED";
   if (isStudentSubmissionAttempt) {
@@ -146,10 +149,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       (existing.submittedAt?.getTime() ?? null) !==
         (updated.submittedAt?.getTime() ?? null);
     if (shouldLogSubmissionLifecycle) {
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: "SUBMISSION_STATUS_CHANGED",
           entityType: "AssignmentSubmission",
           entityId: updated.id,
@@ -168,7 +170,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
             studentId: updated.studentId,
           },
         },
-      });
+        tx
+      );
     }
 
     const shouldLogGradeAudit =
@@ -182,10 +185,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         existing.status !== updated.status && updated.status === "GRADED"
           ? "GRADE_PUBLISHED"
           : "GRADE_UPDATED";
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action,
           entityType: "AssignmentSubmission",
           entityId: updated.id,
@@ -205,7 +207,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
           },
           reason,
         },
-      });
+        tx
+      );
 
       if (updated.status === "GRADED") {
         const parentLinks = await tx.parentStudent.findMany({

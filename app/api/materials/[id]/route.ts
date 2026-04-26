@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import {
   canTeacherManageSubjectClass,
   getStudentClassId,
@@ -8,9 +15,10 @@ import {
 } from "@/lib/authz";
 import { ROLES } from "@/lib/constants";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [
@@ -22,7 +30,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (roleError) return roleError;
 
   const row = await prisma.material.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     include: { subject: true, class: true, teacher: true, attachments: true },
   });
   if (!row) return jsonError("NOT_FOUND", "Material not found", 404);
@@ -49,13 +57,16 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const existing = await prisma.material.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: {
       id: true,
       teacherId: true,
@@ -79,6 +90,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const allowed = await canTeacherManageSubjectClass(
       auth.userId,
       nextSubjectId,
+      schoolId,
       nextClassId ?? null
     );
     if (!allowed) {
@@ -101,7 +113,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   const row = await prisma.material.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: {
       title: body.title,
       description: body.description,
@@ -114,13 +126,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
 
   const existing = await prisma.material.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { teacherId: true },
   });
   if (!existing) return jsonError("NOT_FOUND", "Material not found", 404);
@@ -128,6 +141,6 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "Anda tidak bisa menghapus materi ini", 403);
   }
 
-  await prisma.material.delete({ where: { id: params.id } });
-  return jsonOk({ id: params.id });
+  await prisma.material.delete({ where: { id: routeParams.id } });
+  return jsonOk({ id: routeParams.id });
 }

@@ -4,22 +4,23 @@ import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth, req
 import { ROLES } from "@/lib/constants";
 import { mockNotes } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT]);
   if (roleError) return roleError;
 
   if (isMockEnabled()) {
-    const item = mockNotes.find((row) => row.id === params.id);
+    const item = mockNotes.find((row) => row.id === routeParams.id);
     if (!item) return jsonError("NOT_FOUND", "Note not found", 404);
     return jsonOk(item);
   }
 
   const row = await prisma.note.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     include: { subject: true, class: true, author: true },
   });
   if (!row) return jsonError("NOT_FOUND", "Note not found", 404);
@@ -63,13 +64,14 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT]);
   if (roleError) return roleError;
 
   const existing = await prisma.note.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { authorId: true },
   });
   if (!existing) return jsonError("NOT_FOUND", "Note not found", 404);
@@ -81,7 +83,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (parsedRequestBody instanceof Response) return parsedRequestBody;
   const body = parsedRequestBody;
   const row = await prisma.note.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: {
       title: body.title,
       content: body.content,
@@ -97,13 +99,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER, ROLES.STUDENT]);
   if (roleError) return roleError;
 
   const existing = await prisma.note.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { authorId: true },
   });
   if (!existing) return jsonError("NOT_FOUND", "Note not found", 404);
@@ -111,6 +114,6 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     return jsonError("FORBIDDEN", "Anda tidak bisa menghapus catatan ini", 403);
   }
 
-  await prisma.note.delete({ where: { id: params.id } });
-  return jsonOk({ id: params.id });
+  await prisma.note.delete({ where: { id: routeParams.id } });
+  return jsonOk({ id: routeParams.id });
 }

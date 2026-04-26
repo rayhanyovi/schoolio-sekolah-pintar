@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import {
   canTeacherWriteAttendance,
   needsAdminAttendanceOverride,
@@ -152,10 +153,9 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     if (mustUseAdminOverride) {
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: "ATTENDANCE_RECORDS_OVERRIDE_BULK",
           entityType: "AttendanceSession",
           entityId: id,
@@ -168,7 +168,8 @@ export async function POST(request: NextRequest, { params }: Params) {
             updatedRecords: records.length,
           },
         },
-      });
+        tx
+      );
     }
   });
 

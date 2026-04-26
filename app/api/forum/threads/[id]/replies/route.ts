@@ -4,9 +4,10 @@ import { isMockEnabled, jsonError, jsonOk, parseJsonRecordBody, requireAuth } fr
 import { ROLES } from "@/lib/constants";
 import { mockReplies } from "@/lib/mockData";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   if (auth.role === ROLES.PARENT) {
@@ -14,12 +15,12 @@ export async function GET(request: NextRequest, { params }: Params) {
   }
 
   if (isMockEnabled()) {
-    const data = mockReplies.filter((row) => row.threadId === params.id);
+    const data = mockReplies.filter((row) => row.threadId === routeParams.id);
     return jsonOk(data);
   }
 
   const rows = await prisma.forumReply.findMany({
-    where: { threadId: params.id },
+    where: { threadId: routeParams.id },
     include: { author: true },
     orderBy: { createdAt: "asc" },
   });
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  const routeParams = await params;
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
 
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   const thread = await prisma.forumThread.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: { status: true },
   });
   if (!thread) return jsonError("NOT_FOUND", "Thread not found", 404);
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const row = await prisma.forumReply.create({
     data: {
-      threadId: params.id,
+      threadId: routeParams.id,
       content: body.content,
       authorId: auth.userId,
       authorRole: auth.role,
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   });
 
   await prisma.forumThread.update({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     data: { replyCount: { increment: 1 } },
   });
 

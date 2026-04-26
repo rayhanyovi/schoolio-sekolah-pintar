@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { Prisma, StudentLifecycleStatus } from "@prisma/client";
+import { Gender, Prisma, Role, StudentLifecycleStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
@@ -14,6 +14,7 @@ import {
   requireRole,
   requireSchoolContext,
 } from "@/lib/api";
+import { recordAudit } from "@/lib/audit";
 import { resolveAcademicYearScope } from "@/lib/academic-year-scope";
 import { ROLES } from "@/lib/constants";
 
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
   }
 
   const where: Prisma.UserWhereInput = { schoolId };
-  if (role) where.role = role;
+  if (role) where.role = role as Role;
   if (q) {
     where.OR = [
       { name: { contains: q, mode: "insensitive" } },
@@ -216,7 +217,7 @@ export async function POST(request: NextRequest) {
           data: {
             userId: created.id,
             classId: targetClassId,
-            gender: body.gender ?? null,
+            gender: (body.gender as Gender | null | undefined) ?? null,
             status: studentLifecycleStatus ?? "ACTIVE",
           },
         });
@@ -244,10 +245,9 @@ export async function POST(request: NextRequest) {
         await tx.parentProfile.create({ data: { userId: created.id } });
       }
 
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: "USER_CREATED",
           entityType: "User",
           entityId: created.id,
@@ -259,7 +259,8 @@ export async function POST(request: NextRequest) {
             role: created.role,
           },
         },
-      });
+        tx
+      );
 
       return {
         ...created,

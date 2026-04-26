@@ -1,19 +1,28 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { jsonError, jsonOk, parseJsonRecordBody, requireAuth, requireRole } from "@/lib/api";
+import {
+  jsonError,
+  jsonOk,
+  parseJsonRecordBody,
+  requireAuth,
+  requireRole,
+  requireSchoolContext,
+} from "@/lib/api";
 import { canTeacherManageSubjectClass } from "@/lib/authz";
+import { recordAudit } from "@/lib/audit";
 import {
   canTeacherWriteAttendance,
   needsAdminAttendanceOverride,
 } from "@/lib/attendance-policy";
 import { buildAttendanceSessionKey } from "@/lib/attendance-session-key";
 import { ROLES } from "@/lib/constants";
-import { Prisma } from "@prisma/client";
+import { AttendanceSessionStatus, Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
 const canTeacherManageSession = async (
   teacherId: string,
+  schoolId: string,
   session: {
     teacherId: string | null;
     takenByTeacherId: string | null;
@@ -24,7 +33,12 @@ const canTeacherManageSession = async (
   if (session.teacherId === teacherId || session.takenByTeacherId === teacherId) {
     return true;
   }
-  return canTeacherManageSubjectClass(teacherId, session.subjectId, session.classId);
+  return canTeacherManageSubjectClass(
+    teacherId,
+    session.subjectId,
+    schoolId,
+    session.classId
+  );
 };
 
 export async function GET(request: NextRequest, { params }: Params) {
@@ -32,10 +46,12 @@ export async function GET(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
-  const row = await prisma.attendanceSession.findUnique({
-    where: { id },
+  const row = await prisma.attendanceSession.findFirst({
+    where: { id, class: { schoolId } },
     include: {
       class: true,
       subject: true,
@@ -46,7 +62,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   });
   if (!row) return jsonError("NOT_FOUND", "Attendance session not found", 404);
   if (auth.role === ROLES.TEACHER) {
-    const allowed = await canTeacherManageSession(auth.userId, row);
+    const allowed = await canTeacherManageSession(auth.userId, schoolId, row);
     if (!allowed) {
       return jsonError("FORBIDDEN", "Anda tidak memiliki akses ke sesi ini", 403);
     }
@@ -59,13 +75,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
     return jsonError("VALIDATION_ERROR", "id is required");
   }
-  const existing = await prisma.attendanceSession.findUnique({
-    where: { id },
+  const existing = await prisma.attendanceSession.findFirst({
+    where: { id, class: { schoolId } },
     select: {
       id: true,
       sessionKey: true,
@@ -98,7 +116,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   }
 
   if (auth.role === ROLES.TEACHER) {
-    const canManageCurrent = await canTeacherManageSession(auth.userId, existing);
+    const canManageCurrent = await canTeacherManageSession(
+      auth.userId,
+      schoolId,
+      existing
+    );
     if (!canManageCurrent) {
       return jsonError("FORBIDDEN", "Anda tidak bisa mengubah sesi ini", 403);
     }
@@ -132,6 +154,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const allowed = await canTeacherManageSubjectClass(
       auth.userId,
       nextSubjectId,
+      schoolId,
       nextClassId
     );
     if (!allowed) {
@@ -176,6 +199,23 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     typeof body.classId === "string" ? body.classId : existing.classId;
   const nextSubjectId =
     typeof body.subjectId === "string" ? body.subjectId : existing.subjectId;
+  const [classRow, subject] = await Promise.all([
+    prisma.class.findFirst({
+      where: { id: nextClassId, schoolId },
+      select: { id: true },
+    }),
+    prisma.subject.findFirst({
+      where: { id: nextSubjectId, schoolId },
+      select: { id: true },
+    }),
+  ]);
+  if (!classRow || !subject) {
+    return jsonError(
+      "FORBIDDEN",
+      "Kelas atau mapel tidak valid untuk sekolah ini",
+      403
+    );
+  }
   const nextScheduleId =
     body.scheduleId !== undefined ? body.scheduleId : existing.scheduleId;
   const nextStartTime =
@@ -190,7 +230,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     endTime: nextEndTime ?? null,
   });
   const now = new Date();
-  const nextStatus = requestedStatus ?? existing.status;
+  const nextStatus = (requestedStatus ?? existing.status) as AttendanceSessionStatus;
   const nextLockedAt =
     requestedStatus === "OPEN"
       ? null
@@ -238,10 +278,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       });
 
       if (mustUseAdminOverride) {
-        await tx.auditLog.create({
-          data: {
-            actorId: auth.userId,
-            actorRole: auth.role,
+        await recordAudit(
+          auth,
+          {
             action: "ATTENDANCE_SESSION_OVERRIDE",
             entityType: "AttendanceSession",
             entityId: updated.id,
@@ -263,7 +302,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
               subjectId: updated.subjectId,
             },
           },
-        });
+          tx
+        );
       }
 
       return updated;
@@ -289,13 +329,15 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (auth instanceof Response) return auth;
   const roleError = requireRole(auth, [ROLES.ADMIN, ROLES.TEACHER]);
   if (roleError) return roleError;
+  const schoolId = requireSchoolContext(auth);
+  if (schoolId instanceof Response) return schoolId;
 
   const { id } = await params;
   if (!id) {
     return jsonError("VALIDATION_ERROR", "id is required");
   }
-  const existing = await prisma.attendanceSession.findUnique({
-    where: { id },
+  const existing = await prisma.attendanceSession.findFirst({
+    where: { id, class: { schoolId } },
     select: {
       classId: true,
       subjectId: true,
@@ -307,7 +349,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   });
   if (!existing) return jsonError("NOT_FOUND", "Attendance session not found", 404);
   if (auth.role === ROLES.TEACHER) {
-    const allowed = await canTeacherManageSession(auth.userId, existing);
+    const allowed = await canTeacherManageSession(auth.userId, schoolId, existing);
     if (!allowed) {
       return jsonError("FORBIDDEN", "Anda tidak bisa menghapus sesi ini", 403);
     }

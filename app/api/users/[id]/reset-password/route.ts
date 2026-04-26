@@ -12,6 +12,8 @@ import { isSaasMode } from "@/lib/app-mode";
 import { getDefaultUserPassword } from "@/lib/default-password";
 import { hashPassword } from "@/lib/password";
 import { normalizeCredentialIdentifier } from "@/lib/auth-credential";
+import { invalidateOutstandingPasswordResetTokens } from "@/lib/password-reset";
+import { recordAudit } from "@/lib/audit";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -106,18 +108,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
         },
       });
 
-      await tx.passwordResetToken.updateMany({
-        where: {
-          credentialId: credential.id,
-          usedAt: null,
-        },
-        data: { usedAt: new Date() },
-      });
+      await invalidateOutstandingPasswordResetTokens(tx, credential.id);
 
-      await tx.auditLog.create({
-        data: {
-          actorId: auth.userId,
-          actorRole: auth.role,
+      await recordAudit(
+        auth,
+        {
           action: "USER_PASSWORD_RESET_TO_DEFAULT",
           entityType: "User",
           entityId: targetUser.id,
@@ -129,7 +124,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
             mustChangePassword: true,
           },
         },
-      });
+        tx
+      );
     });
   } catch (error) {
     if (error instanceof Error && error.message === "CONFLICT_IDENTIFIER") {
