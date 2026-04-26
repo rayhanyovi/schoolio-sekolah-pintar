@@ -1,0 +1,1349 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Schoolio / Sekolah Pintar</title>
+    <meta
+      name="description"
+      content="Landing page konseptual untuk Schoolio, sistem manajemen sekolah multi-role untuk admin, guru, siswa, dan orang tua."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e6b53'/%3E%3Cpath d='M16 20h32v7H16zm0 12h32v18H16z' fill='%23fffaf0'/%3E%3Cpath d='M22 38h20v4H22z' fill='%23d7a12b'/%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f8f4ea;
+        --paper-strong: #fffaf0;
+        --ink: #13231f;
+        --muted: #5b685f;
+        --line: rgba(19, 35, 31, 0.14);
+        --green: #0e6b53;
+        --green-deep: #074838;
+        --teal: #2a8b93;
+        --red: #c94932;
+        --gold: #d7a12b;
+        --blue: #3e6a99;
+        --shadow: 0 24px 70px rgba(19, 35, 31, 0.18);
+        --radius: 8px;
+        --max: 1180px;
+        --serif: Georgia, "Times New Roman", serif;
+        --sans:
+          ui-sans-serif, "Segoe UI", Candara, "Trebuchet MS", system-ui,
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 10% 10%, rgba(215, 161, 43, 0.14), transparent 26rem),
+          linear-gradient(90deg, rgba(19, 35, 31, 0.025) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(19, 35, 31, 0.018) 1px, transparent 1px),
+          var(--paper);
+        background-size: auto, 38px 38px, 38px 38px, auto;
+        color: var(--ink);
+        font-family: var(--sans);
+        line-height: 1.5;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      .site-header {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 20;
+        border-bottom: 1px solid transparent;
+        transition:
+          background 220ms ease,
+          border-color 220ms ease,
+          transform 220ms ease;
+      }
+
+      .site-header.is-scrolled {
+        background: color-mix(in srgb, var(--paper-strong) 88%, transparent);
+        border-color: var(--line);
+        backdrop-filter: blur(16px);
+      }
+
+      .nav {
+        width: min(var(--max), calc(100% - 32px));
+        min-height: 72px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        text-decoration: none;
+        font-weight: 760;
+        letter-spacing: 0;
+      }
+
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        color: var(--paper-strong);
+        background:
+          linear-gradient(135deg, transparent 0 30%, rgba(255, 255, 255, 0.24) 30% 48%, transparent 48%),
+          var(--green);
+        border: 1px solid rgba(7, 72, 56, 0.35);
+        border-radius: 7px;
+        box-shadow: inset 0 -8px 18px rgba(0, 0, 0, 0.12);
+      }
+
+      .brand-mark span {
+        display: block;
+        width: 15px;
+        height: 15px;
+        border: 2px solid currentColor;
+        border-top: 0;
+        border-left: 0;
+        transform: rotate(45deg) translate(-1px, -1px);
+      }
+
+      .brand-short {
+        display: none;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+
+      .nav-links a {
+        color: color-mix(in srgb, var(--ink) 76%, transparent);
+        font-size: 0.94rem;
+        font-weight: 650;
+        text-decoration: none;
+      }
+
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .btn {
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0 18px;
+        color: var(--ink);
+        background: color-mix(in srgb, var(--paper-strong) 78%, transparent);
+        font-weight: 760;
+        letter-spacing: 0;
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          background 180ms ease,
+          color 180ms ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .btn.primary {
+        border-color: var(--green-deep);
+        color: var(--paper-strong);
+        background: var(--green-deep);
+        box-shadow: 0 16px 34px rgba(7, 72, 56, 0.22);
+      }
+
+      .btn.secondary {
+        border-color: rgba(201, 73, 50, 0.38);
+        color: #8d2f22;
+        background: rgba(201, 73, 50, 0.08);
+      }
+
+      .hero {
+        position: relative;
+        min-height: min(820px, 88svh);
+        overflow: hidden;
+        display: grid;
+        align-items: center;
+        padding: 88px 0 10px;
+        isolation: isolate;
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -2;
+        background:
+          linear-gradient(90deg, rgba(248, 244, 234, 0.96) 0 36%, rgba(248, 244, 234, 0.74) 54%, rgba(248, 244, 234, 0.2) 100%),
+          linear-gradient(180deg, rgba(248, 244, 234, 0.72), rgba(248, 244, 234, 0.86));
+      }
+
+      .hero-scene {
+        position: absolute;
+        inset: 82px max(18px, calc((100vw - var(--max)) / 2)) 38px 49%;
+        z-index: -3;
+        min-width: 500px;
+        border-radius: 22px;
+        transform: rotate(-1.5deg);
+        box-shadow: var(--shadow);
+        background:
+          linear-gradient(120deg, rgba(255, 250, 240, 0.95), rgba(232, 241, 229, 0.96)),
+          var(--paper-strong);
+        border: 1px solid rgba(19, 35, 31, 0.16);
+        overflow: hidden;
+      }
+
+      .hero-scene::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(14, 107, 83, 0.08) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(14, 107, 83, 0.06) 1px, transparent 1px);
+        background-size: 44px 44px;
+      }
+
+      .scene-top {
+        position: absolute;
+        inset: 0 0 auto;
+        height: 76px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        color: var(--paper-strong);
+        background: var(--green-deep);
+      }
+
+      .scene-dots {
+        display: flex;
+        gap: 8px;
+      }
+
+      .scene-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--gold);
+      }
+
+      .scene-dot:nth-child(2) {
+        background: var(--red);
+      }
+
+      .scene-dot:nth-child(3) {
+        background: var(--teal);
+      }
+
+      .scene-board {
+        position: absolute;
+        inset: 108px 28px 28px;
+        display: grid;
+        grid-template-columns: 1.05fr 0.8fr;
+        grid-template-rows: 0.7fr 1fr;
+        gap: 18px;
+      }
+
+      .scene-panel {
+        position: relative;
+        border: 1px solid rgba(19, 35, 31, 0.14);
+        border-radius: 14px;
+        background: rgba(255, 250, 240, 0.78);
+        box-shadow: 0 18px 38px rgba(19, 35, 31, 0.09);
+        overflow: hidden;
+      }
+
+      .scene-panel.wide {
+        grid-row: span 2;
+      }
+
+      .panel-title {
+        padding: 16px 18px 8px;
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .schedule-lines {
+        padding: 0 18px 16px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .schedule-line {
+        display: grid;
+        grid-template-columns: 60px 1fr 44px;
+        gap: 10px;
+        align-items: center;
+        font-size: 0.78rem;
+      }
+
+      .bar {
+        height: 10px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--green) var(--level), rgba(14, 107, 83, 0.12));
+      }
+
+      .attendance-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 8px;
+        padding: 0 18px 18px;
+      }
+
+      .seat {
+        aspect-ratio: 1;
+        border-radius: 7px;
+        background: rgba(14, 107, 83, 0.15);
+      }
+
+      .seat:nth-child(3n) {
+        background: rgba(215, 161, 43, 0.34);
+      }
+
+      .seat:nth-child(11n) {
+        background: rgba(201, 73, 50, 0.28);
+      }
+
+      .role-stack {
+        padding: 0 18px 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .role-line {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 48px;
+        border-bottom: 1px solid rgba(19, 35, 31, 0.08);
+      }
+
+      .role-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+
+      .role-line:nth-child(2) .role-avatar {
+        background: var(--gold);
+      }
+
+      .role-line:nth-child(3) .role-avatar {
+        background: var(--red);
+      }
+
+      .hero-inner {
+        width: min(var(--max), calc(100% - 32px));
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 0.82fr) minmax(280px, 0.55fr);
+        gap: clamp(28px, 6vw, 92px);
+        align-items: end;
+      }
+
+      .eyebrow {
+        width: fit-content;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 12px;
+        border: 1px solid rgba(14, 107, 83, 0.22);
+        border-radius: 999px;
+        color: var(--green-deep);
+        background: rgba(14, 107, 83, 0.08);
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 0 5px rgba(14, 107, 83, 0.12);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        color: var(--ink);
+        font-family: var(--serif);
+        font-weight: 760;
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        max-width: 15ch;
+        margin-top: 16px;
+        font-size: clamp(3.6rem, 6vw, 5.6rem);
+      }
+
+      .hero-copy {
+        max-width: 640px;
+        margin: 20px 0 0;
+        color: color-mix(in srgb, var(--ink) 74%, transparent);
+        font-size: clamp(1.05rem, 1.35vw, 1.22rem);
+        line-height: 1.6;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .proof-strip {
+        margin-top: 38px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        max-width: 660px;
+        border: 1px solid var(--line);
+        background: var(--line);
+      }
+
+      .proof-item {
+        padding: 18px;
+        background: rgba(255, 250, 240, 0.72);
+      }
+
+      .proof-item strong {
+        display: block;
+        font-family: var(--serif);
+        font-size: 1.7rem;
+        line-height: 1;
+      }
+
+      .proof-item span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .hero-note {
+        align-self: end;
+        border-left: 3px solid var(--red);
+        padding: 18px 0 18px 20px;
+        color: var(--ink);
+        max-width: 330px;
+      }
+
+      .hero-note p {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .section {
+        padding: clamp(72px, 10vw, 132px) 0;
+      }
+
+      .section.tight {
+        padding-top: 18px;
+      }
+
+      .container {
+        width: min(var(--max), calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: minmax(0, 0.8fr) minmax(260px, 0.45fr);
+        gap: clamp(22px, 6vw, 82px);
+        align-items: end;
+        margin-bottom: 42px;
+      }
+
+      .section.tight .section-head {
+        opacity: 1;
+        transform: none;
+      }
+
+      h2 {
+        font-size: clamp(2.8rem, 7vw, 6.8rem);
+        max-width: 11ch;
+      }
+
+      .section-head p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+      }
+
+      .flow-nav {
+        background: var(--paper-strong);
+        padding: clamp(20px, 4vw, 38px);
+        display: grid;
+        gap: 12px;
+      }
+
+      .role-tab {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 36px 1fr auto;
+        gap: 12px;
+        align-items: center;
+        min-height: 64px;
+        border: 1px solid transparent;
+        border-radius: var(--radius);
+        padding: 10px 12px;
+        color: var(--ink);
+        text-align: left;
+        background: transparent;
+      }
+
+      .role-tab[aria-selected="true"] {
+        border-color: rgba(14, 107, 83, 0.26);
+        background: rgba(14, 107, 83, 0.08);
+      }
+
+      .role-tab .icon {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        color: var(--paper-strong);
+        background: var(--green);
+      }
+
+      .role-tab:nth-child(2) .icon {
+        background: var(--teal);
+      }
+
+      .role-tab:nth-child(3) .icon {
+        background: var(--gold);
+      }
+
+      .role-tab:nth-child(4) .icon {
+        background: var(--red);
+      }
+
+      .role-tab strong {
+        display: block;
+        font-weight: 840;
+      }
+
+      .role-tab span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .role-detail {
+        position: relative;
+        min-height: 540px;
+        background: var(--green-deep);
+        color: var(--paper-strong);
+        padding: clamp(28px, 6vw, 56px);
+        overflow: hidden;
+      }
+
+      .role-detail::after {
+        content: "";
+        position: absolute;
+        inset: auto -10% -26% 28%;
+        height: 240px;
+        background: rgba(215, 161, 43, 0.18);
+        transform: rotate(-7deg);
+      }
+
+      .role-kicker {
+        color: rgba(255, 250, 240, 0.68);
+        font-size: 0.82rem;
+        font-weight: 820;
+        text-transform: uppercase;
+      }
+
+      .role-title {
+        margin-top: 14px;
+        color: var(--paper-strong);
+        font-size: clamp(2.3rem, 5vw, 4.9rem);
+        max-width: 11ch;
+      }
+
+      .role-description {
+        max-width: 560px;
+        margin: 22px 0 0;
+        color: rgba(255, 250, 240, 0.78);
+        font-size: 1.05rem;
+      }
+
+      .role-checks {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 34px;
+      }
+
+      .role-check {
+        min-height: 96px;
+        padding: 16px;
+        border: 1px solid rgba(255, 250, 240, 0.18);
+        border-radius: var(--radius);
+        background: rgba(255, 250, 240, 0.08);
+      }
+
+      .role-check b {
+        display: block;
+        color: var(--paper-strong);
+      }
+
+      .role-check small {
+        display: block;
+        margin-top: 8px;
+        color: rgba(255, 250, 240, 0.66);
+        line-height: 1.45;
+      }
+
+      .modules {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 14px;
+      }
+
+      .module {
+        min-height: 210px;
+        grid-column: span 4;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 22px;
+        background: rgba(255, 250, 240, 0.68);
+      }
+
+      .module:nth-child(1),
+      .module:nth-child(4) {
+        grid-column: span 5;
+      }
+
+      .module:nth-child(2),
+      .module:nth-child(5) {
+        grid-column: span 3;
+      }
+
+      .module h3 {
+        font-size: 1.55rem;
+        line-height: 1.08;
+      }
+
+      .module p {
+        margin: 18px 0 0;
+        color: var(--muted);
+      }
+
+      .module-code {
+        width: fit-content;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 5px 10px;
+        color: var(--green-deep);
+        background: rgba(14, 107, 83, 0.08);
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .operating {
+        display: grid;
+        grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.1fr);
+        gap: clamp(28px, 7vw, 94px);
+        align-items: center;
+      }
+
+      .daybook {
+        border: 1px solid rgba(19, 35, 31, 0.16);
+        border-radius: 18px;
+        background: var(--paper-strong);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .daybook-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 18px;
+        padding: 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .daybook-header strong {
+        font-family: var(--serif);
+        font-size: 1.7rem;
+      }
+
+      .daybook-row {
+        display: grid;
+        grid-template-columns: 92px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .daybook-row:last-child {
+        border-bottom: 0;
+      }
+
+      .time {
+        color: var(--muted);
+        font-weight: 760;
+      }
+
+      .pill {
+        border-radius: 999px;
+        padding: 6px 10px;
+        color: var(--green-deep);
+        background: rgba(14, 107, 83, 0.1);
+        font-size: 0.78rem;
+        font-weight: 820;
+      }
+
+      .pill.red {
+        color: #8d2f22;
+        background: rgba(201, 73, 50, 0.1);
+      }
+
+      .pill.gold {
+        color: #7e5812;
+        background: rgba(215, 161, 43, 0.15);
+      }
+
+      .operating h2 {
+        max-width: 9ch;
+      }
+
+      .operating-copy {
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .checklist {
+        display: grid;
+        gap: 14px;
+        margin-top: 28px;
+      }
+
+      .checklist-item {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .tick {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: var(--paper-strong);
+        background: var(--green);
+        font-weight: 900;
+      }
+
+      .cta {
+        position: relative;
+        overflow: hidden;
+        border-top: 1px solid var(--line);
+        background: var(--ink);
+        color: var(--paper-strong);
+      }
+
+      .cta::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(255, 250, 240, 0.06) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(255, 250, 240, 0.04) 1px, transparent 1px);
+        background-size: 42px 42px;
+      }
+
+      .cta-inner {
+        position: relative;
+        width: min(var(--max), calc(100% - 32px));
+        margin: 0 auto;
+        padding: clamp(74px, 11vw, 130px) 0;
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(260px, 0.4fr);
+        gap: 36px;
+        align-items: end;
+      }
+
+      .cta h2 {
+        color: var(--paper-strong);
+        max-width: 10ch;
+      }
+
+      .cta p {
+        margin: 18px 0 0;
+        color: rgba(255, 250, 240, 0.72);
+      }
+
+      .cta .btn.primary {
+        background: var(--paper-strong);
+        color: var(--ink);
+        border-color: var(--paper-strong);
+      }
+
+      .footer {
+        padding: 24px 0 34px;
+        color: rgba(255, 250, 240, 0.64);
+        background: var(--ink);
+      }
+
+      .footer-inner {
+        width: min(var(--max), calc(100% - 32px));
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        flex-wrap: wrap;
+        border-top: 1px solid rgba(255, 250, 240, 0.14);
+        padding-top: 22px;
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition:
+          opacity 650ms ease,
+          transform 650ms ease;
+      }
+
+      .reveal.is-visible {
+        opacity: 1;
+        transform: none;
+      }
+
+      @media (max-width: 980px) {
+        .nav-links {
+          display: none;
+        }
+
+        .hero-scene {
+          inset: 112px 16px 34px 18%;
+          min-width: 620px;
+          opacity: 0.58;
+        }
+
+        .hero-inner,
+        .section-head,
+        .flow,
+        .operating,
+        .cta-inner {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-note {
+          max-width: 620px;
+        }
+
+        .modules {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .module,
+        .module:nth-child(1),
+        .module:nth-child(2),
+        .module:nth-child(4),
+        .module:nth-child(5) {
+          grid-column: span 1;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .nav {
+          min-height: 64px;
+        }
+
+        .nav-inner {
+          gap: 12px;
+        }
+
+        .nav-actions .btn.secondary {
+          display: none;
+        }
+
+        .brand {
+          gap: 10px;
+        }
+
+        .brand-full {
+          display: none;
+        }
+
+        .brand-short {
+          display: inline;
+        }
+
+        .hero {
+          padding-top: 88px;
+        }
+
+        .hero-scene {
+          inset: 98px -160px 62px 20px;
+          min-width: 640px;
+          opacity: 0.42;
+        }
+
+        h1 {
+          font-size: clamp(3.5rem, 18vw, 5.9rem);
+        }
+
+        .proof-strip,
+        .role-checks,
+        .modules {
+          grid-template-columns: 1fr;
+        }
+
+        .daybook-row {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .role-detail {
+          min-height: auto;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header" data-header>
+      <nav class="nav" aria-label="Navigasi utama">
+        <a class="brand" href="#" aria-label="Schoolio">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span class="brand-full">Schoolio / Sekolah Pintar</span>
+          <span class="brand-short">Schoolio</span>
+        </a>
+        <div class="nav-links" aria-label="Bagian halaman">
+          <a href="#roles">Peran</a>
+          <a href="#modules">Modul</a>
+          <a href="#operations">Operasional</a>
+        </div>
+        <div class="nav-actions">
+          <button class="btn secondary" type="button">Lihat demo</button>
+          <button class="btn primary" type="button">Mulai sekolah</button>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-scene" aria-hidden="true">
+          <div class="scene-top">
+            <strong>Ruang kendali sekolah</strong>
+            <div class="scene-dots">
+              <span class="scene-dot"></span>
+              <span class="scene-dot"></span>
+              <span class="scene-dot"></span>
+            </div>
+          </div>
+          <div class="scene-board">
+            <div class="scene-panel wide">
+              <div class="panel-title">Jadwal hari ini</div>
+              <div class="schedule-lines">
+                <div class="schedule-line">
+                  <span>07.00</span><span class="bar" style="--level: 76%"></span><b>X IPA</b>
+                </div>
+                <div class="schedule-line">
+                  <span>08.30</span><span class="bar" style="--level: 58%"></span><b>XI A</b>
+                </div>
+                <div class="schedule-line">
+                  <span>10.15</span><span class="bar" style="--level: 88%"></span><b>XII B</b>
+                </div>
+                <div class="schedule-line">
+                  <span>13.00</span><span class="bar" style="--level: 44%"></span><b>VII C</b>
+                </div>
+              </div>
+              <div class="panel-title">Absensi cepat</div>
+              <div class="attendance-grid">
+                <span class="seat"></span><span class="seat"></span><span class="seat"></span><span class="seat"></span>
+                <span class="seat"></span><span class="seat"></span><span class="seat"></span><span class="seat"></span>
+                <span class="seat"></span><span class="seat"></span><span class="seat"></span><span class="seat"></span>
+                <span class="seat"></span><span class="seat"></span><span class="seat"></span><span class="seat"></span>
+              </div>
+            </div>
+            <div class="scene-panel">
+              <div class="panel-title">Perlu perhatian</div>
+              <div class="role-stack">
+                <div class="role-line"><span class="role-avatar"></span><b>3 izin sakit</b></div>
+                <div class="role-line"><span class="role-avatar"></span><b>12 tugas masuk</b></div>
+                <div class="role-line"><span class="role-avatar"></span><b>4 nilai baru</b></div>
+              </div>
+            </div>
+            <div class="scene-panel">
+              <div class="panel-title">Orang tua</div>
+              <div class="role-stack">
+                <div class="role-line"><span class="role-avatar"></span><b>Rangkuman anak</b></div>
+                <div class="role-line"><span class="role-avatar"></span><b>Notifikasi nilai</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-inner">
+          <div class="reveal">
+            <span class="eyebrow">Sistem sekolah multi-role</span>
+            <h1 id="hero-title">Sekolah berjalan lebih tenang.</h1>
+            <p class="hero-copy">
+              Schoolio menyatukan administrasi, jadwal, absensi, tugas, nilai,
+              materi, forum kelas, dan portal orang tua dalam satu ruang kerja
+              yang dibuat untuk ritme sekolah Indonesia.
+            </p>
+            <div class="hero-actions">
+              <button class="btn primary" type="button">Jadwalkan demo</button>
+              <button class="btn secondary" type="button">Lihat alur guru</button>
+            </div>
+            <div class="proof-strip" aria-label="Ringkasan produk">
+              <div class="proof-item"><strong>4</strong><span>role utama</span></div>
+              <div class="proof-item"><strong>19</strong><span>halaman dashboard</span></div>
+              <div class="proof-item"><strong>86</strong><span>API route</span></div>
+            </div>
+          </div>
+          <aside class="hero-note reveal">
+            <strong>Didesain untuk sekolah yang butuh operasional rapi, bukan software yang ribut.</strong>
+            <p>
+              Admin melihat gambaran sekolah. Guru mengajar dan menilai.
+              Siswa mengikuti tugas. Orang tua memantau anak.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section tight" id="roles">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2>Satu sistem, empat sudut pandang.</h2>
+            <p>
+              Setiap peran masuk ke ruang kerja yang berbeda. Akses, data, dan
+              tindakan mengikuti konteks sekolah dan tanggung jawab pengguna.
+            </p>
+          </div>
+
+          <div class="flow reveal">
+            <div class="flow-nav" role="tablist" aria-label="Pilih peran">
+              <button class="role-tab" type="button" role="tab" aria-selected="true" data-role="admin">
+                <span class="icon">A</span>
+                <span><strong>Admin</strong><span>Kelola data inti sekolah</span></span>
+                <span>01</span>
+              </button>
+              <button class="role-tab" type="button" role="tab" aria-selected="false" data-role="teacher">
+                <span class="icon">G</span>
+                <span><strong>Guru</strong><span>Jadwal, materi, tugas, nilai</span></span>
+                <span>02</span>
+              </button>
+              <button class="role-tab" type="button" role="tab" aria-selected="false" data-role="student">
+                <span class="icon">S</span>
+                <span><strong>Siswa</strong><span>Tugas, materi, absensi</span></span>
+                <span>03</span>
+              </button>
+              <button class="role-tab" type="button" role="tab" aria-selected="false" data-role="parent">
+                <span class="icon">O</span>
+                <span><strong>Orang tua</strong><span>Pantau perkembangan anak</span></span>
+                <span>04</span>
+              </button>
+            </div>
+
+            <div class="role-detail" aria-live="polite">
+              <div class="role-kicker" data-role-kicker>Admin sekolah</div>
+              <h3 class="role-title" data-role-title>Kontrol data tanpa kehilangan konteks.</h3>
+              <p class="role-description" data-role-description>
+                Admin mengatur user, kelas, mapel, jurusan, tahun ajaran, profil sekolah, dan hubungan orang tua-siswa.
+              </p>
+              <div class="role-checks" data-role-checks>
+                <div class="role-check"><b>Tenant aman</b><small>Data sekolah dipisah berdasarkan profil sekolah.</small></div>
+                <div class="role-check"><b>Data akademik</b><small>Kelas, mapel, jadwal, dan tahun ajaran tersusun.</small></div>
+                <div class="role-check"><b>Audit penting</b><small>Perubahan sensitif punya jejak tindakan.</small></div>
+                <div class="role-check"><b>Siap onboarding</b><small>Role pengguna bisa dipilih dan diselesaikan bertahap.</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="modules">
+        <div class="container">
+          <div class="section-head reveal">
+            <h2>Modul inti yang langsung dipakai.</h2>
+            <p>
+              Fokus pertama bukan fitur yang terdengar mewah, tapi pekerjaan
+              harian sekolah yang harus selesai dengan cepat dan konsisten.
+            </p>
+          </div>
+
+          <div class="modules">
+            <article class="module reveal">
+              <span class="module-code">JADWAL</span>
+              <div>
+                <h3>Jadwal kelas dan guru</h3>
+                <p>Bentrok kelas, guru, dan ruangan dicegah dari server.</p>
+              </div>
+            </article>
+            <article class="module reveal">
+              <span class="module-code">ABSENSI</span>
+              <div>
+                <h3>Sesi absensi</h3>
+                <p>Absensi berbasis sesi dengan kunci unik agar tidak dobel.</p>
+              </div>
+            </article>
+            <article class="module reveal">
+              <span class="module-code">NILAI</span>
+              <div>
+                <h3>Penilaian</h3>
+                <p>Tugas, submission, feedback, dan publikasi nilai.</p>
+              </div>
+            </article>
+            <article class="module reveal">
+              <span class="module-code">ORANG TUA</span>
+              <div>
+                <h3>Portal pantau anak</h3>
+                <p>Orang tua melihat informasi anak tanpa membuka data siswa lain.</p>
+              </div>
+            </article>
+            <article class="module reveal">
+              <span class="module-code">MATERI</span>
+              <div>
+                <h3>Materi belajar</h3>
+                <p>Guru mengunggah materi, siswa mengakses sesuai kelas.</p>
+              </div>
+            </article>
+            <article class="module reveal">
+              <span class="module-code">FORUM</span>
+              <div>
+                <h3>Diskusi kelas</h3>
+                <p>Thread, balasan, pin, lock, dan moderasi guru.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="operations">
+        <div class="container operating">
+          <div class="daybook reveal" aria-label="Contoh hari operasional">
+            <div class="daybook-header">
+              <strong>Senin</strong>
+              <span class="pill">Hari aktif</span>
+            </div>
+            <div class="daybook-row">
+              <span class="time">06.45</span>
+              <div><b>Admin cek kesiapan kelas</b><br /><span>Jadwal dan guru piket terlihat.</span></div>
+              <span class="pill gold">Pagi</span>
+            </div>
+            <div class="daybook-row">
+              <span class="time">08.00</span>
+              <div><b>Guru ambil absensi</b><br /><span>Sesi tercatat, siswa sakit atau izin langsung tampak.</span></div>
+              <span class="pill">Kelas</span>
+            </div>
+            <div class="daybook-row">
+              <span class="time">14.20</span>
+              <div><b>Nilai dipublikasikan</b><br /><span>Siswa dan orang tua menerima notifikasi.</span></div>
+              <span class="pill red">Update</span>
+            </div>
+          </div>
+
+          <div class="reveal">
+            <h2>Bukan hanya catatan. Ini ritme kerja sekolah.</h2>
+            <p class="operating-copy">
+              Schoolio dibuat untuk mengurangi koordinasi manual: data siswa,
+              kelas, jadwal, absensi, tugas, dan nilai berada di satu tempat
+              yang konsisten.
+            </p>
+            <div class="checklist">
+              <div class="checklist-item">
+                <span class="tick">✓</span>
+                <div><b>Data mengikuti role</b><br /><span>Setiap pengguna melihat data sesuai tanggung jawab.</span></div>
+              </div>
+              <div class="checklist-item">
+                <span class="tick">✓</span>
+                <div><b>Siap untuk sekolah multi-kelas</b><br /><span>Mapel, jurusan, kelas, tahun ajaran, dan wali murid saling terhubung.</span></div>
+              </div>
+              <div class="checklist-item">
+                <span class="tick">✓</span>
+                <div><b>Release fokus ke pemakaian nyata</b><br /><span>Prioritas sekarang: app jalan, flow jelas, dan pengguna sekolah bisa mulai bekerja.</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta">
+        <div class="cta-inner">
+          <div class="reveal">
+            <h2>Bawa operasional sekolah ke satu layar.</h2>
+            <p>
+              Landing page ini hanya preview. Produk utama tetap dashboard
+              Schoolio untuk admin, guru, siswa, dan orang tua.
+            </p>
+          </div>
+          <div class="hero-actions reveal">
+            <button class="btn primary" type="button">Coba sekarang</button>
+            <button class="btn secondary" type="button">Hubungi tim</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>Schoolio / Sekolah Pintar</span>
+        <span>Landing page concept, standalone HTML.</span>
+      </div>
+    </footer>
+
+    <script>
+      const header = document.querySelector("[data-header]");
+      const revealItems = document.querySelectorAll(".reveal");
+      const roleTabs = document.querySelectorAll(".role-tab");
+      const roleData = {
+        admin: {
+          kicker: "Admin sekolah",
+          title: "Kontrol data tanpa kehilangan konteks.",
+          description:
+            "Admin mengatur user, kelas, mapel, jurusan, tahun ajaran, profil sekolah, dan hubungan orang tua-siswa.",
+          checks: [
+            ["Tenant aman", "Data sekolah dipisah berdasarkan profil sekolah."],
+            ["Data akademik", "Kelas, mapel, jadwal, dan tahun ajaran tersusun."],
+            ["Audit penting", "Perubahan sensitif punya jejak tindakan."],
+            ["Siap onboarding", "Role pengguna bisa dipilih dan diselesaikan bertahap."],
+          ],
+        },
+        teacher: {
+          kicker: "Guru",
+          title: "Mengajar, memberi tugas, menilai.",
+          description:
+            "Guru fokus pada jadwal hari ini, materi kelas, absensi, tugas, forum, dan publikasi nilai.",
+          checks: [
+            ["Jadwal jelas", "Bentrok guru dan kelas dicegah sejak penyimpanan."],
+            ["Absensi cepat", "Sesi absensi terbentuk rapi dan tidak dobel."],
+            ["Nilai terhubung", "Submission, feedback, dan notifikasi berjalan satu alur."],
+            ["Forum terkendali", "Thread bisa dipin, dikunci, dan dimoderasi."],
+          ],
+        },
+        student: {
+          kicker: "Siswa",
+          title: "Tahu apa yang harus dikerjakan hari ini.",
+          description:
+            "Siswa melihat jadwal, materi, tugas, nilai, dan diskusi kelas tanpa harus mencari di banyak tempat.",
+          checks: [
+            ["Tugas terkini", "Deadline dan status submission mudah dipantau."],
+            ["Materi kelas", "Bahan belajar mengikuti kelas dan mapel."],
+            ["Nilai transparan", "Nilai yang dipublikasikan muncul di dashboard."],
+            ["Diskusi aman", "Forum kelas tetap dalam batas moderasi sekolah."],
+          ],
+        },
+        parent: {
+          kicker: "Orang tua",
+          title: "Pantau anak tanpa membuka data sekolah.",
+          description:
+            "Orang tua mendapat ringkasan anak yang terhubung: absensi, nilai, tugas, dan perkembangan akademik.",
+          checks: [
+            ["Data scoped", "Akses hanya untuk anak yang terhubung."],
+            ["Nilai terbaru", "Publikasi nilai bisa dikirim sebagai notifikasi."],
+            ["Absensi terlihat", "Ketidakhadiran lebih cepat diketahui."],
+            ["Lebih sedikit tanya", "Informasi dasar tersedia tanpa chat berulang."],
+          ],
+        },
+      };
+
+      const setHeader = () => {
+        header.classList.toggle("is-scrolled", window.scrollY > 8);
+      };
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target);
+            }
+          }
+        },
+        { threshold: 0.16 }
+      );
+
+      for (const item of revealItems) observer.observe(item);
+
+      const renderRole = (key) => {
+        const data = roleData[key];
+        document.querySelector("[data-role-kicker]").textContent = data.kicker;
+        document.querySelector("[data-role-title]").textContent = data.title;
+        document.querySelector("[data-role-description]").textContent = data.description;
+        document.querySelector("[data-role-checks]").innerHTML = data.checks
+          .map(
+            ([title, body]) =>
+              `<div class="role-check"><b>${title}</b><small>${body}</small></div>`
+          )
+          .join("");
+      };
+
+      for (const tab of roleTabs) {
+        tab.addEventListener("click", () => {
+          for (const item of roleTabs) item.setAttribute("aria-selected", "false");
+          tab.setAttribute("aria-selected", "true");
+          renderRole(tab.dataset.role);
+        });
+      }
+
+      window.addEventListener("scroll", setHeader, { passive: true });
+      setHeader();
+    </script>
+  </body>
+</html>

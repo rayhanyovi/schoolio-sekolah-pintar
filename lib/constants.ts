@@ -1,6 +1,6 @@
 export const APP_NAME = "Schoolio";
 export const APP_DESCRIPTION = "Sistem Manajemen Pembelajaran Sekolah";
-export const ICON = "😹";
+export const ICON = "/favicon.ico";
 
 export const ROLES = {
   ADMIN: "ADMIN",
