@@ -26,7 +26,7 @@ import { UserCard } from "@/components/admin/UserCard";
 import { UserFormDialog, type UserFormData } from "@/components/admin/UserFormDialog";
 import { LinkUserDialog } from "@/components/admin/LinkUserDialog";
 import { UserStatsCard } from "@/components/admin/UserStatsCard";
-import { Role, ROLES, GRADES } from "@/lib/constants";
+import { Grade, Role, ROLES, GRADES } from "@/lib/constants";
 import {
   createParentInvite,
   createUser,
@@ -57,8 +57,8 @@ import {
 import { toast } from "sonner";
 
 type UserRow = UserSummary & {
-  studentProfile?: { classId?: string | null };
-  parentLinks?: { parentId: string; studentId: string }[];
+  studentProfile?: { classId?: string | null } | null;
+  parentLinks?: { parentId: string; studentId: string }[] | null;
 };
 
 type UsersProps = {
@@ -216,7 +216,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
   const buildFormData = (user: UserRow | UserSummary): UserFormData => {
     const classId =
       "studentProfile" in user ? user.studentProfile?.classId ?? undefined : undefined;
-    const grade = classId ? classById.get(classId)?.grade : undefined;
+    const grade = classId ? (classById.get(classId)?.grade as Grade | undefined) : undefined;
     const childIds =
       user.role === ROLES.PARENT
         ? (("parentLinks" in user ? user.parentLinks : []) ?? []).map(
@@ -751,7 +751,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         open={formDialogOpen}
         onOpenChange={setFormDialogOpen}
         onSubmit={handleFormSubmit}
-        initialData={editingUser}
+        initialData={editingUser ?? undefined}
         allowedRoles={getAllowedRoles()}
         title={getFormTitle()}
         classes={classes}

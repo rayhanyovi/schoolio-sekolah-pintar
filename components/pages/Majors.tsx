@@ -152,7 +152,7 @@ export default function Majors() {
       if (!isActive) return;
       const next: Record<string, UserSummary[]> = {};
       entries.forEach(([id, data]) => {
-        next[id] = data;
+        next[id] = [...data];
       });
       setMajorTeachersMap(next);
     };

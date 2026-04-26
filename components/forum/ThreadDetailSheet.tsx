@@ -49,6 +49,7 @@ export function ThreadDetailSheet({
   const [newReply, setNewReply] = useState("");
 
   const loadReplies = async () => {
+    if (!thread?.id) return;
     try {
       setIsLoadingReplies(true);
       const data = await listReplies(thread.id);
@@ -71,6 +72,7 @@ export function ThreadDetailSheet({
 
   const handleSubmitReply = async () => {
     if (!newReply.trim()) return;
+    if (!thread?.id) return;
     if (!currentUserId) {
       toast({
         title: "Tidak ada pengguna",

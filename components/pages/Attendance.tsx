@@ -288,7 +288,11 @@ function TeacherAttendanceView() {
               record.status as AttendanceStatus,
             ]),
         );
-        const rows = classStudents.map((student) => ({
+        const rows: Array<{
+          id: string;
+          name: string;
+          status: AttendanceStatus | "";
+        }> = classStudents.map((student) => ({
           id: student.id,
           name: student.name,
           status: recordMap.get(student.id) ?? "",
@@ -1418,7 +1422,7 @@ function AdminAttendanceView() {
                     >
                       {format(day, "d")}
                     </span>
-                    {status && (
+                    {config && (
                       <config.icon className={cn("h-3 w-3", config.color)} />
                     )}
                   </div>
@@ -1430,7 +1434,7 @@ function AdminAttendanceView() {
                   )}
                   {summary && summary.type === "mixed" && (
                     <div className="mt-1 space-y-1 text-[11px] text-muted-foreground">
-                      {summary.parts.map((part) => (
+                      {(summary.parts ?? []).map((part) => (
                         <div key={part}>{part}</div>
                       ))}
                     </div>

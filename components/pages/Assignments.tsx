@@ -1026,9 +1026,10 @@ function AssignmentForm({ schedules, onClose, onSave }: AssignmentFormProps) {
   }, []);
 
   useEffect(() => {
-    if (selectedSchedule?.teacherId) {
+    const nextTeacherId = selectedSchedule?.teacherId;
+    if (nextTeacherId) {
       const timer = setTimeout(() => {
-        setTeacherId(selectedSchedule.teacherId);
+        setTeacherId(nextTeacherId);
       }, 0);
       return () => clearTimeout(timer);
     }

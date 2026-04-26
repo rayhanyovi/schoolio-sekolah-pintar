@@ -364,7 +364,7 @@ export function QuestionFormDialog({
               <Label htmlFor="rubric">Rubrik Penilaian (Opsional)</Label>
               <Textarea
                 id="rubric"
-                value={formData.rubric}
+                value={formData.rubric ?? ""}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, rubric: e.target.value }))
                 }

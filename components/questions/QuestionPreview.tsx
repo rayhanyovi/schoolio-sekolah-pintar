@@ -8,7 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, CircleCheck } from "lucide-react";
 import { QuestionSummary } from "@/lib/schemas";
-import { ASSIGNMENT_TYPES, DIFFICULTY_LEVELS } from "@/lib/constants";
+import {
+  ASSIGNMENT_TYPES,
+  AssignmentType,
+  DIFFICULTY_LEVELS,
+  DifficultyLevel,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface QuestionPreviewProps {
@@ -27,7 +32,9 @@ export function QuestionPreview({
     ESSAY: FileText,
     FILE: Upload,
   };
-  const TypeIcon = typeIcons[question.type];
+  const assignmentType = question.type as AssignmentType;
+  const difficulty = question.difficulty as DifficultyLevel;
+  const TypeIcon = typeIcons[assignmentType] ?? FileText;
 
   return (
     <Card className="p-6">
@@ -43,16 +50,16 @@ export function QuestionPreview({
             <div
               className={cn(
                 "shrink-0 w-10 h-10 rounded-lg flex items-center justify-center",
-                question.type === "MCQ" && "bg-primary/10 text-primary",
-                question.type === "ESSAY" && "bg-secondary/10 text-secondary",
-                question.type === "FILE" && "bg-accent/10 text-accent"
+                assignmentType === "MCQ" && "bg-primary/10 text-primary",
+                assignmentType === "ESSAY" && "bg-secondary/10 text-secondary",
+                assignmentType === "FILE" && "bg-accent/10 text-accent"
               )}
             >
               <TypeIcon className="w-5 h-5" />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">{ASSIGNMENT_TYPES[question.type]}</Badge>
+            <Badge variant="outline">{ASSIGNMENT_TYPES[assignmentType]}</Badge>
             <Badge variant="secondary">{question.points} poin</Badge>
           </div>
         </div>
@@ -64,7 +71,7 @@ export function QuestionPreview({
 
         {/* Answer Section */}
         <div className="pl-11">
-          {question.type === "MCQ" && question.options && (
+          {assignmentType === "MCQ" && question.options && (
             <RadioGroup className="space-y-3">
               {question.options.map((option, index) => {
                 const isCorrect = question.correctAnswers?.includes(index);
@@ -104,7 +111,7 @@ export function QuestionPreview({
             </RadioGroup>
           )}
 
-          {question.type === "ESSAY" && (
+          {assignmentType === "ESSAY" && (
             <div className="space-y-3">
               <Textarea
                 placeholder="Siswa akan menulis jawaban di sini..."
@@ -123,7 +130,7 @@ export function QuestionPreview({
             </div>
           )}
 
-          {question.type === "FILE" && (
+          {assignmentType === "FILE" && (
             <div className="space-y-3">
               <Card className="p-8 border-2 border-dashed flex flex-col items-center justify-center">
                 <Upload className="w-10 h-10 text-muted-foreground mb-3" />
@@ -150,7 +157,7 @@ export function QuestionPreview({
           <span>•</span>
           <span>Topik: {question.topic}</span>
           <span>•</span>
-          <span>Kesulitan: {DIFFICULTY_LEVELS[question.difficulty]}</span>
+          <span>Kesulitan: {DIFFICULTY_LEVELS[difficulty]}</span>
         </div>
       </div>
     </Card>

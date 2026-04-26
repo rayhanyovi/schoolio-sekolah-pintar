@@ -37,7 +37,7 @@ import {
   ScheduleTemplateSummary,
   SchoolProfileSummary,
 } from "@/lib/schemas";
-import { SEMESTERS } from "@/lib/constants";
+import { SEMESTERS, Semester } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 import { format } from "date-fns";
@@ -342,7 +342,7 @@ export default function Settings() {
                           <div className="flex items-center gap-2">
                             <span className="font-semibold">{year.year}</span>
                             <Badge variant={year.isActive ? "default" : "secondary"}>
-                              Semester {SEMESTERS[year.semester]}
+                              Semester {SEMESTERS[year.semester as Semester]}
                             </Badge>
                             {year.isActive && (
                               <Badge variant="outline" className="text-success border-success">

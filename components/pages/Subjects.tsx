@@ -24,7 +24,7 @@ import {
   SubjectSummary,
   TeacherOption,
 } from "@/lib/schemas";
-import { SUBJECT_CATEGORIES } from "@/lib/constants";
+import { ROLES, SUBJECT_CATEGORIES } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 

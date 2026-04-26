@@ -570,15 +570,17 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {recentGrades.map((grade) => (
+            {recentGrades.map((grade) => {
+              const gradeValue = grade.grade ?? 0;
+              return (
               <div key={grade.id} className="flex items-center justify-between p-3 rounded-lg border">
                 <div className="flex items-center gap-3">
                   <div
                     className={cn(
                       "h-10 w-10 rounded-lg flex items-center justify-center",
-                      grade.grade >= 85
+                      gradeValue >= 85
                         ? "bg-success/10"
-                        : grade.grade >= 70
+                        : gradeValue >= 70
                         ? "bg-warning/10"
                         : "bg-destructive/10"
                     )}
@@ -586,9 +588,9 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
                     <FileText
                       className={cn(
                         "h-5 w-5",
-                        grade.grade >= 85
+                        gradeValue >= 85
                           ? "text-success"
-                          : grade.grade >= 70
+                          : gradeValue >= 70
                           ? "text-warning"
                           : "text-destructive"
                       )}
@@ -605,19 +607,20 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
                   <p
                     className={cn(
                       "text-2xl font-bold",
-                      grade.grade >= 85
+                      gradeValue >= 85
                         ? "text-success"
-                        : grade.grade >= 70
+                        : gradeValue >= 70
                         ? "text-warning"
                         : "text-destructive"
                     )}
                   >
-                    {grade.grade}
+                    {grade.grade ?? "-"}
                   </p>
                   <p className="text-xs text-muted-foreground">/ 100</p>
                 </div>
               </div>
-            ))}
+              );
+            })}
             {recentGrades.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Belum ada nilai yang dipublikasikan

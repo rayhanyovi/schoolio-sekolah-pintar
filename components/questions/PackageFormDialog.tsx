@@ -213,7 +213,8 @@ export function PackageFormDialog({
                 ) : (
                   <div className="space-y-2">
                     {selectedQuestions.map((q, index) => {
-                      const Icon = typeIcons[q.type];
+                      const questionType = q.type as keyof typeof typeIcons;
+                      const Icon = typeIcons[questionType] ?? FileText;
                       return (
                         <Card key={q.id} className="p-2 flex items-center gap-2">
                           <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
@@ -287,7 +288,8 @@ export function PackageFormDialog({
               ) : (
                 <div className="space-y-2">
                   {filteredQuestions.map((q) => {
-                    const Icon = typeIcons[q.type];
+                    const questionType = q.type as keyof typeof typeIcons;
+                    const Icon = typeIcons[questionType] ?? FileText;
                     const isSelected = formData.questionIds?.includes(q.id);
                     return (
                       <Card

@@ -26,6 +26,7 @@ import {
 import { QuestionSummary } from "@/lib/schemas";
 import {
   ASSIGNMENT_TYPES,
+  AssignmentType,
   DIFFICULTY_LEVELS,
   DifficultyLevel,
 } from "@/lib/constants";
@@ -64,7 +65,9 @@ export function QuestionCard({
   onAddToPackage,
   selectable = false,
 }: QuestionCardProps) {
-  const TypeIcon = typeIcons[question.type];
+  const assignmentType = question.type as AssignmentType;
+  const difficulty = question.difficulty as DifficultyLevel;
+  const TypeIcon = typeIcons[assignmentType] ?? FileText;
 
   return (
     <Card
@@ -87,9 +90,9 @@ export function QuestionCard({
         <div
           className={cn(
             "shrink-0 w-10 h-10 rounded-lg flex items-center justify-center",
-            question.type === "MCQ" && "bg-primary/10 text-primary",
-            question.type === "ESSAY" && "bg-secondary/10 text-secondary",
-            question.type === "FILE" && "bg-accent/10 text-accent"
+            assignmentType === "MCQ" && "bg-primary/10 text-primary",
+            assignmentType === "ESSAY" && "bg-secondary/10 text-secondary",
+            assignmentType === "FILE" && "bg-accent/10 text-accent"
           )}
         >
           <TypeIcon className="w-5 h-5" />
@@ -110,9 +113,9 @@ export function QuestionCard({
                 </Badge>
                 <Badge
                   variant="outline"
-                  className={cn("text-xs", difficultyColors[question.difficulty])}
+                  className={cn("text-xs", difficultyColors[difficulty])}
                 >
-                  {DIFFICULTY_LEVELS[question.difficulty]}
+                  {DIFFICULTY_LEVELS[difficulty]}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
                   {question.points} poin
@@ -158,7 +161,7 @@ export function QuestionCard({
           <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <TypeIcon className="h-3 w-3" />
-              {ASSIGNMENT_TYPES[question.type]}
+              {ASSIGNMENT_TYPES[assignmentType]}
             </span>
             <span className="flex items-center gap-1">
               <BarChart3 className="h-3 w-3" />

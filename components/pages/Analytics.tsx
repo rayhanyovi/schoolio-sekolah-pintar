@@ -61,6 +61,13 @@ const GENDER_COLORS = [
   "hsl(45, 93%, 47%)",
 ];
 
+type AttendanceCounts = {
+  PRESENT: number;
+  ABSENT: number;
+  SICK: number;
+  PERMIT: number;
+};
+
 export default function Analytics() {
   const { role } = useRoleContext();
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
@@ -98,7 +105,7 @@ export default function Analytics() {
     loadData();
   }, []);
 
-  const attendanceCounts = attendance?.counts ?? {
+  const attendanceCounts: AttendanceCounts = attendance?.counts ?? {
     PRESENT: 0,
     ABSENT: 0,
     SICK: 0,

@@ -651,7 +651,8 @@ export default function QuestionBank() {
 
                         <div className="flex items-center gap-2 mt-2">
                           {Array.from(types).map((type) => {
-                            const Icon = typeIcons[type];
+                            const assignmentType = type as AssignmentType;
+                            const Icon = typeIcons[assignmentType] ?? FileText;
                             return (
                               <Badge
                                 key={type}
@@ -659,7 +660,7 @@ export default function QuestionBank() {
                                 className="text-xs gap-1"
                               >
                                 <Icon className="h-3 w-3" />
-                                {ASSIGNMENT_TYPES[type]}
+                                {ASSIGNMENT_TYPES[assignmentType] ?? type}
                               </Badge>
                             );
                           })}

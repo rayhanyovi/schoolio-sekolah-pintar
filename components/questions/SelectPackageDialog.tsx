@@ -35,7 +35,7 @@ import {
   Upload,
   Calendar,
 } from "lucide-react";
-import { ASSIGNMENT_TYPES } from "@/lib/constants";
+import { ASSIGNMENT_TYPES, AssignmentType } from "@/lib/constants";
 import {
   QuestionPackageSummary,
   QuestionSummary,
@@ -207,7 +207,8 @@ export function SelectPackageDialog({
                         </div>
                         <div className="flex items-center gap-1 mt-2">
                           {stats.types.map((type) => {
-                            const Icon = typeIcons[type];
+                            const assignmentType = type as AssignmentType;
+                            const Icon = typeIcons[assignmentType] ?? FileText;
                             return (
                               <Badge
                                 key={type}
@@ -215,7 +216,7 @@ export function SelectPackageDialog({
                                 className="text-xs gap-1"
                               >
                                 <Icon className="h-3 w-3" />
-                                {ASSIGNMENT_TYPES[type]}
+                                {ASSIGNMENT_TYPES[assignmentType] ?? type}
                               </Badge>
                             );
                           })}
@@ -229,7 +230,8 @@ export function SelectPackageDialog({
                         Soal dalam paket:
                       </p>
                       {pkgQuestions.map((q, idx) => {
-                        const Icon = typeIcons[q.type];
+                        const assignmentType = q.type as AssignmentType;
+                        const Icon = typeIcons[assignmentType] ?? FileText;
                         return (
                           <Card key={q.id} className="p-2 flex items-center gap-2">
                             <span className="text-sm font-medium w-6 text-muted-foreground">

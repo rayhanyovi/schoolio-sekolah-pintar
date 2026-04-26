@@ -42,7 +42,7 @@ export function EventFormDialog({ open, onOpenChange, event, onSubmit }: EventFo
           description: event.description,
           date: event.date,
           endDate: event.endDate,
-          type: event.type,
+          type: event.type as EventType,
           isRecurring: event.isRecurring,
         });
       } else {

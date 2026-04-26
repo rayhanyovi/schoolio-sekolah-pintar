@@ -199,7 +199,9 @@ export function SelectQuestionsDialog({
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-2">
             {filteredQuestions.map((q) => {
-              const Icon = typeIcons[q.type];
+              const assignmentType = q.type as AssignmentType;
+              const difficulty = q.difficulty as DifficultyLevel;
+              const Icon = typeIcons[assignmentType] ?? FileText;
               const isSelected = selectedIds.includes(q.id);
 
               return (
@@ -221,9 +223,9 @@ export function SelectQuestionsDialog({
                     <div
                       className={cn(
                         "shrink-0 w-9 h-9 rounded-lg flex items-center justify-center",
-                        q.type === "MCQ" && "bg-primary/10 text-primary",
-                        q.type === "ESSAY" && "bg-secondary/10 text-secondary",
-                        q.type === "FILE" && "bg-accent/10 text-accent"
+                        assignmentType === "MCQ" && "bg-primary/10 text-primary",
+                        assignmentType === "ESSAY" && "bg-secondary/10 text-secondary",
+                        assignmentType === "FILE" && "bg-accent/10 text-accent"
                       )}
                     >
                       <Icon className="w-5 h-5" />
@@ -241,9 +243,9 @@ export function SelectQuestionsDialog({
                         </Badge>
                         <Badge
                           variant="outline"
-                          className={cn("text-xs", difficultyColors[q.difficulty])}
+                          className={cn("text-xs", difficultyColors[difficulty])}
                         >
-                          {DIFFICULTY_LEVELS[q.difficulty]}
+                          {DIFFICULTY_LEVELS[difficulty]}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
                           {q.points} poin
@@ -280,7 +282,8 @@ export function SelectQuestionsDialog({
                 {Array.from(
                   new Set(selectedQuestions.map((q) => q.type))
                 ).map((type) => {
-                  const Icon = typeIcons[type];
+                  const assignmentType = type as AssignmentType;
+                  const Icon = typeIcons[assignmentType] ?? FileText;
                   const count = selectedQuestions.filter(
                     (q) => q.type === type
                   ).length;

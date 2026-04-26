@@ -131,7 +131,13 @@ export default function Notes() {
 
   const handleEdit = (note: NoteSummary) => {
     setSelectedNote(note);
-    setFormData({ title: note.title, content: note.content, subjectId: note.subjectId || "", visibility: note.visibility, color: note.color });
+    setFormData({
+      title: note.title,
+      content: note.content,
+      subjectId: note.subjectId || "",
+      visibility: note.visibility as NoteVisibility,
+      color: note.color,
+    });
     setFormDialogOpen(true);
   };
 

@@ -20,7 +20,7 @@ import { Search, Link2, Users } from "lucide-react";
 interface User {
   id: string;
   name: string;
-  email: string;
+  email?: string | null;
   avatar?: string;
 }
 
@@ -49,7 +49,7 @@ export function LinkUserDialog({
   const filteredUsers = availableUsers.filter(
     (user) =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      (user.email ?? "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleToggle = (userId: string) => {
