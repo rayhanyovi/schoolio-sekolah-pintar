@@ -17,24 +17,24 @@ interface StatCardProps {
 
 const variants = {
   default: {
-    card: "bg-card",
-    icon: "bg-muted text-muted-foreground",
+    card: "bg-card border-border/80",
+    icon: "bg-muted/80 text-primary",
   },
   primary: {
     card: "bg-primary/5 border-primary/20",
-    icon: "bg-primary/10 text-primary",
+    icon: "bg-primary text-primary-foreground shadow-sm",
   },
   success: {
     card: "bg-success/5 border-success/20",
-    icon: "bg-success/10 text-success",
+    icon: "bg-success/15 text-success",
   },
   warning: {
-    card: "bg-warning/5 border-warning/20",
-    icon: "bg-warning/10 text-warning",
+    card: "bg-warning/10 border-warning/25",
+    icon: "bg-warning/20 text-foreground",
   },
   info: {
     card: "bg-info/5 border-info/20",
-    icon: "bg-info/10 text-info",
+    icon: "bg-info/15 text-info",
   },
 };
 
@@ -51,7 +51,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "p-6 rounded-xl border transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+        "dashboard-panel p-6 rounded-[1.4rem] border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
         styles.card
       )}
     >

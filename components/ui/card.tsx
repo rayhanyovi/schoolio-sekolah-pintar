@@ -11,10 +11,10 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = "default", ...props }, ref) => {
     const variants = {
-      default: "bg-card text-card-foreground shadow-sm",
-      elevated: "bg-card text-card-foreground shadow-lg hover:shadow-xl transition-shadow duration-300",
+      default: "dashboard-panel bg-card text-card-foreground shadow-sm",
+      elevated: "dashboard-panel bg-card text-card-foreground shadow-lg hover:shadow-xl transition-shadow duration-300",
       outlined: "bg-card text-card-foreground border-2",
-      gradient: "gradient-card text-card-foreground shadow-md",
+      gradient: "dashboard-panel gradient-card text-card-foreground shadow-md",
     };
 
     return (

@@ -77,13 +77,19 @@ export function DashboardLayout({
   if (!isSessionReady) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-sm text-muted-foreground">
-        Memuat sesi...
+        Memuat sesi…
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="dashboard-shell flex h-screen bg-background">
+      <a
+        href="#dashboard-main"
+        className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:absolute focus:left-4 focus:top-4"
+      >
+        Lewati ke konten utama
+      </a>
       <Sidebar role={role} userName={selectedUserName} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -98,20 +104,28 @@ export function DashboardLayout({
         )}
 
         {/* Top Bar */}
-        <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between shrink-0">
+        <header className="dashboard-topbar h-16 border-b border-border/80 px-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4 flex-1 max-w-xl">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari..."
-                className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
+                aria-label="Cari di dashboard"
+                autoComplete="off"
+                name="dashboard-search"
+                placeholder="Cari…"
+                className="pl-10 border-input/80 bg-background/80 focus-visible:ring-1 focus-visible:ring-ring/50"
               />
             </div>
           </div>
           
           <div className="flex items-center gap-2">
             <HelpMenu role={role} />
-            <Button variant="ghost" size="icon" className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              aria-label="Lihat notifikasi"
+            >
               <Bell className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
                 3
@@ -122,8 +136,10 @@ export function DashboardLayout({
 
         {/* Main Content */}
         <RoleProvider role={role} userId={selectedUserId} userName={selectedUserName}>
-          <main className="flex-1 overflow-auto p-6">
-            {children}
+          <main id="dashboard-main" className="flex-1 overflow-auto p-6">
+            <div className="mx-auto w-full max-w-7xl">
+              {children}
+            </div>
           </main>
         </RoleProvider>
       </div>

@@ -88,18 +88,19 @@ export function Sidebar({ role, userName }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
+        "relative h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-all duration-300",
         collapsed ? "w-20" : "w-64"
       )}
     >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(215,161,43,0.16),transparent_22rem)]" />
       {/* Header */}
-      <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
+      <div className="relative p-4 border-b border-sidebar-border flex items-center justify-between">
         <Logo size="sm" showText={!collapsed} />
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setCollapsed(!collapsed)}
-          className="h-8 w-8"
+          className="h-8 w-8 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           <ChevronLeft
             className={cn(
@@ -111,7 +112,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="relative flex-1 p-3 space-y-1 overflow-y-auto">
         {items.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -119,9 +120,9 @@ export function Sidebar({ role, userName }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                "flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
@@ -133,12 +134,12 @@ export function Sidebar({ role, userName }: SidebarProps) {
       </nav>
 
       {/* User Info */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="relative p-4 border-t border-sidebar-border">
         {!collapsed && (
           <div className="mb-3">
             <Link
               href="/dashboard/profile"
-              className="font-semibold text-sidebar-foreground truncate hover:text-primary transition-colors cursor-pointer block"
+              className="font-semibold text-sidebar-foreground truncate hover:text-accent transition-colors cursor-pointer block"
             >
               {userName}
             </Link>
@@ -154,7 +155,10 @@ export function Sidebar({ role, userName }: SidebarProps) {
             </Link>
           ) : (
             <Link href="/dashboard/profile" className="block">
-              <Button variant="ghost" className="w-full justify-start">
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              >
                 <User className="h-5 w-5" />
                 <span className="ml-2">Profil Saya</span>
               </Button>
