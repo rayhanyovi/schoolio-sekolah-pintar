@@ -925,3 +925,14 @@ model ParentInvite {
   @@index([schoolId, isActive])
   @@index([studentId, isActive])
 }
+
+model SystemHeartbeat {
+  id          String   @id @default(cuid())
+  source      String   @default("vercel-cron")
+  triggeredAt DateTime @default(now())
+  status      String   @default("OK")
+  note        String?
+  metadata    Json?
+
+  @@index([triggeredAt(sort: Desc)])
+}
