@@ -209,7 +209,18 @@ const STAFF = [
   },
 ] as const;
 
-const SUBJECTS = [
+type DemoSubject = {
+  code: string;
+  name: string;
+  category: "LANGUAGE" | "SCIENCE" | "SOCIAL";
+  color: string;
+  hoursPerWeek: number;
+  appliesToAllMajors: boolean;
+  teacherIdentifiers: readonly string[];
+  majorCodes?: readonly ("MIPA" | "IPS")[];
+};
+
+const SUBJECTS: readonly DemoSubject[] = [
   {
     code: "BIND",
     name: "Bahasa Indonesia",
@@ -1183,13 +1194,13 @@ async function main() {
             submittedAt: isGraded || index === 4 ? new Date("2026-05-05T02:30:00.000Z") : null,
             grade: isGraded ? 78 + index * 4 : null,
             feedback: isGraded ? "Jawaban cukup baik, tingkatkan ketelitian pada analisis." : null,
-            response:
-              isGraded || index === 4
-                ? {
-                    summary: `Respons demo untuk ${blueprint.title}`,
-                    attachment: blueprint.deliveryType === "FILE" ? "laporan-praktikum.pdf" : null,
-                  }
-                : null,
+            response: isGraded || index === 4
+              ? {
+                  summary: `Respons demo untuk ${blueprint.title}`,
+                  attachment:
+                    blueprint.deliveryType === "FILE" ? "laporan-praktikum.pdf" : null,
+                }
+              : undefined,
           },
         });
       }

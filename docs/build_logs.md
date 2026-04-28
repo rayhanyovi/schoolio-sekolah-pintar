@@ -2,6 +2,8 @@
 
 Chronological handoff log for AI-implemented work. Append one entry after every implemented task so the next agent can understand what changed, how it was verified, and what remains.
 
+- 2026-04-29: Wired the dashboard sidebar sign-out button to `POST /api/auth/logout` and redirected users back to `/auth`. Archived the leftover governance runtime from the active app by removing the admin menu entry, page, API routes, frontend handlers, tests, and active roadmap references while leaving `docs/archive/` intact as historical reference.
+
 - 2026-04-29: Rebuilt `prisma/seed.ts` into a realistic school demo dataset for SMA Al Hikmah Nusantara. Added login-ready `AuthCredential` rows, teacher/student/parent relationships, schedules, assignments, attendance, forum, notifications, report-card examples, and published [docs/DEMO_CREDENTIALS.md](docs/DEMO_CREDENTIALS.md) with usable demo accounts.
 
 - 2026-04-28: Removed obsolete governance readiness automation now that the old approval plan lives under `docs/archive/`. Deleted legacy governance sync/readiness scripts and CI workflows, cleaned active references from `llms.txt` and `docs/PLANS.md`, and restored archive docs to passive-reference status.

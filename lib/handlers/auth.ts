@@ -54,6 +54,9 @@ export const changePassword = async (payload: {
   confirmPassword: string;
 }) => apiPost("/api/auth/change-password", payload);
 
+export const logout = async () =>
+  apiPost<{ success: boolean }>("/api/auth/logout");
+
 export const getOnboardingStatus = async () =>
   onboardingStatusSchema.parse(await apiGet("/api/auth/onboarding"));
 

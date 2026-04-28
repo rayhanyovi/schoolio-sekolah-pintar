@@ -483,9 +483,6 @@ Error codes: AUTH_REQUIRED | FORBIDDEN | NOT_FOUND | VALIDATION_FAILED | CONFLIC
 
 | Method    | Path                        | Status |
 | --------- | --------------------------- | ------ |
-| GET       | `/api/governance/readiness` | BUILT  |
-| GET, POST | `/api/governance/approvals` | BUILT  |
-| GET       | `/api/governance/tracker`   | BUILT  |
 
 ### 6.16 PLANNED (not yet built)
 
@@ -1054,7 +1051,6 @@ Format: `- [Priority][Domain] Task — file/area`. Pull from this list during id
 
 **Governance:**
 
-- `lib/governance-tracker.ts`, `lib/governance-readiness.ts`, `lib/governance-decision-presets.ts`.
 
 **Config:**
 
@@ -1082,7 +1078,6 @@ Format: `- [Priority][Domain] Task — file/area`. Pull from this list during id
 - `materials.ts`, `uploads.ts`
 - `forum.ts`, `notes.ts`, `calendar.ts`
 - `notifications.ts`, `settings.ts`, `analytics.ts`
-- `governance.ts`
 
 ---
 

@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
 import { RoleBadge } from "@/components/RoleBadge";
 import { Role } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { logout } from "@/lib/handlers/auth";
 import {
   LayoutDashboard,
   Users,
@@ -27,7 +28,6 @@ import {
   StickyNote,
   User,
   Layers,
-  ShieldCheck,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -45,7 +45,6 @@ const menuItems: Record<Role, Array<{ icon: typeof LayoutDashboard; label: strin
     { icon: Calendar, label: "Jadwal", href: "/dashboard/schedules" },
     { icon: CalendarDays, label: "Kalender Akademik", href: "/dashboard/calendar" },
     { icon: ClipboardCheck, label: "Absensi", href: "/dashboard/attendance" },
-    { icon: ShieldCheck, label: "Governance", href: "/dashboard/governance" },
     { icon: Settings, label: "Pengaturan", href: "/dashboard/settings" },
   ],
   TEACHER: [
@@ -82,8 +81,21 @@ const menuItems: Record<Role, Array<{ icon: typeof LayoutDashboard; label: strin
 
 export function Sidebar({ role, userName }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isSigningOut, startSignOut] = useTransition();
   const pathname = usePathname();
+  const router = useRouter();
   const items = menuItems[role];
+
+  const handleSignOut = () => {
+    startSignOut(async () => {
+      try {
+        await logout();
+      } finally {
+        router.replace("/auth");
+        router.refresh();
+      }
+    });
+  };
 
   return (
     <aside
@@ -170,9 +182,12 @@ export function Sidebar({ role, userName }: SidebarProps) {
               "w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10",
               collapsed && "justify-center"
             )}
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            aria-label="Keluar dari dashboard"
           >
             <LogOut className="h-5 w-5" />
-            {!collapsed && <span className="ml-2">Keluar</span>}
+            {!collapsed && <span className="ml-2">{isSigningOut ? "Keluar..." : "Keluar"}</span>}
           </Button>
         </div>
       </div>
