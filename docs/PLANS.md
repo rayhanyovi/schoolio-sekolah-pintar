@@ -11,7 +11,7 @@
 | Project      | Schoolio / Sekolah Pintar                                                                                               |
 | Repo         | `C:\Projects\schoolio-sekolah-pintar`                                                                                   |
 | Type         | Web app (Next.js App Router), multi-tenant School management                                                            |
-| Status       | Production-pending — P0 auth/authz selesai; menunggu approval governance per `docs/archive/RELEASE_READINESS_STATUS.md` |
+| Status       | Active development — core school operations shipped; current focus is production hardening, dashboard polish, dan rollout readiness |
 | Last updated | 2026-04-25                                                                                                              |
 | Maintainer   | rayhanyovi                                                                                                              |
 | Audience     | AI coding agents + maintainers                                                                                          |
@@ -45,7 +45,6 @@ npm run test:watch                # vitest watch
 npm run prisma:migrate            # prisma migrate dev
 npm run prisma:studio             # GUI inspect DB
 npm run academic-year:rollover    # tsx scripts/academic-year-rollover.ts
-npm run governance:refresh        # sync techplan + readiness
 ```
 
 **Konvensi mutlak:**
@@ -781,18 +780,9 @@ Status: `BUILT` (production-quality) | `PARTIAL` (works but gaps) | `MISSING` (n
 
 ## Section 11 — Roadmap (Phased Continuous Development)
 
-### Phase 0 — Governance & Approvals (in progress)
+### Phase 0 — Archived Governance Track
 
-**Objective:** unblock GA gate per `docs/archive/RELEASE_READINESS_STATUS.md`.
-
-- Close pending product decisions (in `docs/archive/PRODUCT_DECISION_PACKET.md`):
-  - **TP-DEC-001** auth model final (Hybrid leaning: internal credential + future SSO).
-  - **TP-DEC-003** delegated grading authority (Owner + delegated dengan audit trail).
-  - **TP-DEC-004** late submission policy (Configurable late window default).
-  - **TP-DEC-005** academic year rollover (Freeze + clone classes).
-  - **TP-DEC-006** retention/export policy (Regulatory tiered).
-- Stakeholder sign-offs: Kepala Sekolah, Product Owner, Engineering Manager, QA Lead.
-- Run: `npm run governance:refresh` to update tracker.
+Governance packets, readiness reports, dan approval automation lama sudah dipindahkan ke `docs/archive/` sebagai referensi historis. Mereka bukan lagi gate aktif untuk development harian dan tidak lagi di-drive oleh npm/CI automation.
 
 ### Phase 1 — Production Hardening (Core Done; Some Deferred)
 
@@ -1208,8 +1198,7 @@ After any update to PLANS.md or refactor that affects roadmap state:
 6. **Tests**: `npm run test` — all green.
 7. **Build**: `npm run build` — clean.
 8. **Authz integrity gate**: `npm run test:release-authz-integrity`.
-9. **Governance refresh**: `npm run governance:refresh` then re-read `docs/archive/RELEASE_READINESS_STATUS.md`.
-10. **Smoke**: `npm run dev`, login as each role (admin/teacher/student/parent), exercise dashboard happy paths.
+9. **Smoke**: `npm run dev`, login as each role (admin/teacher/student/parent), exercise dashboard happy paths.
 
 ---
 
@@ -1229,3 +1218,4 @@ When state changes (feature shipped, decision approved, dependency upgraded):
 ---
 
 _End of PLANS.md — for deep dives, see `docs/archive/`._
+

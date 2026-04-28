@@ -48,7 +48,6 @@ npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:studio
 npm run academic-year:rollover
-npm run governance:refresh
 ```
 
 ## Current Release Focus

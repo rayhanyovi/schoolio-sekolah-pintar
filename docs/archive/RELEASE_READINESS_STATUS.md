@@ -31,4 +31,3 @@ Keputusan produk yang masih pending:
 - [ ] TP-DEC-004 belum Approved
 - [ ] TP-DEC-005 belum Approved
 - [ ] TP-DEC-006 belum Approved
-
