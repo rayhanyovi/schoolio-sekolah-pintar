@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from "@/lib/utils";
-import { Calendar, FileText, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ASSIGNMENT_TYPES, AssignmentType } from "@/lib/constants";
 
@@ -49,7 +49,7 @@ export function AssignmentCard({
   const StatusIcon = config.icon;
 
   return (
-    <div className="p-4 rounded-xl border bg-card hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+    <div className="dashboard-panel p-4 rounded-[1.25rem] border bg-card hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">

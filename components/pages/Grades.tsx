@@ -14,9 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
 import {
-  BarChart3,
   TrendingUp,
   TrendingDown,
   Award,
@@ -117,10 +115,33 @@ function TeacherGradesView() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Grade Summary
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Penilaian</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Rekap nilai siswa berdasarkan pengumpulan tugas dengan tampilan yang lebih mudah dipindai.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {gradeSummary.length} siswa diringkas
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Penilaian</h1>
-          <p className="text-muted-foreground">Rekap nilai siswa berdasarkan pengumpulan tugas</p>
+        <div className="text-sm text-muted-foreground">
+          Pilih jadwal untuk melihat ringkasan nilai per kelas dan mata pelajaran.
         </div>
         <Button variant="outline">
           <Download className="h-4 w-4 mr-2" />
@@ -183,11 +204,11 @@ function TeacherGradesView() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="dashboard-panel border-border/80">
         <CardContent className="p-4">
           <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
-            <SelectTrigger className="w-full sm:w-[300px]">
-              <SelectValue placeholder={isLoading ? "Memuat jadwal..." : "Pilih jadwal..."} />
+            <SelectTrigger className="w-full sm:w-[300px]" aria-label="Pilih jadwal penilaian">
+              <SelectValue placeholder={isLoading ? "Memuat jadwal…" : "Pilih jadwal…"} />
             </SelectTrigger>
             <SelectContent>
               {schedules.map((schedule) => (
@@ -200,7 +221,7 @@ function TeacherGradesView() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="dashboard-panel">
         <CardHeader>
           <CardTitle className="text-lg">Daftar Nilai</CardTitle>
           <CardDescription>Rekap rata-rata nilai per siswa</CardDescription>
@@ -381,14 +402,40 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Grade Overview
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Lihat ringkasan nilai dan perkembangan belajar dalam tampilan yang lebih mudah dipindai.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {subjectGrades.length} mata pelajaran
+            </div>
+            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
+              {totalAssignments} tugas dinilai
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-          <p className="text-muted-foreground">Lihat ringkasan nilai dan perkembangan belajar</p>
+        <div className="text-sm text-muted-foreground">
+          Pantau ringkasan per mapel dan nilai tugas terbaru.
         </div>
         {allowStudentSelect && (
           <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-            <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]" aria-label="Pilih siswa">
               <SelectValue placeholder="Pilih siswa..." />
             </SelectTrigger>
             <SelectContent>
@@ -411,7 +458,7 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
       </div>
 
       {showNoStudents && (
-        <Card className="p-8">
+        <Card className="dashboard-panel border-dashed p-8">
           <div className="text-center text-muted-foreground">
             <User className="h-10 w-10 mx-auto mb-3 opacity-50" />
             <p>Belum ada siswa terdaftar</p>
@@ -434,7 +481,7 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="dashboard-panel">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
@@ -447,7 +494,7 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="dashboard-panel">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
@@ -563,7 +610,7 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
         </Card>
       </div>
 
-      <Card>
+      <Card className="dashboard-panel">
         <CardHeader>
           <CardTitle className="text-lg">Nilai Tugas Terbaru</CardTitle>
           <CardDescription>Daftar nilai dari tugas yang sudah dinilai</CardDescription>
@@ -631,7 +678,9 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
       </Card>
 
       {isLoading && (
-        <p className="text-sm text-muted-foreground">Memuat data nilai...</p>
+        <p aria-live="polite" className="inline-flex rounded-full border border-border/80 bg-background/70 px-4 py-2 text-sm text-muted-foreground">
+          Memuat data nilai…
+        </p>
       )}
     </div>
   );

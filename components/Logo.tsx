@@ -23,11 +23,13 @@ const textSizeClasses = {
 export function Logo({ size = "md", showText = true }: LogoProps) {
   return (
     <div className="flex items-center gap-3">
-      <div className={`${sizeClasses[size]} rounded-xl gradient-primary flex items-center justify-center shadow-lg`}>
+      <div
+        className={`${sizeClasses[size]} rounded-xl gradient-primary flex items-center justify-center border border-primary/20 shadow-lg`}
+      >
         <GraduationCap className="text-primary-foreground" style={{ width: '60%', height: '60%' }} />
       </div>
       {showText && (
-        <span className={`${textSizeClasses[size]} font-bold text-foreground`}>
+        <span className={`${textSizeClasses[size]} font-bold tracking-tight text-foreground`}>
           {APP_NAME}
         </span>
       )}

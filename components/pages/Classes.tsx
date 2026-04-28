@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, Users, GraduationCap, TrendingUp } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { ClassCard } from "@/components/classes/ClassCard";
 import { ClassFormDialog } from "@/components/classes/ClassFormDialog";
 import { ClassDetailSheet } from "@/components/classes/ClassDetailSheet";
@@ -151,63 +151,61 @@ export default function Classes() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Manajemen Kelas</h1>
-          <p className="text-muted-foreground">Kelola kelas dan pengelompokan siswa</p>
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Manajemen Kelas
+            </span>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Struktur kelas yang lebih jelas untuk admin dan wali kelas.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Rapikan pengelompokan siswa, kapasitas kelas, dan wali kelas dalam
+                layout yang lebih mudah dipindai setiap hari.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total Kelas</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{classes.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total Siswa</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{totalStudents}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Rata-rata</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{avgStudentsPerClass}</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </section>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {isAdmin && (
-          <Button onClick={() => { setSelectedClass(null); setFormDialogOpen(true); }}>
+          <Button onClick={() => { setSelectedClass(null); setFormDialogOpen(true); }} className="sm:ml-auto">
             <Plus className="h-4 w-4 mr-2" />
             Tambah Kelas
           </Button>
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <GraduationCap className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Kelas</p>
-              <p className="text-2xl font-bold">{classes.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-secondary/10 flex items-center justify-center">
-              <Users className="h-6 w-6 text-secondary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Siswa</p>
-              <p className="text-2xl font-bold">{totalStudents}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-accent" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Rata-rata Siswa/Kelas</p>
-              <p className="text-2xl font-bold">{avgStudentsPerClass}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
+        <div className="dashboard-panel relative flex-1 p-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Cari kelas atau wali kelas..."
+            aria-label="Cari kelas atau wali kelas"
+            placeholder="Cari kelas atau wali kelas…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -217,7 +215,7 @@ export default function Classes() {
 
       {/* Tabs by Grade */}
       <Tabs defaultValue="all" onValueChange={setSelectedGrade}>
-        <TabsList>
+        <TabsList className="flex-wrap rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="all">Semua</TabsTrigger>
           {availableGrades.map((grade) => (
             <TabsTrigger key={grade} value={grade.toString()}>
@@ -228,8 +226,8 @@ export default function Classes() {
 
         <TabsContent value={selectedGrade} className="mt-6">
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Memuat data kelas...
+            <div className="text-center py-12 text-muted-foreground" aria-live="polite">
+              Memuat data kelas…
             </div>
           ) : (
             <>

@@ -162,11 +162,12 @@ export function HelpMenu({ role }: HelpMenuProps) {
         size="icon"
         onClick={() => setOpen(true)}
         aria-label="Bantuan"
+        className="text-foreground hover:bg-primary/10 hover:text-primary"
       >
         <CircleHelp className="h-5 w-5" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl border-border/80 bg-card/95">
           <DialogHeader>
             <DialogTitle>Bantuan Fitur</DialogTitle>
             <DialogDescription>
@@ -177,7 +178,7 @@ export function HelpMenu({ role }: HelpMenuProps) {
           </DialogHeader>
 
           {isLoading && (
-            <p className="text-sm text-muted-foreground">Memuat bantuan...</p>
+            <p className="text-sm text-muted-foreground" aria-live="polite">Memuat bantuan…</p>
           )}
           {!isLoading && loadError && (
             <p className="text-sm text-destructive">{loadError}</p>
@@ -197,9 +198,9 @@ export function HelpMenu({ role }: HelpMenuProps) {
                     type="button"
                     onClick={() => setSelectedFeature(feature.name)}
                     className={cn(
-                      "text-left px-3 py-2 rounded-md border text-sm transition-colors",
+                      "text-left px-3 py-2 rounded-xl border text-sm transition-colors",
                       selectedFeature === feature.name
-                        ? "bg-primary/10 border-primary text-primary"
+                        ? "bg-primary/10 border-primary/30 text-primary"
                         : "hover:bg-muted/40",
                     )}
                   >
@@ -222,10 +223,10 @@ export function HelpMenu({ role }: HelpMenuProps) {
                       {visibleFeature.steps.map((step, idx) => (
                         <div
                           key={`${visibleFeature.name}-${idx}`}
-                          className="rounded-lg border p-3"
+                          className="rounded-2xl border border-border/80 bg-background/55 p-3"
                         >
                           <div className="flex items-start gap-3">
-                            <div className="mt-0.5 h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
+                            <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                               {idx + 1}
                             </div>
                             <div className="space-y-1">

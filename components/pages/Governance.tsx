@@ -412,20 +412,56 @@ export default function Governance() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Governance Readiness</h1>
-          <p className="text-muted-foreground">
-            Monitor blocker sign-off release dan keputusan produk
-          </p>
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <Badge className="w-fit rounded-full border-0 bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Governance
+            </Badge>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Pantau readiness release, approval, dan blocker operasional dalam satu meja kontrol.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Halaman ini dirapikan supaya gate readiness, antrian upload scan, dan
+                action approval terasa lebih jelas saat dipakai admin.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overall</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
+                  {snapshot?.overallReady ? "Ready" : "Not Ready"}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Pending</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{tracker?.totals.pending ?? 0}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overdue</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{tracker?.totals.overdue ?? 0}</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </section>
+
+      <div className="flex items-start justify-between gap-4">
         <Button
           variant="outline"
           onClick={() => void loadSnapshot()}
           disabled={isLoading}
+          aria-label="Refresh governance snapshot"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
-          {isLoading ? "Memuat..." : "Refresh"}
+          {isLoading ? "Memuat…" : "Refresh"}
         </Button>
       </div>
 
@@ -574,7 +610,7 @@ export default function Governance() {
                   applyApprovalPacket(value as GovernanceApprovalPacket)
                 }
               >
-                <SelectTrigger id="governance-packet">
+                <SelectTrigger id="governance-packet" aria-label="Pilih packet governance">
                   <SelectValue placeholder="Pilih packet" />
                 </SelectTrigger>
                 <SelectContent>
@@ -594,7 +630,7 @@ export default function Governance() {
                     setApprovalForm((current) => ({ ...current, id: value }))
                   }
                 >
-                  <SelectTrigger id="governance-id">
+                  <SelectTrigger id="governance-id" aria-label="Pilih decision ID">
                     <SelectValue placeholder="Pilih decision ID" />
                   </SelectTrigger>
                   <SelectContent>
@@ -615,7 +651,7 @@ export default function Governance() {
                     setApprovalForm((current) => ({ ...current, subject: value }))
                   }
                 >
-                  <SelectTrigger id="governance-subject">
+                  <SelectTrigger id="governance-subject" aria-label="Pilih approver">
                     <SelectValue placeholder="Pilih approver" />
                   </SelectTrigger>
                   <SelectContent>
@@ -643,7 +679,7 @@ export default function Governance() {
                   }))
                 }
               >
-                <SelectTrigger id="governance-decision">
+                <SelectTrigger id="governance-decision" aria-label="Pilih keputusan governance">
                   <SelectValue placeholder="Pilih decision" />
                 </SelectTrigger>
                 <SelectContent>
@@ -662,6 +698,7 @@ export default function Governance() {
               <Label htmlFor="governance-name">Nama Approver (opsional)</Label>
               <Input
                 id="governance-name"
+                name="approver_name"
                 value={approvalForm.name}
                 onChange={(event) =>
                   setApprovalForm((current) => ({
@@ -669,6 +706,7 @@ export default function Governance() {
                     name: event.target.value,
                   }))
                 }
+                autoComplete="name"
                 placeholder="Contoh: Rina PM"
               />
             </div>
@@ -677,6 +715,7 @@ export default function Governance() {
                 <Label htmlFor="governance-owner">Owner Keputusan (opsional)</Label>
                 <Input
                   id="governance-owner"
+                  name="owner"
                   value={approvalForm.owner}
                   onChange={(event) =>
                     setApprovalForm((current) => ({
@@ -684,6 +723,7 @@ export default function Governance() {
                       owner: event.target.value,
                     }))
                   }
+                  autoComplete="organization-title"
                   placeholder="Contoh: Product Akademik + Kurikulum"
                 />
               </div>
@@ -710,6 +750,7 @@ export default function Governance() {
               <Label htmlFor="governance-due-date">Due Date (opsional)</Label>
               <Input
                 id="governance-due-date"
+                name="due_date"
                 type="date"
                 value={approvalForm.dueDate}
                 onChange={(event) =>
@@ -783,6 +824,7 @@ export default function Governance() {
             <Label htmlFor="governance-note">Catatan (opsional)</Label>
             <Textarea
               id="governance-note"
+              name="note"
               value={approvalForm.note}
               onChange={(event) =>
                 setApprovalForm((current) => ({
@@ -790,7 +832,7 @@ export default function Governance() {
                   note: event.target.value,
                 }))
               }
-              placeholder="Catatan approval / konteks keputusan"
+              placeholder="Catatan approval / konteks keputusan…"
             />
           </div>
 

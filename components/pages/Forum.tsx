@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, MessageSquare, TrendingUp, Users } from "lucide-react";
+import { Plus, Search, MessageSquare } from "lucide-react";
 import { ThreadCard } from "@/components/forum/ThreadCard";
 import { ThreadFormDialog } from "@/components/forum/ThreadFormDialog";
 import { ThreadDetailSheet } from "@/components/forum/ThreadDetailSheet";
@@ -37,7 +37,7 @@ export default function Forum() {
   const canModerate = role === "ADMIN" || role === "TEACHER";
   const canPost = role !== "PARENT";
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [threadData, subjectData, teacherData, studentData] =
@@ -64,11 +64,11 @@ export default function Forum() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [role, toast]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const filteredThreads = threads.filter((t) => {
     const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -161,62 +161,66 @@ export default function Forum() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Forum Diskusi</h1>
-          <p className="text-muted-foreground">Diskusi dan tanya jawab mata pelajaran</p>
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Forum Diskusi
+            </span>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Ruang tanya jawab yang lebih rapi untuk guru dan siswa.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Sorot topik penting, temukan diskusi aktif lebih cepat, dan jaga forum
+                tetap terbaca saat thread mulai ramai.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Diskusi Aktif
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{threads.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Total Balasan
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{totalReplies}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Sudah Terjawab
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{resolvedCount}</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </section>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {canPost && (
-          <Button onClick={() => setFormDialogOpen(true)}>
+          <Button onClick={() => setFormDialogOpen(true)} className="sm:ml-auto">
             <Plus className="h-4 w-4 mr-2" />
             Buat Diskusi
           </Button>
         )}
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <MessageSquare className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Diskusi</p>
-              <p className="text-2xl font-bold">{threads.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-secondary/10 flex items-center justify-center">
-              <Users className="h-6 w-6 text-secondary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Balasan</p>
-              <p className="text-2xl font-bold">{totalReplies}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-success" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Terjawab</p>
-              <p className="text-2xl font-bold">{resolvedCount}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Search */}
-      <div className="relative max-w-md">
+      <div className="dashboard-panel relative max-w-md p-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Cari diskusi..."
+          aria-label="Cari diskusi"
+          placeholder="Cari diskusi…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -225,7 +229,7 @@ export default function Forum() {
 
       {/* Filter by Subject */}
       <Tabs defaultValue="all" onValueChange={setSelectedSubject}>
-        <TabsList className="flex-wrap h-auto gap-1">
+        <TabsList className="flex-wrap h-auto gap-1 rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="all">Semua</TabsTrigger>
           {subjects.slice(0, 6).map((subject) => (
             <TabsTrigger key={subject.id} value={subject.id}>{subject.name}</TabsTrigger>
@@ -235,8 +239,8 @@ export default function Forum() {
         <TabsContent value={selectedSubject} className="mt-6">
           <div className="space-y-3">
             {isLoading ? (
-              <div className="text-center py-12 text-muted-foreground">
-                Memuat diskusi...
+              <div className="text-center py-12 text-muted-foreground" aria-live="polite">
+                Memuat diskusi…
               </div>
             ) : (
               sortedThreads.map((thread) => (
@@ -249,7 +253,8 @@ export default function Forum() {
             )}
           </div>
           {!isLoading && sortedThreads.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="dashboard-panel py-12 text-center text-muted-foreground">
+              <MessageSquare className="mx-auto mb-4 h-12 w-12 opacity-50" />
               Tidak ada diskusi ditemukan
             </div>
           )}

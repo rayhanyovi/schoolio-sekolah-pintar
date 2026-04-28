@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -35,7 +35,6 @@ import {
   isAfter,
   isBefore,
   isSameDay,
-  isSameMonth,
   startOfMonth,
   subMonths,
 } from "date-fns";
@@ -56,8 +55,11 @@ export default function AcademicCalendar() {
     useState<CalendarEventSummary | null>(null);
 
   const canEdit = role === "ADMIN" || role === "TEACHER";
+  const selectedDateLabel = selectedDate
+    ? format(selectedDate, "d MMMM yyyy", { locale: id })
+    : "Belum memilih tanggal";
 
-  const loadEvents = async (month: Date) => {
+  const loadEvents = useCallback(async (month: Date) => {
     try {
       setIsLoading(true);
       const from = startOfMonth(month).toISOString();
@@ -73,11 +75,11 @@ export default function AcademicCalendar() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     loadEvents(currentMonth);
-  }, [currentMonth]);
+  }, [currentMonth, loadEvents]);
 
   // Filter events by type
   const filteredEvents = events.filter(
@@ -186,22 +188,61 @@ export default function AcademicCalendar() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Kalender Akademik
-          </h1>
-          <p className="text-muted-foreground">
-            Jadwal kegiatan dan event sekolah
-          </p>
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <Badge className="w-fit rounded-full border-0 bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Kalender Akademik
+            </Badge>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Ritme semester, ujian, dan agenda sekolah dalam satu tampilan.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Pantau kegiatan penting, tenggat, dan agenda harian dengan nuansa
+                yang lebih tenang dan mudah dipindai.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="min-w-[170px] border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Total Event
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{events.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="min-w-[170px] border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  7 Hari Ke Depan
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{upcomingEvents.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="min-w-[170px] border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Tanggal Aktif
+                </p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
+                  {selectedDateLabel}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </section>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {canEdit && (
           <Button
             onClick={() => {
               setSelectedEvent(null);
               setFormDialogOpen(true);
             }}
+            className="sm:ml-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
             Tambah Event
@@ -211,7 +252,7 @@ export default function AcademicCalendar() {
 
       {/* Filter Tabs */}
       <Tabs defaultValue="all" onValueChange={setSelectedType}>
-        <TabsList className="h-10 w-full flex-nowrap overflow-x-auto rounded-full bg-muted/40 p-1">
+        <TabsList className="h-auto w-full flex-nowrap overflow-x-auto rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger
             value="all"
             className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -243,6 +284,7 @@ export default function AcademicCalendar() {
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                aria-label="Bulan sebelumnya"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -250,6 +292,7 @@ export default function AcademicCalendar() {
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                aria-label="Bulan berikutnya"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -300,8 +343,11 @@ export default function AcademicCalendar() {
                   {format(selectedDate, "d MMMM yyyy", { locale: id })}
                 </h4>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
-                    Memuat event...
+                  <div
+                    className="flex items-center justify-center py-6 text-sm text-muted-foreground"
+                    aria-live="polite"
+                  >
+                    Memuat event…
                   </div>
                 ) : eventsOnSelectedDate.length > 0 ? (
                   <div className="space-y-2">
@@ -340,16 +386,17 @@ export default function AcademicCalendar() {
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Memuat event...
+                    <p className="text-sm text-muted-foreground" aria-live="polite">
+                      Memuat event…
                     </p>
                   </div>
                 ) : upcomingEvents.length > 0 ? (
                   <div className="space-y-3">
                     {upcomingEvents.map((event) => (
-                      <div
+                      <button
                         key={event.id}
-                        className="p-3 rounded-lg border hover:bg-muted/40 cursor-pointer transition-colors"
+                        type="button"
+                        className="w-full rounded-lg border p-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         onClick={() => setSelectedDate(event.date)}
                       >
                         <div className="flex items-start gap-3">
@@ -368,7 +415,7 @@ export default function AcademicCalendar() {
                             {EVENT_TYPES[event.type as EventType]}
                           </Badge>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 ) : (

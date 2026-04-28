@@ -461,17 +461,40 @@ export default function Users({ isSaasMode = false }: UsersProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              User Directory
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">
+                Manajemen Pengguna
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                {isSaasMode
+                  ? "Kelola data siswa, guru, dan orang tua melalui kode invite dan hubungan akun."
+                  : "Kelola data siswa, guru, dan orang tua dalam satu panel operasional."}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {stats.totalStudents + stats.totalTeachers + stats.totalParents} total akun
+            </div>
+            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
+              {stats.linkedStudents} siswa terhubung
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Manajemen Pengguna
-          </h1>
-          <p className="text-muted-foreground">
-            {isSaasMode
-              ? "Kelola data siswa, guru, dan orang tua melalui kode invite."
-              : "Kelola data siswa, guru, dan orang tua"}
-          </p>
+        <div className="text-sm text-muted-foreground">
+          Gunakan tab dan filter untuk mempersempit daftar pengguna aktif.
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
@@ -542,7 +565,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         onValueChange={(v) => setActiveTab(v as typeof activeTab)}
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <TabsList className="grid w-full md:w-auto grid-cols-3">
+          <TabsList className="grid w-full md:w-auto grid-cols-3 rounded-2xl border border-border/80 bg-card/70 p-1">
             <TabsTrigger value="students" className="gap-2">
               <GraduationCap className="h-4 w-4" />
               <span className="hidden sm:inline">Siswa</span>
@@ -571,7 +594,10 @@ export default function Users({ isSaasMode = false }: UsersProps) {
             <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari pengguna..."
+                aria-label="Cari pengguna"
+                autoComplete="off"
+                name="users-search"
+                placeholder="Cari pengguna…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -581,7 +607,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
             {activeTab === "students" && (
               <>
                 <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                  <SelectTrigger className="w-full sm:w-32">
+                  <SelectTrigger className="w-full sm:w-32" aria-label="Filter tingkat">
                     <SelectValue placeholder="Tingkat" />
                   </SelectTrigger>
                   <SelectContent>
@@ -595,7 +621,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
                 </Select>
 
                 <Select value={classFilter} onValueChange={setClassFilter}>
-                  <SelectTrigger className="w-full sm:w-36">
+                  <SelectTrigger className="w-full sm:w-36" aria-label="Filter kelas">
                     <SelectValue placeholder="Kelas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -621,8 +647,8 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         {/* Students Tab */}
         <TabsContent value="students" className="mt-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              Memuat data siswa...
+            <div aria-live="polite" className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              Memuat data siswa…
             </div>
           ) : filteredStudents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -666,8 +692,8 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         {/* Teachers Tab */}
         <TabsContent value="teachers" className="mt-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              Memuat data guru...
+            <div aria-live="polite" className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              Memuat data guru…
             </div>
           ) : filteredTeachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -702,8 +728,8 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         {/* Parents Tab */}
         <TabsContent value="parents" className="mt-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              Memuat data orang tua...
+            <div aria-live="polite" className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              Memuat data orang tua…
             </div>
           ) : filteredParents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

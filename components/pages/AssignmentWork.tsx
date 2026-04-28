@@ -131,7 +131,7 @@ export default function AssignmentWork() {
   };
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Memuat tugas...</p>;
+    return <p className="text-sm text-muted-foreground" aria-live="polite">Memuat tugas…</p>;
   }
 
   if (!assignment) {
@@ -202,6 +202,7 @@ export default function AssignmentWork() {
                 <Label>Upload File</Label>
                 <Input
                   type="file"
+                  aria-label="Unggah file tugas"
                   onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
                 />
                 {selectedFile && (
@@ -212,10 +213,11 @@ export default function AssignmentWork() {
               <div className="space-y-2">
                 <Label>Jawaban</Label>
                 <Textarea
+                  name="answer"
                   value={answer}
                   onChange={(event) => setAnswer(event.target.value)}
                   rows={6}
-                  placeholder="Tulis jawaban di sini..."
+                  placeholder="Tulis jawaban di sini…"
                 />
               </div>
             )}
@@ -225,7 +227,7 @@ export default function AssignmentWork() {
                 Batal
               </Button>
               <Button type="submit" disabled={isSubmitting || !canSubmit}>
-                {isSubmitting ? "Mengirim..." : "Kumpulkan"}
+                {isSubmitting ? "Mengirim…" : "Kumpulkan"}
               </Button>
             </div>
           </form>

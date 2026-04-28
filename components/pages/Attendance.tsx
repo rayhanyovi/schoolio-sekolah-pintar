@@ -132,9 +132,6 @@ function TeacherAttendanceView() {
   const [showMissingAlert, setShowMissingAlert] = useState(false);
   const missingAlertTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [sessionStarted, setSessionStarted] = useState(false);
-  const [teacherAttendance, setTeacherAttendance] = useState<
-    TeacherAttendanceSummary[]
-  >([]);
   const [absentOpen, setAbsentOpen] = useState(false);
   const [absentType, setAbsentType] = useState<AttendanceStatus>("SICK");
   const [absentNote, setAbsentNote] = useState("");
@@ -220,7 +217,6 @@ function TeacherAttendanceView() {
   useEffect(() => {
     const loadTeacherAttendance = async () => {
       if (!userId) {
-        setTeacherAttendance([]);
         setSessionStarted(false);
         return;
       }
@@ -229,7 +225,6 @@ function TeacherAttendanceView() {
         dateFrom: selectedDate,
         dateTo: selectedDate,
       });
-      setTeacherAttendance(data);
       if (!selectedSessionId) {
         setSessionStarted(false);
         return;
@@ -428,16 +423,35 @@ function TeacherAttendanceView() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Absensi Kelas</h1>
-        <p className="text-muted-foreground">
-          Rekam kehadiran siswa untuk setiap sesi pelajaran
-        </p>
-      </div>
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Attendance Session
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Absensi Kelas</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Rekam kehadiran siswa untuk setiap sesi pelajaran dengan konteks guru, kelas, dan tanggal.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {sessions.length} sesi ditemukan
+            </div>
+            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
+              {students.length} siswa di sesi aktif
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Session Picker */}
-      <Card>
+      <Card className="dashboard-panel border-border/80">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Pilih Sesi</CardTitle>
           <CardDescription>
@@ -465,7 +479,7 @@ function TeacherAttendanceView() {
                 <SelectTrigger id="attendance-session" className="w-full mt-2">
                   <SelectValue
                     placeholder={
-                      isLoading ? "Memuat sesi..." : "Pilih sesi pelajaran..."
+                      isLoading ? "Memuat sesi…" : "Pilih sesi pelajaran…"
                     }
                   />
                 </SelectTrigger>
@@ -535,7 +549,7 @@ function TeacherAttendanceView() {
             </div>
           )}
           {absentOpen && (
-            <div className="mt-4 rounded-lg border p-4 space-y-3">
+            <div className="mt-4 rounded-2xl border border-border/80 bg-background/60 p-4 space-y-3">
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
@@ -544,8 +558,8 @@ function TeacherAttendanceView() {
                     setAbsentType(value as AttendanceStatus)
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih status..." />
+                  <SelectTrigger aria-label="Pilih status ketidakhadiran">
+                    <SelectValue placeholder="Pilih status…" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="SICK">Sakit</SelectItem>
@@ -556,10 +570,11 @@ function TeacherAttendanceView() {
               <div className="space-y-2">
                 <Label>Alasan</Label>
                 <Textarea
+                  name="absent_note"
                   value={absentNote}
                   onChange={(event) => setAbsentNote(event.target.value)}
                   rows={3}
-                  placeholder="Tulis alasan ketidakhadiran..."
+                  placeholder="Tulis alasan ketidakhadiran…"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -630,7 +645,7 @@ function TeacherAttendanceView() {
           </div>
 
           {/* Bulk Actions */}
-          <Card>
+          <Card className="dashboard-panel border-border/80">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Daftar Siswa</CardTitle>
@@ -660,7 +675,7 @@ function TeacherAttendanceView() {
                   <div
                     key={student.id}
                     className={cn(
-                      "flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors",
+                      "flex items-center justify-between rounded-xl bg-muted/30 p-3 transition-colors hover:bg-muted/50",
                       highlightIds.has(student.id) &&
                         "ring-2 ring-destructive/70 bg-destructive/10",
                     )}
@@ -842,14 +857,30 @@ function StudentAttendanceView({
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-        <p className="text-muted-foreground">{description}</p>
-      </div>
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Attendance Overview
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">{description}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {records.length} catatan bulan ini
+            </div>
+          </div>
+        </div>
+      </section>
 
       {allowStudentSelect && (
-        <Card>
+        <Card className="dashboard-panel border-border/80">
           <CardContent className="p-4">
             <Select
               value={selectedStudentId}
@@ -876,7 +907,7 @@ function StudentAttendanceView({
       )}
 
       {showNoStudents && (
-        <Card className="p-8">
+        <Card className="dashboard-panel border-dashed p-8">
           <div className="text-center text-muted-foreground">
             <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
             <p>Belum ada siswa terdaftar</p>
@@ -944,7 +975,7 @@ function StudentAttendanceView({
 
       <div className="grid md:grid-cols-3 gap-6">
         {/* Calendar View */}
-        <Card className="md:col-span-2">
+        <Card className="dashboard-panel md:col-span-2">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Kalender Kehadiran</CardTitle>
@@ -1055,7 +1086,7 @@ function StudentAttendanceView({
         </Card>
 
         {/* Recent Absences */}
-        <Card>
+        <Card className="dashboard-panel">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Ketidakhadiran Terakhir</CardTitle>
             <CardDescription>Riwayat tidak hadir bulan ini</CardDescription>
@@ -1070,7 +1101,7 @@ function StudentAttendanceView({
                   return (
                     <div
                       key={record.id}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                      className="flex items-center gap-3 rounded-xl bg-muted/30 p-2"
                     >
                       <div
                         className={cn(
@@ -1106,7 +1137,7 @@ function StudentAttendanceView({
         </Card>
       </div>
       {isLoading && (
-        <p className="text-sm text-muted-foreground flex items-center gap-2">
+        <p className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/70 px-4 py-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
           Memuat data absensi...
         </p>
@@ -1126,8 +1157,6 @@ function AdminAttendanceView() {
     TeacherAttendanceSummary[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
-  const todayStr = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
-
   const monthStart = useMemo(() => startOfMonth(currentMonth), [currentMonth]);
   const monthEnd = useMemo(() => endOfMonth(currentMonth), [currentMonth]);
   const days = useMemo(
@@ -1291,14 +1320,31 @@ function AdminAttendanceView() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Absensi</h1>
-        <p className="text-muted-foreground">
-          Pantau kehadiran siswa dan guru dalam tampilan kalender
-        </p>
-      </div>
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Attendance Monitor
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Absensi</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Pantau kehadiran siswa dan guru dalam tampilan kalender yang lebih ringkas.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
+              Mode: {viewType === "students" ? "Siswa" : "Guru"}
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <Card>
+      <Card className="dashboard-panel border-border/80">
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-3">
             <Select
@@ -1341,7 +1387,7 @@ function AdminAttendanceView() {
         </CardContent>
       </Card>
 
-      <Card className="md:col-span-2">
+      <Card className="dashboard-panel md:col-span-2">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">Kalender Kehadiran</CardTitle>
@@ -1447,7 +1493,7 @@ function AdminAttendanceView() {
       </Card>
 
       {isLoading && (
-        <p className="text-sm text-muted-foreground flex items-center gap-2">
+        <p className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/70 px-4 py-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
           Memuat data absensi...
         </p>

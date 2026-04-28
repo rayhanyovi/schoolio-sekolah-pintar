@@ -118,8 +118,8 @@ export function ClassDetailSheet({ open, onOpenChange, classData }: ClassDetailS
             </h4>
             <ScrollArea className="h-[300px] rounded-md border p-4">
               {isLoading ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Memuat data siswa...
+                <div className="flex items-center justify-center h-full text-muted-foreground" aria-live="polite">
+                  Memuat data siswa…
                 </div>
               ) : students.length > 0 ? (
                 <div className="space-y-2">

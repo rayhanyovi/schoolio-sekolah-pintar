@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -31,7 +31,10 @@ import {
   getOnboardingStatus,
   selectOnboardingRole,
 } from "@/lib/handlers/auth";
-import { createAcademicYear, listAcademicYears } from "@/lib/handlers/academic-years";
+import {
+  createAcademicYear,
+  listAcademicYears,
+} from "@/lib/handlers/academic-years";
 import { createClass, listClasses } from "@/lib/handlers/classes";
 import { createMajor, listMajors } from "@/lib/handlers/majors";
 import { getSchoolProfile, updateSchoolProfile } from "@/lib/handlers/settings";
@@ -276,7 +279,7 @@ const emptyClassDraft = (): ClassDraft => ({
 const normalizeMajorCode = (value: string) => value.trim().toUpperCase();
 
 const majorBucketFromCode = (
-  code: string
+  code: string,
 ): "SCIENCE" | "SOCIAL" | "LANGUAGE" | null => {
   const normalized = normalizeMajorCode(code);
   const scienceHints = ["SCI", "IPA", "MIPA", "SAIN", "STEM"];
@@ -284,13 +287,14 @@ const majorBucketFromCode = (
   const languageHints = ["LANG", "LNG", "BHS", "BAHASA"];
   if (scienceHints.some((hint) => normalized.includes(hint))) return "SCIENCE";
   if (socialHints.some((hint) => normalized.includes(hint))) return "SOCIAL";
-  if (languageHints.some((hint) => normalized.includes(hint))) return "LANGUAGE";
+  if (languageHints.some((hint) => normalized.includes(hint)))
+    return "LANGUAGE";
   return null;
 };
 
 const resolveTemplateMajorIds = (
   scope: SubjectMajorScope,
-  majors: Array<{ id: string; code: string }>
+  majors: Array<{ id: string; code: string }>,
 ) => {
   if (scope === "ALL") return [];
   const allowedBuckets = scope.split("_");
@@ -304,23 +308,23 @@ const resolveTemplateMajorIds = (
 
 const resolveAdminWizardStep = (onboardingStatus: OnboardingStatus) => {
   const profileDone =
-    onboardingStatus.steps.find((step) => step.id === "profile-basic")?.completed ??
-    false;
+    onboardingStatus.steps.find((step) => step.id === "profile-basic")
+      ?.completed ?? false;
   const schoolDone =
-    onboardingStatus.steps.find((step) => step.id === "school-profile")?.completed ??
-    false;
+    onboardingStatus.steps.find((step) => step.id === "school-profile")
+      ?.completed ?? false;
   const yearDone =
-    onboardingStatus.steps.find((step) => step.id === "academic-year")?.completed ??
-    false;
+    onboardingStatus.steps.find((step) => step.id === "academic-year")
+      ?.completed ?? false;
   const subjectDone =
-    onboardingStatus.steps.find((step) => step.id === "subject-template")?.completed ??
-    false;
+    onboardingStatus.steps.find((step) => step.id === "subject-template")
+      ?.completed ?? false;
   const majorDone =
-    onboardingStatus.steps.find((step) => step.id === "major-setup")?.completed ??
-    false;
+    onboardingStatus.steps.find((step) => step.id === "major-setup")
+      ?.completed ?? false;
   const classDone =
-    onboardingStatus.steps.find((step) => step.id === "class-setup")?.completed ??
-    false;
+    onboardingStatus.steps.find((step) => step.id === "class-setup")
+      ?.completed ?? false;
 
   if (!profileDone) return 0 as const;
   if (!schoolDone) return 1 as const;
@@ -329,6 +333,16 @@ const resolveAdminWizardStep = (onboardingStatus: OnboardingStatus) => {
   if (!majorDone) return 4 as const;
   if (!classDone) return 5 as const;
   return 5 as const;
+};
+
+const ONBOARDING_STEP_LABELS: Record<string, string> = {
+  "profile-basic": "Profil",
+  "school-profile": "Profil Sekolah",
+  "academic-year": "Tahun Ajaran",
+  "subject-template": "Template Mata Pelajaran",
+  "major-setup": "Setup Jurusan (Opsional)",
+  "class-setup": "Setup Kelas (Opsional)",
+  "link-child": "Hubungkan Anak (Opsional)",
 };
 
 export default function Onboarding() {
@@ -349,7 +363,9 @@ export default function Onboarding() {
   const [roleSelectionStep, setRoleSelectionStep] = useState<1 | 2>(1);
   const [roleSelectionSchoolCode, setRoleSelectionSchoolCode] = useState("");
   const [roleSelectionStudentCode, setRoleSelectionStudentCode] = useState("");
-  const [adminWizardStep, setAdminWizardStep] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
+  const [adminWizardStep, setAdminWizardStep] = useState<0 | 1 | 2 | 3 | 4 | 5>(
+    0,
+  );
 
   const [profileForm, setProfileForm] = useState<ProfileForm>({
     fullName: "",
@@ -397,13 +413,51 @@ export default function Onboarding() {
     chemistry: false,
     biology: false,
   });
-  const [majorDrafts, setMajorDrafts] = useState<MajorDraft[]>([emptyMajorDraft()]);
-  const [classDrafts, setClassDrafts] = useState<ClassDraft[]>([emptyClassDraft()]);
+  const [majorDrafts, setMajorDrafts] = useState<MajorDraft[]>([
+    emptyMajorDraft(),
+  ]);
+  const [classDrafts, setClassDrafts] = useState<ClassDraft[]>([
+    emptyClassDraft(),
+  ]);
 
   const requiredStepDone = useMemo(() => {
     if (!status) return false;
-    return status.steps.filter((item) => item.required).every((item) => item.completed);
+    return status.steps
+      .filter((item) => item.required)
+      .every((item) => item.completed);
   }, [status]);
+
+  const onboardingProgressItems = useMemo(() => {
+    if (!status) return [];
+
+    const steps = status.steps.map((step) => ({
+      id: step.id,
+      label: ONBOARDING_STEP_LABELS[step.id] ?? step.title,
+      done: step.completed,
+    }));
+
+    if (!steps.length) return [];
+
+    if (session?.role === ROLES.ADMIN) {
+      return steps.map((step, index) => ({
+        ...step,
+        number: index + 1,
+        active: index === adminWizardStep,
+      }));
+    }
+
+    const firstIncompleteIndex = steps.findIndex((step) => !step.done);
+    const activeIndex =
+      firstIncompleteIndex === -1
+        ? Math.max(steps.length - 1, 0)
+        : firstIncompleteIndex;
+
+    return steps.map((step, index) => ({
+      ...step,
+      number: index + 1,
+      active: index === activeIndex,
+    }));
+  }, [adminWizardStep, session?.role, status]);
 
   const loadProfileForm = useCallback(async (userId: string) => {
     const profile = await getUserProfile(userId);
@@ -417,18 +471,21 @@ export default function Onboarding() {
     });
   }, []);
 
-  const loadAdminProfile = useCallback(async (fallbackSchoolCode?: string | null) => {
-    const schoolProfile = await getSchoolProfile();
-    setAdminProfile({
-      schoolCode: fallbackSchoolCode ?? schoolProfile.schoolCode ?? "",
-      name: schoolProfile.name ?? "",
-      address: schoolProfile.address ?? "",
-      email: schoolProfile.email ?? "",
-      phone: schoolProfile.phone ?? "",
-      website: schoolProfile.website ?? "",
-      principalName: schoolProfile.principalName ?? "",
-    });
-  }, []);
+  const loadAdminProfile = useCallback(
+    async (fallbackSchoolCode?: string | null) => {
+      const schoolProfile = await getSchoolProfile();
+      setAdminProfile({
+        schoolCode: fallbackSchoolCode ?? schoolProfile.schoolCode ?? "",
+        name: schoolProfile.name ?? "",
+        address: schoolProfile.address ?? "",
+        email: schoolProfile.email ?? "",
+        phone: schoolProfile.phone ?? "",
+        website: schoolProfile.website ?? "",
+        principalName: schoolProfile.principalName ?? "",
+      });
+    },
+    [],
+  );
 
   const refreshContext = useCallback(async () => {
     const [sessionResult, onboardingResult] = await Promise.all([
@@ -443,7 +500,9 @@ export default function Onboarding() {
 
     setSession(sessionResult as SessionPayload);
     setStatus(onboardingResult);
-    setRoleSelectionSchoolCode(inviteSchoolCode || onboardingResult.schoolCode || "");
+    setRoleSelectionSchoolCode(
+      inviteSchoolCode || onboardingResult.schoolCode || "",
+    );
     setRoleSelectionStudentCode("");
     setRoleSelectionStep(1);
     if (sessionResult.role === ROLES.ADMIN) {
@@ -478,7 +537,8 @@ export default function Onboarding() {
         if (!active) return;
         toast({
           title: "Gagal memuat onboarding",
-          description: error instanceof Error ? error.message : "Terjadi kesalahan",
+          description:
+            error instanceof Error ? error.message : "Terjadi kesalahan",
           variant: "destructive",
         });
         router.replace("/auth");
@@ -506,7 +566,8 @@ export default function Onboarding() {
       return;
     }
     if (
-      (roleSelectionRole === ROLES.TEACHER || roleSelectionRole === ROLES.STUDENT) &&
+      (roleSelectionRole === ROLES.TEACHER ||
+        roleSelectionRole === ROLES.STUDENT) &&
       hasInviteSchoolTarget
     ) {
       void handleSubmitRoleSelection();
@@ -538,7 +599,8 @@ export default function Onboarding() {
     const resolvedSchoolCode = normalizedRoleSchoolCode || inviteSchoolCode;
 
     if (
-      (roleSelectionRole === ROLES.TEACHER || roleSelectionRole === ROLES.STUDENT) &&
+      (roleSelectionRole === ROLES.TEACHER ||
+        roleSelectionRole === ROLES.STUDENT) &&
       !resolvedSchoolId &&
       !resolvedSchoolCode
     ) {
@@ -550,7 +612,10 @@ export default function Onboarding() {
       return;
     }
 
-    if (roleSelectionRole === ROLES.PARENT && !roleSelectionStudentCode.trim()) {
+    if (
+      roleSelectionRole === ROLES.PARENT &&
+      !roleSelectionStudentCode.trim()
+    ) {
       toast({
         title: "Kode siswa belum diisi",
         description: "Masukkan kode siswa untuk role orang tua.",
@@ -564,11 +629,13 @@ export default function Onboarding() {
       await selectOnboardingRole({
         role: roleSelectionRole,
         schoolId:
-          roleSelectionRole === ROLES.TEACHER || roleSelectionRole === ROLES.STUDENT
+          roleSelectionRole === ROLES.TEACHER ||
+          roleSelectionRole === ROLES.STUDENT
             ? resolvedSchoolId || undefined
             : undefined,
         schoolCode:
-          (roleSelectionRole === ROLES.TEACHER || roleSelectionRole === ROLES.STUDENT) &&
+          (roleSelectionRole === ROLES.TEACHER ||
+            roleSelectionRole === ROLES.STUDENT) &&
           !resolvedSchoolId
             ? resolvedSchoolCode || undefined
             : undefined,
@@ -586,7 +653,8 @@ export default function Onboarding() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan peran",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
     } finally {
@@ -624,7 +692,8 @@ export default function Onboarding() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan data diri",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
       return false;
@@ -663,7 +732,8 @@ export default function Onboarding() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan profil sekolah",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
       return false;
@@ -697,7 +767,8 @@ export default function Onboarding() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan tahun ajaran",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
       return false;
@@ -708,7 +779,7 @@ export default function Onboarding() {
 
   const handleSaveSubjectTemplates = async () => {
     const selectedTemplates = DEFAULT_SUBJECT_TEMPLATES.filter(
-      (item) => selectedTemplateKeys[item.key]
+      (item) => selectedTemplateKeys[item.key],
     );
     if (!selectedTemplates.length) {
       toast({
@@ -726,7 +797,7 @@ export default function Onboarding() {
         listMajors(),
       ]);
       const existingCodes = new Set(
-        existingSubjects.map((item) => item.code.trim().toUpperCase())
+        existingSubjects.map((item) => item.code.trim().toUpperCase()),
       );
 
       let createdCount = 0;
@@ -734,7 +805,7 @@ export default function Onboarding() {
         if (existingCodes.has(item.code.toUpperCase())) continue;
         const majorIds = resolveTemplateMajorIds(
           item.majorScope,
-          majorRows.map((major) => ({ id: major.id, code: major.code }))
+          majorRows.map((major) => ({ id: major.id, code: major.code })),
         );
         await createSubject({
           name: item.name,
@@ -761,7 +832,8 @@ export default function Onboarding() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan template mata pelajaran",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
       return false;
@@ -772,7 +844,7 @@ export default function Onboarding() {
 
   const handleSaveMajorSetup = async () => {
     const draftRows = majorDrafts.filter(
-      (item) => item.code.trim() || item.name.trim() || item.description.trim()
+      (item) => item.code.trim() || item.name.trim() || item.description.trim(),
     );
     if (!draftRows.length) {
       toast({
@@ -797,7 +869,7 @@ export default function Onboarding() {
       setIsSaving(true);
       const existingMajors = await listMajors();
       const existingCodes = new Set(
-        existingMajors.map((item) => normalizeMajorCode(item.code))
+        existingMajors.map((item) => normalizeMajorCode(item.code)),
       );
 
       let createdCount = 0;
@@ -824,7 +896,8 @@ export default function Onboarding() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan jurusan",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
       return false;
@@ -836,7 +909,10 @@ export default function Onboarding() {
   const handleSaveClassSetup = async () => {
     const draftRows = classDrafts.filter(
       (item) =>
-        item.name.trim() || item.grade.trim() || item.section.trim() || item.majorCode.trim()
+        item.name.trim() ||
+        item.grade.trim() ||
+        item.section.trim() ||
+        item.majorCode.trim(),
     );
     if (!draftRows.length) {
       toast({
@@ -873,12 +949,13 @@ export default function Onboarding() {
         listClasses(),
       ]);
       const majorCodes = new Set(
-        existingMajors.map((item) => normalizeMajorCode(item.code))
+        existingMajors.map((item) => normalizeMajorCode(item.code)),
       );
       const existingClassKeys = new Set(
-        existingClasses.map((item) =>
-          `${item.name.trim().toUpperCase()}::${item.section.trim().toUpperCase()}::${item.grade}`
-        )
+        existingClasses.map(
+          (item) =>
+            `${item.name.trim().toUpperCase()}::${item.section.trim().toUpperCase()}::${item.grade}`,
+        ),
       );
 
       let createdCount = 0;
@@ -920,7 +997,8 @@ export default function Onboarding() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan kelas",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
       return false;
@@ -945,7 +1023,8 @@ export default function Onboarding() {
     } catch (error) {
       toast({
         title: "Gagal menyelesaikan onboarding",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
     } finally {
@@ -955,7 +1034,7 @@ export default function Onboarding() {
 
   const handleAdminStepBack = () => {
     setAdminWizardStep((prev) =>
-      prev > 0 ? ((prev - 1) as 0 | 1 | 2 | 3 | 4 | 5) : prev
+      prev > 0 ? ((prev - 1) as 0 | 1 | 2 | 3 | 4 | 5) : prev,
     );
   };
 
@@ -1005,22 +1084,30 @@ export default function Onboarding() {
 
   const updateMajorDraft = (index: number, next: Partial<MajorDraft>) => {
     setMajorDrafts((prev) =>
-      prev.map((item, itemIndex) => (itemIndex === index ? { ...item, ...next } : item))
+      prev.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...next } : item,
+      ),
     );
   };
 
   const removeMajorDraft = (index: number) => {
-    setMajorDrafts((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+    setMajorDrafts((prev) =>
+      prev.length <= 1 ? prev : prev.filter((_, i) => i !== index),
+    );
   };
 
   const updateClassDraft = (index: number, next: Partial<ClassDraft>) => {
     setClassDrafts((prev) =>
-      prev.map((item, itemIndex) => (itemIndex === index ? { ...item, ...next } : item))
+      prev.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...next } : item,
+      ),
     );
   };
 
   const removeClassDraft = (index: number) => {
-    setClassDrafts((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+    setClassDrafts((prev) =>
+      prev.length <= 1 ? prev : prev.filter((_, i) => i !== index),
+    );
   };
 
   if (isLoading || !status || !session) {
@@ -1069,7 +1156,7 @@ export default function Onboarding() {
     return (
       <div className="mx-auto w-full max-w-2xl space-y-6 p-6">
         <Card>
-          <CardContent className="space-y-8 pt-6">
+          <CardContent className="space-y-8 pt-6 ">
             <div className="flex items-center justify-center gap-4 text-sm">
               {[
                 { number: 1, label: "Akun", done: true, active: false },
@@ -1095,15 +1182,21 @@ export default function Onboarding() {
                         item.done
                           ? "border-emerald-600 bg-emerald-600 text-white"
                           : item.active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-muted-foreground/30 text-muted-foreground",
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-muted-foreground/30 text-muted-foreground",
                       ].join(" ")}
                     >
-                      {item.done ? <CheckCircle2 className="h-5 w-5" /> : item.number}
+                      {item.done ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : (
+                        item.number
+                      )}
                     </div>
                     <span
                       className={
-                        item.active ? "font-medium text-foreground" : "text-muted-foreground"
+                        item.active
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground"
                       }
                     >
                       {item.label}
@@ -1117,7 +1210,9 @@ export default function Onboarding() {
             {roleSelectionStep === 1 ? (
               <>
                 <div className="space-y-1 text-center">
-                  <h2 className="text-3xl font-semibold tracking-tight">Pilih Peran Anda</h2>
+                  <h2 className="text-3xl font-semibold tracking-tight">
+                    Pilih Peran Anda
+                  </h2>
                   <p className="text-muted-foreground">
                     Sesuaikan pengalaman aplikasi dengan peran Anda.
                   </p>
@@ -1143,18 +1238,27 @@ export default function Onboarding() {
                           <Icon className="h-5 w-5" />
                         </div>
                         <p className="font-semibold">{item.title}</p>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.description}
+                        </p>
                       </button>
                     );
                   })}
                 </div>
 
                 <div className="flex justify-between gap-3">
-                  <Button variant="outline" onClick={handleRoleStepBack} disabled={isSaving}>
+                  <Button
+                    variant="outline"
+                    onClick={handleRoleStepBack}
+                    disabled={isSaving}
+                  >
                     <ChevronLeft className="mr-1 h-4 w-4" />
                     Kembali
                   </Button>
-                  <Button onClick={handleRoleStepNext} disabled={isSaving || !roleSelectionRole}>
+                  <Button
+                    onClick={handleRoleStepNext}
+                    disabled={isSaving || !roleSelectionRole}
+                  >
                     Lanjutkan
                     <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
@@ -1163,31 +1267,35 @@ export default function Onboarding() {
             ) : (
               <>
                 <div className="space-y-1">
-                  <h2 className="text-2xl font-semibold tracking-tight">Masukkan Kode</h2>
+                  <h2 className="text-2xl font-semibold tracking-tight">
+                    Masukkan Kode
+                  </h2>
                   <p className="text-muted-foreground">
                     {roleSelectionRole === ROLES.ADMIN
                       ? "Admin tidak perlu kode. Lanjutkan untuk membuat sekolah baru."
                       : roleSelectionRole === ROLES.PARENT
-                      ? "Masukkan kode siswa untuk menghubungkan akun orang tua."
-                      : hasInviteSchoolTarget
-                      ? "Sekolah dari link invite sudah terdeteksi. Lanjutkan untuk menerapkan otomatis."
-                      : "Masukkan kode sekolah untuk bergabung ke sekolah yang tepat."}
+                        ? "Masukkan kode siswa untuk menghubungkan akun orang tua."
+                        : hasInviteSchoolTarget
+                          ? "Sekolah dari link invite sudah terdeteksi. Lanjutkan untuk menerapkan otomatis."
+                          : "Masukkan kode sekolah untuk bergabung ke sekolah yang tepat."}
                   </p>
                 </div>
 
                 {(roleSelectionRole === ROLES.TEACHER ||
                   roleSelectionRole === ROLES.STUDENT) &&
                   !hasInviteSchoolTarget && (
-                  <div className="space-y-2">
-                    <Label htmlFor="roleSchoolCode">Kode Sekolah</Label>
-                    <Input
-                      id="roleSchoolCode"
-                      value={roleSelectionSchoolCode}
-                      onChange={(event) => setRoleSelectionSchoolCode(event.target.value)}
-                      placeholder="Mis: SCH-ABC12345"
-                    />
-                  </div>
-                )}
+                    <div className="space-y-2">
+                      <Label htmlFor="roleSchoolCode">Kode Sekolah</Label>
+                      <Input
+                        id="roleSchoolCode"
+                        value={roleSelectionSchoolCode}
+                        onChange={(event) =>
+                          setRoleSelectionSchoolCode(event.target.value)
+                        }
+                        placeholder="Mis: SCH-ABC12345"
+                      />
+                    </div>
+                  )}
                 {(roleSelectionRole === ROLES.TEACHER ||
                   roleSelectionRole === ROLES.STUDENT) &&
                   hasInviteSchoolTarget && (
@@ -1202,7 +1310,9 @@ export default function Onboarding() {
                     <Input
                       id="roleStudentCode"
                       value={roleSelectionStudentCode}
-                      onChange={(event) => setRoleSelectionStudentCode(event.target.value)}
+                      onChange={(event) =>
+                        setRoleSelectionStudentCode(event.target.value)
+                      }
                       placeholder="Masukkan userId siswa"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -1212,11 +1322,18 @@ export default function Onboarding() {
                 )}
 
                 <div className="flex justify-between gap-3">
-                  <Button variant="outline" onClick={handleRoleStepBack} disabled={isSaving}>
+                  <Button
+                    variant="outline"
+                    onClick={handleRoleStepBack}
+                    disabled={isSaving}
+                  >
                     <ChevronLeft className="mr-1 h-4 w-4" />
                     Kembali
                   </Button>
-                  <Button onClick={handleSubmitRoleSelection} disabled={isSaving}>
+                  <Button
+                    onClick={handleSubmitRoleSelection}
+                    disabled={isSaving}
+                  >
                     Lanjutkan
                     <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
@@ -1232,17 +1349,12 @@ export default function Onboarding() {
   const isAdmin = session.role === ROLES.ADMIN;
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 p-6">
-      <Card>
-        <CardContent className="space-y-6 pt-6">
+    <div className="mx-auto w-full  space-y-6 p-6">
+      <Card className="!w-fit mx-auto px-8">
+        <CardContent className="space-y-6 pt-6 mx-auto">
           <div className="flex items-center justify-center gap-4 text-sm">
-            {[
-              { number: 1, label: "Akun", done: true, active: false },
-              { number: 2, label: "Peran", done: true, active: false },
-              { number: 3, label: "Kode", done: true, active: false },
-              { number: 4, label: "Profil", done: requiredStepDone, active: true },
-            ].map((item, index) => (
-              <div key={item.number} className="flex items-center gap-3">
+            {onboardingProgressItems.map((item, index) => (
+              <div key={item.id} className="flex items-center gap-3">
                 <div className="flex flex-col items-center gap-2">
                   <div
                     className={[
@@ -1250,21 +1362,29 @@ export default function Onboarding() {
                       item.done
                         ? "border-emerald-600 bg-emerald-600 text-white"
                         : item.active
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-muted-foreground/30 text-muted-foreground",
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-muted-foreground/30 text-muted-foreground",
                     ].join(" ")}
                   >
-                    {item.done ? <CheckCircle2 className="h-5 w-5" /> : item.number}
+                    {item.done ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      item.number
+                    )}
                   </div>
                   <span
                     className={
-                      item.active ? "font-medium text-foreground" : "text-muted-foreground"
+                      item.active
+                        ? "font-medium text-foreground"
+                        : "text-muted-foreground"
                     }
                   >
                     {item.label}
                   </span>
                 </div>
-                {index < 3 && <div className="h-px w-12 bg-border" />}
+                {index < onboardingProgressItems.length - 1 && (
+                  <div className="h-px w-12 bg-border" />
+                )}
               </div>
             ))}
           </div>
@@ -1277,7 +1397,7 @@ export default function Onboarding() {
       </Card>
 
       {isAdmin ? (
-        <Card>
+        <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>
               {adminWizardStep === 0 && "Profil"}
@@ -1312,7 +1432,10 @@ export default function Onboarding() {
                       id="profileName"
                       value={profileForm.fullName}
                       onChange={(event) =>
-                        setProfileForm((prev) => ({ ...prev, fullName: event.target.value }))
+                        setProfileForm((prev) => ({
+                          ...prev,
+                          fullName: event.target.value,
+                        }))
                       }
                       placeholder="Masukkan nama lengkap"
                     />
@@ -1324,7 +1447,10 @@ export default function Onboarding() {
                       type="date"
                       value={profileForm.birthDate}
                       onChange={(event) =>
-                        setProfileForm((prev) => ({ ...prev, birthDate: event.target.value }))
+                        setProfileForm((prev) => ({
+                          ...prev,
+                          birthDate: event.target.value,
+                        }))
                       }
                     />
                   </div>
@@ -1335,7 +1461,10 @@ export default function Onboarding() {
                     id="profileAvatar"
                     value={profileForm.avatarUrl}
                     onChange={(event) =>
-                      setProfileForm((prev) => ({ ...prev, avatarUrl: event.target.value }))
+                      setProfileForm((prev) => ({
+                        ...prev,
+                        avatarUrl: event.target.value,
+                      }))
                     }
                     placeholder="https://..."
                   />
@@ -1347,7 +1476,10 @@ export default function Onboarding() {
                       id="profilePhone"
                       value={profileForm.phone}
                       onChange={(event) =>
-                        setProfileForm((prev) => ({ ...prev, phone: event.target.value }))
+                        setProfileForm((prev) => ({
+                          ...prev,
+                          phone: event.target.value,
+                        }))
                       }
                     />
                   </div>
@@ -1357,7 +1489,10 @@ export default function Onboarding() {
                       id="profileAddress"
                       value={profileForm.address}
                       onChange={(event) =>
-                        setProfileForm((prev) => ({ ...prev, address: event.target.value }))
+                        setProfileForm((prev) => ({
+                          ...prev,
+                          address: event.target.value,
+                        }))
                       }
                     />
                   </div>
@@ -1368,7 +1503,10 @@ export default function Onboarding() {
                     id="profileBio"
                     value={profileForm.bio}
                     onChange={(event) =>
-                      setProfileForm((prev) => ({ ...prev, bio: event.target.value }))
+                      setProfileForm((prev) => ({
+                        ...prev,
+                        bio: event.target.value,
+                      }))
                     }
                     placeholder="Perkenalkan diri Anda secara singkat"
                   />
@@ -1384,7 +1522,10 @@ export default function Onboarding() {
                     id="schoolCode"
                     value={adminProfile.schoolCode}
                     onChange={(event) =>
-                      setAdminProfile((prev) => ({ ...prev, schoolCode: event.target.value }))
+                      setAdminProfile((prev) => ({
+                        ...prev,
+                        schoolCode: event.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -1395,7 +1536,10 @@ export default function Onboarding() {
                       id="schoolName"
                       value={adminProfile.name}
                       onChange={(event) =>
-                        setAdminProfile((prev) => ({ ...prev, name: event.target.value }))
+                        setAdminProfile((prev) => ({
+                          ...prev,
+                          name: event.target.value,
+                        }))
                       }
                     />
                   </div>
@@ -1405,7 +1549,10 @@ export default function Onboarding() {
                       id="schoolEmail"
                       value={adminProfile.email}
                       onChange={(event) =>
-                        setAdminProfile((prev) => ({ ...prev, email: event.target.value }))
+                        setAdminProfile((prev) => ({
+                          ...prev,
+                          email: event.target.value,
+                        }))
                       }
                     />
                   </div>
@@ -1416,7 +1563,10 @@ export default function Onboarding() {
                     id="schoolAddress"
                     value={adminProfile.address}
                     onChange={(event) =>
-                      setAdminProfile((prev) => ({ ...prev, address: event.target.value }))
+                      setAdminProfile((prev) => ({
+                        ...prev,
+                        address: event.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -1427,7 +1577,10 @@ export default function Onboarding() {
                       id="schoolPhone"
                       value={adminProfile.phone}
                       onChange={(event) =>
-                        setAdminProfile((prev) => ({ ...prev, phone: event.target.value }))
+                        setAdminProfile((prev) => ({
+                          ...prev,
+                          phone: event.target.value,
+                        }))
                       }
                     />
                   </div>
@@ -1437,7 +1590,10 @@ export default function Onboarding() {
                       id="schoolWebsite"
                       value={adminProfile.website}
                       onChange={(event) =>
-                        setAdminProfile((prev) => ({ ...prev, website: event.target.value }))
+                        setAdminProfile((prev) => ({
+                          ...prev,
+                          website: event.target.value,
+                        }))
                       }
                     />
                   </div>
@@ -1463,7 +1619,10 @@ export default function Onboarding() {
                 <Input
                   value={academicYearForm.year}
                   onChange={(event) =>
-                    setAcademicYearForm((prev) => ({ ...prev, year: event.target.value }))
+                    setAcademicYearForm((prev) => ({
+                      ...prev,
+                      year: event.target.value,
+                    }))
                   }
                   placeholder="2026/2027"
                 />
@@ -1484,14 +1643,20 @@ export default function Onboarding() {
                   type="date"
                   value={academicYearForm.startDate}
                   onChange={(event) =>
-                    setAcademicYearForm((prev) => ({ ...prev, startDate: event.target.value }))
+                    setAcademicYearForm((prev) => ({
+                      ...prev,
+                      startDate: event.target.value,
+                    }))
                   }
                 />
                 <Input
                   type="date"
                   value={academicYearForm.endDate}
                   onChange={(event) =>
-                    setAcademicYearForm((prev) => ({ ...prev, endDate: event.target.value }))
+                    setAcademicYearForm((prev) => ({
+                      ...prev,
+                      endDate: event.target.value,
+                    }))
                   }
                 />
               </div>
@@ -1500,7 +1665,10 @@ export default function Onboarding() {
             {adminWizardStep === 3 && (
               <div className="grid gap-2 sm:grid-cols-2">
                 {DEFAULT_SUBJECT_TEMPLATES.map((item) => (
-                  <label key={item.key} className="flex items-center gap-3 rounded-md border p-3">
+                  <label
+                    key={item.key}
+                    className="flex items-center gap-3 rounded-md border p-3"
+                  >
                     <Checkbox
                       checked={Boolean(selectedTemplateKeys[item.key])}
                       onCheckedChange={(checked) =>
@@ -1526,7 +1694,9 @@ export default function Onboarding() {
                       <Input
                         value={row.code}
                         onChange={(event) =>
-                          updateMajorDraft(index, { code: event.target.value.toUpperCase() })
+                          updateMajorDraft(index, {
+                            code: event.target.value.toUpperCase(),
+                          })
                         }
                         placeholder="Kode (mis. SCI)"
                       />
@@ -1540,7 +1710,9 @@ export default function Onboarding() {
                       <Input
                         value={row.description}
                         onChange={(event) =>
-                          updateMajorDraft(index, { description: event.target.value })
+                          updateMajorDraft(index, {
+                            description: event.target.value,
+                          })
                         }
                         placeholder="Deskripsi (opsional)"
                       />
@@ -1561,7 +1733,9 @@ export default function Onboarding() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setMajorDrafts((prev) => [...prev, emptyMajorDraft()])}
+                  onClick={() =>
+                    setMajorDrafts((prev) => [...prev, emptyMajorDraft()])
+                  }
                 >
                   Tambah Baris Jurusan
                 </Button>
@@ -1590,7 +1764,9 @@ export default function Onboarding() {
                       <Input
                         value={row.section}
                         onChange={(event) =>
-                          updateClassDraft(index, { section: event.target.value })
+                          updateClassDraft(index, {
+                            section: event.target.value,
+                          })
                         }
                         placeholder="Rombel (mis. A)"
                       />
@@ -1620,7 +1796,9 @@ export default function Onboarding() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setClassDrafts((prev) => [...prev, emptyClassDraft()])}
+                  onClick={() =>
+                    setClassDrafts((prev) => [...prev, emptyClassDraft()])
+                  }
                 >
                   Tambah Baris Kelas
                 </Button>
@@ -1638,12 +1816,18 @@ export default function Onboarding() {
               </Button>
               <div className="flex gap-2">
                 {(adminWizardStep === 4 || adminWizardStep === 5) && (
-                  <Button variant="outline" onClick={handleSkipOptionalAdminStep} disabled={isSaving}>
+                  <Button
+                    variant="outline"
+                    onClick={handleSkipOptionalAdminStep}
+                    disabled={isSaving}
+                  >
                     Setting nanti
                   </Button>
                 )}
                 <Button onClick={handleAdminStepNext} disabled={isSaving}>
-                  {adminWizardStep === 5 ? "Simpan & Selesaikan" : "Simpan & Lanjutkan"}
+                  {adminWizardStep === 5
+                    ? "Simpan & Selesaikan"
+                    : "Simpan & Lanjutkan"}
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>
@@ -1667,7 +1851,10 @@ export default function Onboarding() {
                     id="profileName"
                     value={profileForm.fullName}
                     onChange={(event) =>
-                      setProfileForm((prev) => ({ ...prev, fullName: event.target.value }))
+                      setProfileForm((prev) => ({
+                        ...prev,
+                        fullName: event.target.value,
+                      }))
                     }
                     placeholder="Masukkan nama lengkap"
                   />
@@ -1679,7 +1866,10 @@ export default function Onboarding() {
                     type="date"
                     value={profileForm.birthDate}
                     onChange={(event) =>
-                      setProfileForm((prev) => ({ ...prev, birthDate: event.target.value }))
+                      setProfileForm((prev) => ({
+                        ...prev,
+                        birthDate: event.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -1690,7 +1880,10 @@ export default function Onboarding() {
                   id="profileAvatar"
                   value={profileForm.avatarUrl}
                   onChange={(event) =>
-                    setProfileForm((prev) => ({ ...prev, avatarUrl: event.target.value }))
+                    setProfileForm((prev) => ({
+                      ...prev,
+                      avatarUrl: event.target.value,
+                    }))
                   }
                   placeholder="https://..."
                 />
@@ -1702,7 +1895,10 @@ export default function Onboarding() {
                     id="profilePhone"
                     value={profileForm.phone}
                     onChange={(event) =>
-                      setProfileForm((prev) => ({ ...prev, phone: event.target.value }))
+                      setProfileForm((prev) => ({
+                        ...prev,
+                        phone: event.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -1712,7 +1908,10 @@ export default function Onboarding() {
                     id="profileAddress"
                     value={profileForm.address}
                     onChange={(event) =>
-                      setProfileForm((prev) => ({ ...prev, address: event.target.value }))
+                      setProfileForm((prev) => ({
+                        ...prev,
+                        address: event.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -1723,16 +1922,26 @@ export default function Onboarding() {
                   id="profileBio"
                   value={profileForm.bio}
                   onChange={(event) =>
-                    setProfileForm((prev) => ({ ...prev, bio: event.target.value }))
+                    setProfileForm((prev) => ({
+                      ...prev,
+                      bio: event.target.value,
+                    }))
                   }
                   placeholder="Perkenalkan diri Anda secara singkat"
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => void handleSaveProfile()} disabled={isSaving}>
+                <Button
+                  variant="outline"
+                  onClick={() => void handleSaveProfile()}
+                  disabled={isSaving}
+                >
                   Simpan Data Diri
                 </Button>
-                <Button onClick={() => void handleComplete()} disabled={isSaving}>
+                <Button
+                  onClick={() => void handleComplete()}
+                  disabled={isSaving}
+                >
                   Selesaikan Onboarding
                 </Button>
               </div>
@@ -1740,7 +1949,6 @@ export default function Onboarding() {
           </Card>
         </>
       )}
-
     </div>
   );
 }
