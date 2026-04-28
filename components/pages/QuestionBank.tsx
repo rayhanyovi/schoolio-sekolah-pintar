@@ -96,7 +96,6 @@ export default function QuestionBank() {
   // Dialogs
   const [questionFormOpen, setQuestionFormOpen] = useState(false);
   const [packageFormOpen, setPackageFormOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Selected items
@@ -120,7 +119,7 @@ export default function QuestionBank() {
       setQuestions(questionData);
       setPackages(packageData);
       setSubjects(subjectData);
-    } catch (error) {
+    } catch {
       toast.error("Gagal memuat bank soal");
     } finally {
       setIsLoading(false);
@@ -200,7 +199,7 @@ export default function QuestionBank() {
       }
       setSelectedQuestion(null);
       await loadData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal menyimpan soal");
     }
   };
@@ -228,7 +227,7 @@ export default function QuestionBank() {
       }
       setSelectedPackage(null);
       await loadData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal menyimpan paket soal");
     }
   };
@@ -244,7 +243,7 @@ export default function QuestionBank() {
         toast.success("Paket soal berhasil dihapus");
       }
       await loadData();
-    } catch (error) {
+    } catch {
       toast.error("Gagal menghapus data");
     } finally {
       setItemToDelete(null);
@@ -272,7 +271,7 @@ export default function QuestionBank() {
       });
       await loadData();
       toast.success("Soal berhasil diduplikasi");
-    } catch (error) {
+    } catch {
       toast.error("Gagal menduplikasi soal");
     }
   };
@@ -285,14 +284,42 @@ export default function QuestionBank() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Bank Soal</h1>
-          <p className="text-muted-foreground">
-            Kelola koleksi soal dan paket soal Anda
-          </p>
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Bank Soal
+            </span>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Koleksi soal dan paket yang lebih teratur untuk proses mengajar.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Filter, mode tampilan, dan panel aksi kini lebih selaras dengan tema
+                dashboard sambil tetap mudah diakses lewat keyboard.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-primary/10 bg-white/88 p-4 shadow-none">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total Soal</p>
+              <p className="mt-2 text-3xl font-semibold text-foreground">{stats.totalQuestions}</p>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 p-4 shadow-none">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Paket Soal</p>
+              <p className="mt-2 text-3xl font-semibold text-foreground">{stats.totalPackages}</p>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 p-4 shadow-none">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Mode Tampilan</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
+                {viewMode === "grid" ? "Grid" : "Daftar"}
+              </p>
+            </Card>
+          </div>
         </div>
+      </section>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -316,7 +343,6 @@ export default function QuestionBank() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="p-4">
           <div className="flex items-center gap-3">
@@ -381,7 +407,7 @@ export default function QuestionBank() {
         onValueChange={(v) => setActiveTab(v as "questions" | "packages")}
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
+          <TabsList className="rounded-2xl border border-border/80 bg-card/70 p-1">
             <TabsTrigger value="questions" className="gap-2">
               <Library className="h-4 w-4" />
               Semua Soal
@@ -397,14 +423,15 @@ export default function QuestionBank() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari..."
+                aria-label="Cari soal atau paket soal"
+                placeholder="Cari…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
               />
             </div>
             <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px]" aria-label="Filter mata pelajaran">
                 <SelectValue placeholder="Mapel" />
               </SelectTrigger>
               <SelectContent>
@@ -419,7 +446,7 @@ export default function QuestionBank() {
             {activeTab === "questions" && (
               <>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-[130px]">
+                  <SelectTrigger className="w-[130px]" aria-label="Filter tipe soal">
                     <SelectValue placeholder="Tipe" />
                   </SelectTrigger>
                   <SelectContent>
@@ -437,7 +464,7 @@ export default function QuestionBank() {
                   value={difficultyFilter}
                   onValueChange={setDifficultyFilter}
                 >
-                  <SelectTrigger className="w-[120px]">
+                  <SelectTrigger className="w-[120px]" aria-label="Filter tingkat kesulitan">
                     <SelectValue placeholder="Level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -459,6 +486,7 @@ export default function QuestionBank() {
                 size="icon"
                 className="h-9 w-9 rounded-r-none"
                 onClick={() => setViewMode("list")}
+                aria-label="Tampilan daftar"
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -467,6 +495,7 @@ export default function QuestionBank() {
                 size="icon"
                 className="h-9 w-9 rounded-l-none"
                 onClick={() => setViewMode("grid")}
+                aria-label="Tampilan grid"
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
@@ -477,8 +506,8 @@ export default function QuestionBank() {
         {/* Questions Tab */}
         <TabsContent value="questions" className="mt-4">
           {isLoading ? (
-            <div className="text-center py-16 text-muted-foreground">
-              Memuat soal...
+            <div className="text-center py-16 text-muted-foreground" aria-live="polite">
+              Memuat soal…
             </div>
           ) : (
             <div
@@ -533,8 +562,8 @@ export default function QuestionBank() {
         {/* Packages Tab */}
         <TabsContent value="packages" className="mt-4">
           {isLoading ? (
-            <div className="text-center py-16 text-muted-foreground">
-              Memuat paket soal...
+            <div className="text-center py-16 text-muted-foreground" aria-live="polite">
+              Memuat paket soal…
             </div>
           ) : (
             <div
@@ -577,6 +606,7 @@ export default function QuestionBank() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label={`Aksi untuk paket ${pkg.name}`}
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
@@ -610,7 +640,7 @@ export default function QuestionBank() {
                                     toast.success(
                                       "Paket soal berhasil diduplikasi",
                                     );
-                                  } catch (error) {
+                                  } catch {
                                     toast.error("Gagal menduplikasi paket");
                                   }
                                 }}

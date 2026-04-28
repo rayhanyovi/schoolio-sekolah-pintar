@@ -191,14 +191,48 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Analytics
+            </span>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Baca performa sekolah dari absensi, nilai, dan demografi.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Dashboard ini dirapikan supaya metrik utama, grafik, dan area perhatian
+                lebih cepat dipahami saat rapat maupun evaluasi harian.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Siswa</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{overview?.totalStudents ?? 0}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Rata-rata Nilai</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{weightedAverage.toFixed(1)}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Tingkat Hadir</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{attendanceRate}%</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Analytics Dashboard
-        </h1>
-        <p className="text-muted-foreground">
-          Statistik dan analisis performa sekolah
-          {isLoading ? " • Memuat data..." : ""}
+        <p className="text-sm text-muted-foreground" aria-live="polite">
+          Statistik dan analisis performa sekolah{isLoading ? " • Memuat data…" : ""}
         </p>
       </div>
 
@@ -288,7 +322,7 @@ export default function Analytics() {
       </div>
 
       <Tabs defaultValue="attendance" className="space-y-6">
-        <TabsList>
+        <TabsList className="rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="attendance" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Kehadiran
@@ -666,3 +700,4 @@ export default function Analytics() {
     </div>
   );
 }
+

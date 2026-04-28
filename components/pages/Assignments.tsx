@@ -288,10 +288,36 @@ function TeacherAssignmentsView() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Assignment Studio
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Tugas</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Kelola ritme tugas, pengumpulan, dan penilaian dalam satu alur kerja yang lebih rapi.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
+              {assignments.length} total tugas
+            </div>
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {assignments.filter((assignment) => assignment.status === "ACTIVE").length} masih aktif
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tugas</h1>
-          <p className="text-muted-foreground">Kelola tugas untuk siswa Anda</p>
+        <div className="text-sm text-muted-foreground">
+          Pilih sumber soal lalu atur jadwal dan kelas tujuan.
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push("/dashboard/question-bank")}>
@@ -413,12 +439,12 @@ function TeacherAssignmentsView() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="dashboard-panel border-border/80">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
-              <SelectTrigger className="w-full sm:w-[300px]">
-                <SelectValue placeholder="Filter berdasarkan jadwal..." />
+              <SelectTrigger className="w-full sm:w-[300px]" aria-label="Filter berdasarkan jadwal">
+                <SelectValue placeholder="Filter berdasarkan jadwal…" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Jadwal</SelectItem>
@@ -436,7 +462,7 @@ function TeacherAssignmentsView() {
             </Select>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Cari tugas..." className="pl-10" />
+              <Input aria-label="Cari tugas" placeholder="Cari tugas…" className="pl-10" />
             </div>
           </div>
         </CardContent>
@@ -467,7 +493,7 @@ function TeacherAssignmentsView() {
           );
         })}
         {!isLoading && filteredAssignments.length === 0 && (
-          <Card className="p-8">
+          <Card className="dashboard-panel border-dashed p-8">
             <div className="text-center text-muted-foreground">
               <FileText className="h-10 w-10 mx-auto mb-3 opacity-50" />
               <p>{emptyAssignmentsMessage}</p>
@@ -485,7 +511,9 @@ function TeacherAssignmentsView() {
       </Sheet>
 
       {isLoading && (
-        <p className="text-sm text-muted-foreground">Memuat data tugas...</p>
+        <p className="rounded-full border border-border/80 bg-background/70 px-4 py-2 text-sm text-muted-foreground inline-flex">
+          Memuat data tugas…
+        </p>
       )}
     </div>
   );
@@ -593,10 +621,36 @@ function StudentAssignmentsView({
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Assignment Overview
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                {description}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-warning/30 bg-warning/12 px-4 py-2 text-sm font-medium text-foreground">
+              {filterAssignments("pending").length} perlu dikerjakan
+            </div>
+            <div className="rounded-full border border-success/20 bg-success/10 px-4 py-2 text-sm font-medium text-success">
+              {filterAssignments("graded").length} sudah dinilai
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-          <p className="text-muted-foreground">{description}</p>
+        <div className="text-sm text-muted-foreground">
+          Pantau status tugas per tahap dari tab di bawah.
         </div>
         {allowStudentSelect && (
           <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
@@ -623,7 +677,7 @@ function StudentAssignmentsView({
       </div>
 
       {showNoStudents && (
-        <Card className="p-8">
+        <Card className="dashboard-panel border-dashed p-8">
           <div className="text-center text-muted-foreground">
             <User className="h-10 w-10 mx-auto mb-3 opacity-50" />
             <p>Belum ada siswa terdaftar</p>
@@ -698,7 +752,7 @@ function StudentAssignmentsView({
               />
             ))}
             {filterAssignments(status).length === 0 && (
-              <Card className="p-8">
+              <Card className="dashboard-panel border-dashed p-8">
                 <div className="text-center text-muted-foreground">
                   <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
                   <p>Tidak ada tugas</p>
@@ -710,7 +764,9 @@ function StudentAssignmentsView({
       </Tabs>
 
       {isLoading && (
-        <p className="text-sm text-muted-foreground">Memuat tugas...</p>
+        <p className="inline-flex rounded-full border border-border/80 bg-background/70 px-4 py-2 text-sm text-muted-foreground">
+          Memuat tugas...
+        </p>
       )}
     </div>
   );

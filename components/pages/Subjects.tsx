@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Plus, Search, BookOpen, Users } from "lucide-react";
 import { SubjectCard } from "@/components/subjects/SubjectCard";
 import { SubjectFormDialog } from "@/components/subjects/SubjectFormDialog";
@@ -166,11 +167,36 @@ export default function Subjects() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Subject Library
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Manajemen Mata Pelajaran</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Kelola katalog mata pelajaran, kategori, dan guru pengampu dengan struktur yang lebih rapi.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {subjects.length} mata pelajaran
+            </div>
+            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
+              {totalTeachers} guru terhubung
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Manajemen Mata Pelajaran</h1>
-          <p className="text-muted-foreground">Kelola mata pelajaran dan guru pengampu</p>
+        <div className="text-sm text-muted-foreground">
+          Gunakan pencarian dan kategori untuk mempersempit daftar mata pelajaran.
         </div>
         {isAdmin && (
           <Button onClick={() => { setSelectedSubject(null); setFormDialogOpen(true); }}>
@@ -210,7 +236,10 @@ export default function Subjects() {
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Cari mata pelajaran..."
+          aria-label="Cari mata pelajaran"
+          autoComplete="off"
+          name="subjects-search"
+          placeholder="Cari mata pelajaran…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -219,7 +248,7 @@ export default function Subjects() {
 
       {/* Tabs by Category */}
       <Tabs defaultValue="all" onValueChange={setSelectedCategory}>
-        <TabsList className="flex-wrap">
+        <TabsList className="flex-wrap rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="all">Semua</TabsTrigger>
           {Object.entries(SUBJECT_CATEGORIES).map(([key, label]) => (
             <TabsTrigger key={key} value={key}>{label}</TabsTrigger>
@@ -228,8 +257,8 @@ export default function Subjects() {
 
         <TabsContent value={selectedCategory} className="mt-6">
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Memuat data mata pelajaran...
+            <div aria-live="polite" className="text-center py-12 text-muted-foreground">
+              Memuat data mata pelajaran…
             </div>
           ) : (
             <>

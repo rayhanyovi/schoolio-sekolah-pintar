@@ -240,14 +240,32 @@ export default function Profile() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Profil Saya</h1>
-        <p className="text-muted-foreground">Kelola informasi profil dan keamanan akun</p>
-      </div>
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Account Profile
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Profil Saya</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Kelola informasi profil, identitas akun, dan keamanan dari satu tempat.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              Role: {ROLE_LABELS[role]}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Profile Card */}
-      <Card>
+      <Card className="dashboard-panel border-border/80">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             {/* Avatar */}
@@ -259,9 +277,12 @@ export default function Profile() {
                 </AvatarFallback>
               </Avatar>
               <Button 
+                type="button"
                 size="icon" 
                 variant="secondary" 
                 className="absolute bottom-0 right-0 h-8 w-8 rounded-full"
+                aria-label="Ubah foto profil belum tersedia"
+                disabled
               >
                 <Camera className="h-4 w-4" />
               </Button>
@@ -276,8 +297,14 @@ export default function Profile() {
                 <div className="mt-3 max-w-md space-y-2">
                   <Label htmlFor="student-id">ID Siswa (untuk akun orang tua)</Label>
                   <div className="flex items-center gap-2">
-                    <Input id="student-id" value={userId} readOnly />
-                    <Button type="button" variant="outline" size="icon" onClick={handleCopyStudentId}>
+                    <Input id="student-id" value={userId} readOnly aria-readonly="true" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleCopyStudentId}
+                      aria-label="Salin ID siswa"
+                    >
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
@@ -297,7 +324,7 @@ export default function Profile() {
       </Card>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList>
+        <TabsList className="rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             Informasi Profil
@@ -325,6 +352,8 @@ export default function Profile() {
                     <Input
                       id="firstName"
                       value={profile.firstName}
+                      name="firstName"
+                      autoComplete="given-name"
                       onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
                       disabled={!isEditing}
                       className="pl-10"
@@ -336,6 +365,8 @@ export default function Profile() {
                     <Input
                       id="lastName"
                       value={profile.lastName}
+                      name="lastName"
+                      autoComplete="family-name"
                       onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
                       disabled={!isEditing}
                   />
@@ -351,6 +382,9 @@ export default function Profile() {
                     <Input
                       id="email"
                       type="email"
+                      name="email"
+                      autoComplete="email"
+                      spellCheck={false}
                       value={profile.email}
                       onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                       disabled={!isEditing}
@@ -364,6 +398,9 @@ export default function Profile() {
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="phone"
+                      type="tel"
+                      name="phone"
+                      autoComplete="tel"
                       value={profile.phone}
                       onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                       disabled={!isEditing}
@@ -381,6 +418,8 @@ export default function Profile() {
                     <Input
                       id="birthDate"
                       type="date"
+                      name="birthDate"
+                      autoComplete="bday"
                       value={profile.birthDate}
                       onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })}
                       disabled={!isEditing}
@@ -396,6 +435,8 @@ export default function Profile() {
                   <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Textarea
                     id="address"
+                    name="address"
+                    autoComplete="street-address"
                     value={profile.address}
                     onChange={(e) => setProfile({ ...profile, address: e.target.value })}
                     disabled={!isEditing}
@@ -409,10 +450,12 @@ export default function Profile() {
                 <Label htmlFor="bio">Bio</Label>
                   <Textarea
                     id="bio"
+                    name="bio"
+                    autoComplete="off"
                     value={profile.bio}
                     onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                     disabled={!isEditing}
-                    placeholder="Ceritakan sedikit tentang diri Anda..."
+                    placeholder="Ceritakan sedikit tentang diri Andaâ€¦"
                   rows={4}
                 />
               </div>
@@ -444,10 +487,12 @@ export default function Profile() {
                   <Input
                     id="currentPassword"
                     type={showPasswords.current ? "text" : "password"}
+                    name="currentPassword"
+                    autoComplete="current-password"
                     value={passwords.current}
                     onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
                     className="pl-10 pr-10"
-                    placeholder="Masukkan password saat ini"
+                    placeholder="Masukkan password saat ini…"
                   />
                   <Button
                     type="button"
@@ -455,6 +500,7 @@ export default function Profile() {
                     size="icon"
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                     onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                    aria-label={showPasswords.current ? "Sembunyikan password saat ini" : "Tampilkan password saat ini"}
                   >
                     {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -470,10 +516,12 @@ export default function Profile() {
                   <Input
                     id="newPassword"
                     type={showPasswords.new ? "text" : "password"}
+                    name="newPassword"
+                    autoComplete="new-password"
                     value={passwords.new}
                     onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
                     className="pl-10 pr-10"
-                    placeholder="Masukkan password baru"
+                    placeholder="Masukkan password baru…"
                   />
                   <Button
                     type="button"
@@ -481,6 +529,7 @@ export default function Profile() {
                     size="icon"
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                     onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                    aria-label={showPasswords.new ? "Sembunyikan password baru" : "Tampilkan password baru"}
                   >
                     {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -495,10 +544,12 @@ export default function Profile() {
                   <Input
                     id="confirmPassword"
                     type={showPasswords.confirm ? "text" : "password"}
+                    name="confirmPassword"
+                    autoComplete="new-password"
                     value={passwords.confirm}
                     onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
                     className="pl-10 pr-10"
-                    placeholder="Ulangi password baru"
+                    placeholder="Ulangi password baru…"
                   />
                   <Button
                     type="button"
@@ -506,6 +557,7 @@ export default function Profile() {
                     size="icon"
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                     onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                    aria-label={showPasswords.confirm ? "Sembunyikan konfirmasi password baru" : "Tampilkan konfirmasi password baru"}
                   >
                     {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -528,3 +580,5 @@ export default function Profile() {
     </div>
   );
 }
+
+

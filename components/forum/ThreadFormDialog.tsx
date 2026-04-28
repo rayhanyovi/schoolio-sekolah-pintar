@@ -56,7 +56,7 @@ export function ThreadFormDialog({
               value={formData.subjectId}
               onValueChange={(value) => setFormData({ ...formData, subjectId: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="subject" aria-label="Pilih mata pelajaran">
                 <SelectValue placeholder="Pilih mata pelajaran" />
               </SelectTrigger>
               <SelectContent>
@@ -73,9 +73,10 @@ export function ThreadFormDialog({
             <Label htmlFor="title">Judul Diskusi</Label>
             <Input
               id="title"
+              name="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Bagaimana cara menghitung..."
+              placeholder="Bagaimana cara menghitung…"
               required
             />
           </div>
@@ -84,9 +85,10 @@ export function ThreadFormDialog({
             <Label htmlFor="content">Isi Diskusi</Label>
             <Textarea
               id="content"
+              name="content"
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Jelaskan pertanyaan atau topik diskusi..."
+              placeholder="Jelaskan pertanyaan atau topik diskusi…"
               rows={5}
               required
             />

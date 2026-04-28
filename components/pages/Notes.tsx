@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,7 +52,7 @@ export default function Notes() {
   const isTeacher = role === "TEACHER";
   const canCreateClassNotes = isTeacher || role === "ADMIN";
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [noteData, subjectData, teacherData, studentData] =
@@ -79,11 +79,11 @@ export default function Notes() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [role, toast]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const filteredNotes = notes.filter((n) => {
     const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -180,32 +180,75 @@ export default function Notes() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Catatan</h1>
-          <p className="text-muted-foreground">Catatan pribadi dan catatan kelas</p>
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Catatan
+            </span>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Simpan catatan pribadi dan catatan kelas tanpa terasa semrawut.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Gunakan warna, pin, dan filter sederhana untuk menjaga ide penting tetap
+                mudah ditemukan saat materi mulai bertambah.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total Catatan</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{notes.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Tersimpan Pin</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{notes.filter((note) => note.isPinned).length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Mode Aktif</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
+                  {activeTab === "my" ? "Catatan Saya" : "Catatan Kelas"}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-        <Button onClick={openNewNote}>
+      </section>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <Button onClick={openNewNote} className="sm:ml-auto">
           <Plus className="h-4 w-4 mr-2" />
           Buat Catatan
         </Button>
       </div>
 
-      <div className="relative max-w-md">
+      <div className="dashboard-panel relative max-w-md p-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Cari catatan..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+        <Input
+          aria-label="Cari catatan"
+          placeholder="Cari catatan…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       <Tabs defaultValue="my" onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="my">Catatan Saya</TabsTrigger>
           <TabsTrigger value="class">Catatan Kelas</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Memuat catatan...
+            <div className="text-center py-12 text-muted-foreground" aria-live="polite">
+              Memuat catatan…
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -218,13 +261,13 @@ export default function Notes() {
                         <h3 className="font-semibold">{note.title}</h3>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleTogglePin(note.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Sematkan ${note.title}`} onClick={() => handleTogglePin(note.id)}>
                           <Pin className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(note)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit ${note.title}`} onClick={() => handleEdit(note)}>
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(note.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" aria-label={`Hapus ${note.title}`} onClick={() => handleDelete(note.id)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -257,14 +300,14 @@ export default function Notes() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Judul</Label>
-              <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Judul catatan" />
+              <Label htmlFor="note-title">Judul</Label>
+              <Input id="note-title" name="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Judul catatan" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Mata Pelajaran</Label>
+                <Label htmlFor="note-subject">Mata Pelajaran</Label>
                 <Select value={formData.subjectId} onValueChange={(v) => setFormData({ ...formData, subjectId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Pilih mapel" /></SelectTrigger>
+                  <SelectTrigger id="note-subject" aria-label="Pilih mata pelajaran"><SelectValue placeholder="Pilih mapel" /></SelectTrigger>
                   <SelectContent>
                     {subjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
                   </SelectContent>
@@ -272,9 +315,9 @@ export default function Notes() {
               </div>
               {canCreateClassNotes && (
                 <div className="space-y-2">
-                  <Label>Visibilitas</Label>
+                  <Label htmlFor="note-visibility">Visibilitas</Label>
                   <Select value={formData.visibility} onValueChange={(v) => setFormData({ ...formData, visibility: v as NoteVisibility })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="note-visibility" aria-label="Pilih visibilitas catatan"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.entries(NOTE_VISIBILITY).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
                     </SelectContent>
@@ -283,14 +326,20 @@ export default function Notes() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Isi Catatan</Label>
-              <Textarea value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} rows={6} placeholder="Tulis catatan..." />
+              <Label htmlFor="note-content">Isi Catatan</Label>
+              <Textarea id="note-content" name="content" value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} rows={6} placeholder="Tulis catatan…" />
             </div>
             <div className="space-y-2">
               <Label>Warna</Label>
               <div className="flex gap-2">
                 {NOTE_COLORS.map((color) => (
-                  <button key={color} className={`w-8 h-8 rounded-full ${color} ${formData.color === color ? "ring-2 ring-primary ring-offset-2" : ""}`} onClick={() => setFormData({ ...formData, color })} />
+                  <button
+                    key={color}
+                    type="button"
+                    aria-label={`Pilih warna catatan ${color}`}
+                    className={`h-8 w-8 rounded-full ${color} ${formData.color === color ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                    onClick={() => setFormData({ ...formData, color })}
+                  />
                 ))}
               </div>
             </div>

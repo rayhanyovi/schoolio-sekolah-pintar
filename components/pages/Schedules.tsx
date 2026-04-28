@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, addMonths, subMonths, isAfter } from "date-fns";
 import { id } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -164,7 +164,7 @@ export default function Schedules() {
   const lessonTemplates = scheduleTemplates.filter((slot) => !slot.isBreak);
   const todayStr = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
 
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async () => {
     try {
       setIsLoading(true);
       let scheduleData: ScheduleSummary[] = [];
@@ -211,11 +211,11 @@ export default function Schedules() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAdmin, role, selectedClassId, toast, userId]);
 
   useEffect(() => {
     loadSchedules();
-  }, [selectedClassId, toast, isAdmin, role, userId]);
+  }, [loadSchedules]);
 
   useEffect(() => {
     let isActive = true;
@@ -510,22 +510,57 @@ export default function Schedules() {
     ? getSchedulesForDate(selectedDate, schedules)
     : [];
   const dayLabels = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+  const selectedDateLabel = selectedDate
+    ? format(selectedDate, "d MMMM yyyy", { locale: id })
+    : "Belum memilih tanggal";
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Jadwal Pelajaran</h1>
-          <p className="text-muted-foreground mt-1">
-            Lihat jadwal pelajaran dalam tampilan kalender
-          </p>
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <Badge className="w-fit rounded-full border-0 bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Jadwal Pelajaran
+            </Badge>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Kalender pelajaran yang lebih terbaca untuk admin, guru, siswa, dan orang tua.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Pantau sesi aktif, pengganti guru, dan susunan jam belajar dengan ritme
+                visual yang lebih rapi dan lebih mudah dipindai.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total Jadwal</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{schedules.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Butuh Pengganti</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{sessionsNeedingSubstitute.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Tanggal Aktif</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-foreground">{selectedDateLabel}</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </section>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         {isAdmin && (
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-              <SelectTrigger className="w-full sm:w-[220px]">
-                <SelectValue placeholder="Filter kelas..." />
+              <SelectTrigger className="w-full sm:w-[220px]" aria-label="Filter kelas">
+                <SelectValue placeholder="Filter kelas…" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Kelas</SelectItem>
@@ -536,7 +571,7 @@ export default function Schedules() {
                 ))}
                 {classes.length === 0 && (
                   <SelectItem value="none" disabled>
-                    {isLookupLoading ? "Memuat kelas..." : "Belum ada kelas"}
+                    {isLookupLoading ? "Memuat kelas…" : "Belum ada kelas"}
                   </SelectItem>
                 )}
               </SelectContent>
@@ -597,8 +632,8 @@ export default function Schedules() {
                           }))
                         }
                       >
-                        <SelectTrigger className="w-full md:w-[220px]">
-                          <SelectValue placeholder="Pilih guru pengganti..." />
+                        <SelectTrigger className="w-full md:w-[220px]" aria-label={`Pilih guru pengganti untuk ${session.className} ${session.subjectName}`}>
+                          <SelectValue placeholder="Pilih guru pengganti…" />
                         </SelectTrigger>
                         <SelectContent>
                           {teachers.map((teacher) => (
@@ -641,6 +676,7 @@ export default function Schedules() {
               variant="outline"
               size="icon"
               onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+              aria-label="Bulan sebelumnya"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -655,6 +691,7 @@ export default function Schedules() {
               variant="outline"
               size="icon"
               onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+              aria-label="Bulan berikutnya"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -696,6 +733,7 @@ export default function Schedules() {
                     isSelected && "bg-primary/10 border-primary",
                     isSunday && "opacity-50 cursor-not-allowed bg-muted/50"
                   )}
+                  aria-label={`Lihat jadwal ${format(day, "d MMMM yyyy", { locale: id })}`}
                 >
                   <span
                     className={cn(
@@ -760,8 +798,8 @@ export default function Schedules() {
                     setFormData((prev) => ({ ...prev, classId: value }))
                   }
                 >
-                  <SelectTrigger id="schedule-class">
-                    <SelectValue placeholder="Pilih kelas..." />
+                  <SelectTrigger id="schedule-class" aria-label="Pilih kelas">
+                    <SelectValue placeholder="Pilih kelas…" />
                   </SelectTrigger>
                   <SelectContent>
                     {classes.map((item) => (
@@ -771,7 +809,7 @@ export default function Schedules() {
                     ))}
                     {classes.length === 0 && (
                       <SelectItem value="none" disabled>
-                        {isLookupLoading ? "Memuat kelas..." : "Belum ada kelas"}
+                        {isLookupLoading ? "Memuat kelas…" : "Belum ada kelas"}
                       </SelectItem>
                     )}
                   </SelectContent>
@@ -785,8 +823,8 @@ export default function Schedules() {
                     setFormData((prev) => ({ ...prev, subjectId: value }))
                   }
                 >
-                  <SelectTrigger id="schedule-subject">
-                    <SelectValue placeholder="Pilih mata pelajaran..." />
+                  <SelectTrigger id="schedule-subject" aria-label="Pilih mata pelajaran">
+                    <SelectValue placeholder="Pilih mata pelajaran…" />
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.map((subject) => (
@@ -797,7 +835,7 @@ export default function Schedules() {
                     {subjects.length === 0 && (
                       <SelectItem value="none" disabled>
                         {isLookupLoading
-                          ? "Memuat mata pelajaran..."
+                          ? "Memuat mata pelajaran…"
                           : "Belum ada mata pelajaran"}
                       </SelectItem>
                     )}
@@ -815,8 +853,8 @@ export default function Schedules() {
                     setFormData((prev) => ({ ...prev, teacherId: value }))
                   }
                 >
-                  <SelectTrigger id="schedule-teacher">
-                    <SelectValue placeholder="Pilih guru..." />
+                  <SelectTrigger id="schedule-teacher" aria-label="Pilih guru">
+                    <SelectValue placeholder="Pilih guru…" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Belum ditentukan</SelectItem>
@@ -827,7 +865,7 @@ export default function Schedules() {
                     ))}
                     {teachers.length === 0 && (
                       <SelectItem value="none-empty" disabled>
-                        {isLookupLoading ? "Memuat guru..." : "Belum ada guru"}
+                        {isLookupLoading ? "Memuat guru…" : "Belum ada guru"}
                       </SelectItem>
                     )}
                   </SelectContent>
@@ -844,8 +882,8 @@ export default function Schedules() {
                     }))
                   }
                 >
-                  <SelectTrigger id="schedule-day">
-                    <SelectValue placeholder="Pilih hari..." />
+                  <SelectTrigger id="schedule-day" aria-label="Pilih hari">
+                    <SelectValue placeholder="Pilih hari…" />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(DAYS_OF_WEEK).map(([key, label]) => (
@@ -888,8 +926,8 @@ export default function Schedules() {
                   });
                 }}
               >
-                <SelectTrigger id="schedule-template">
-                  <SelectValue placeholder="Pilih jam pelajaran..." />
+                <SelectTrigger id="schedule-template" aria-label="Pilih jam mulai">
+                  <SelectValue placeholder="Pilih jam pelajaran…" />
                 </SelectTrigger>
                 <SelectContent>
                   {lessonTemplates.map((slot) => (
@@ -905,7 +943,7 @@ export default function Schedules() {
                   {lessonTemplates.length === 0 && (
                     <SelectItem value="none" disabled>
                       {isLookupLoading
-                        ? "Memuat jam pelajaran..."
+                        ? "Memuat jam pelajaran…"
                         : "Belum ada jam pelajaran"}
                     </SelectItem>
                   )}
@@ -956,8 +994,8 @@ export default function Schedules() {
                   });
                 }}
               >
-                <SelectTrigger id="schedule-template-secondary">
-                  <SelectValue placeholder="Pilih jam selesai (opsional)..." />
+                <SelectTrigger id="schedule-template-secondary" aria-label="Pilih jam selesai">
+                  <SelectValue placeholder="Pilih jam selesai (opsional)…" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Tidak ada</SelectItem>
@@ -974,7 +1012,7 @@ export default function Schedules() {
                   {lessonTemplates.length === 0 && (
                     <SelectItem value="none-empty" disabled>
                       {isLookupLoading
-                        ? "Memuat jam pelajaran..."
+                        ? "Memuat jam pelajaran…"
                         : "Belum ada jam pelajaran"}
                     </SelectItem>
                   )}
@@ -991,6 +1029,7 @@ export default function Schedules() {
               <Label htmlFor="schedule-room">Ruangan (Opsional)</Label>
               <Input
                 id="schedule-room"
+                name="room"
                 value={formData.room}
                 onChange={(event) =>
                   setFormData((prev) => ({
@@ -998,6 +1037,7 @@ export default function Schedules() {
                     room: event.target.value,
                   }))
                 }
+                autoComplete="off"
                 placeholder="Ruang 201"
               />
             </div>
@@ -1204,7 +1244,7 @@ export default function Schedules() {
       {isLoading && (
         <p className="text-sm text-muted-foreground flex items-center gap-2">
           <Clock className="h-4 w-4" />
-          Memuat jadwal...
+          Memuat jadwal…
         </p>
       )}
     </div>

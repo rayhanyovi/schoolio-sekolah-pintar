@@ -183,14 +183,35 @@ export default function Settings() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Pengaturan</h1>
-        <p className="text-muted-foreground">Kelola pengaturan sistem dan konfigurasi sekolah</p>
-      </div>
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              School Configuration
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Pengaturan</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Kelola profil sekolah, tahun ajaran, template jam pelajaran, dan notifikasi dari satu panel.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {academicYears.length} tahun ajaran
+            </div>
+            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
+              {scheduleTemplate.length} slot jadwal
+            </div>
+          </div>
+        </div>
+      </section>
 
       {onboardingReminders.length > 0 && (
-        <Card className="border-warning/30 bg-warning/10">
+        <Card className="dashboard-panel border-warning/30 bg-warning/10">
           <CardHeader>
             <CardTitle className="text-base">Pengingat Setup Awal</CardTitle>
             <CardDescription>
@@ -199,7 +220,7 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-2">
             {onboardingReminders.map((reminder) => (
-              <div key={reminder.id} className="rounded-md border border-warning/30 bg-background/90 p-3">
+              <div key={reminder.id} className="rounded-xl border border-warning/30 bg-background/90 p-3">
                 <p className="font-medium">{reminder.title}</p>
                 <p className="text-sm text-muted-foreground">{reminder.description}</p>
               </div>
@@ -209,7 +230,7 @@ export default function Settings() {
       )}
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4 rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">Profil</span>

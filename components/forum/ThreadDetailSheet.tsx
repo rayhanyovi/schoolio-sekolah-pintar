@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export function ThreadDetailSheet({
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
   const [newReply, setNewReply] = useState("");
 
-  const loadReplies = async () => {
+  const loadReplies = useCallback(async () => {
     if (!thread?.id) return;
     try {
       setIsLoadingReplies(true);
@@ -62,13 +62,13 @@ export function ThreadDetailSheet({
     } finally {
       setIsLoadingReplies(false);
     }
-  };
+  }, [thread?.id, toast]);
 
   useEffect(() => {
     if (open && thread?.id) {
       loadReplies();
     }
-  }, [open, thread?.id]);
+  }, [loadReplies, open, thread?.id]);
 
   const handleSubmitReply = async () => {
     if (!newReply.trim()) return;
@@ -182,8 +182,8 @@ export function ThreadDetailSheet({
             </h4>
             <ScrollArea className="h-[250px]">
               {isLoadingReplies ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Memuat balasan...
+                <div className="text-center py-8 text-muted-foreground" aria-live="polite">
+                  Memuat balasan…
                 </div>
               ) : threadReplies.length > 0 ? (
                 <div className="space-y-3 pr-4">
@@ -233,9 +233,10 @@ export function ThreadDetailSheet({
           {!isLocked && (
             <div className="space-y-3">
               <Textarea
+                name="reply"
                 value={newReply}
                 onChange={(e) => setNewReply(e.target.value)}
-                placeholder="Tulis balasan..."
+                placeholder="Tulis balasan…"
                 rows={3}
               />
               <Button onClick={handleSubmitReply} disabled={!newReply.trim()}>

@@ -107,10 +107,10 @@ export function DebugPanel({
             }}
             disabled={isLoadingUsers}
           >
-            <SelectTrigger className="h-7 w-[200px]">
+            <SelectTrigger className="h-7 w-[200px]" aria-label="Pilih pengguna debug">
               <SelectValue
                 placeholder={
-                  isLoadingUsers ? "Memuat..." : "Pilih pengguna"
+                  isLoadingUsers ? "Memuat…" : "Pilih pengguna"
                 }
               />
             </SelectTrigger>

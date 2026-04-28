@@ -43,9 +43,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users,
   UserCircle,
-  Layers,
   Plus,
   GraduationCap,
   BookOpen,
@@ -348,13 +346,46 @@ export default function Majors() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Jurusan</h1>
-          <p className="text-muted-foreground">
-            Pantau kelas, siswa, guru, dan forum berdasarkan jurusan
-          </p>
+      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+              Jurusan
+            </span>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Pantau struktur jurusan tanpa kehilangan konteks kelas, siswa, dan guru.
+              </h1>
+              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Tampilan ini dirapikan untuk membantu admin menyaring jurusan, melihat
+                populasi, dan mengatur guru pembina dengan lebih cepat.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Kelas</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{filteredClasses.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Siswa</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{filteredStudents.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/10 bg-white/88 shadow-none">
+              <CardContent className="p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Guru</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">{filteredTeachers.length}</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </section>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
           <Button onClick={() => setMajorDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -367,7 +398,7 @@ export default function Majors() {
             </Button>
           )}
           <Select value={selectedMajor} onValueChange={setSelectedMajor}>
-            <SelectTrigger className="w-full sm:w-[240px]">
+            <SelectTrigger className="w-full sm:w-[240px]" aria-label="Filter jurusan">
               <SelectValue placeholder="Pilih jurusan..." />
             </SelectTrigger>
             <SelectContent>
@@ -382,42 +413,6 @@ export default function Majors() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Layers className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Kelas</p>
-              <p className="text-2xl font-bold">{filteredClasses.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-secondary/10 flex items-center justify-center">
-              <Users className="h-6 w-6 text-secondary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Siswa</p>
-              <p className="text-2xl font-bold">{filteredStudents.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center">
-              <UserCircle className="h-6 w-6 text-accent" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Guru</p>
-              <p className="text-2xl font-bold">{filteredTeachers.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <Tabs
         defaultValue="classes"
         value={activeTab}
@@ -425,7 +420,7 @@ export default function Majors() {
           setActiveTab(value as typeof activeTab)
         }
       >
-        <TabsList className="flex-wrap">
+        <TabsList className="flex-wrap rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="classes">Kelas</TabsTrigger>
           <TabsTrigger value="students">Siswa</TabsTrigger>
           <TabsTrigger value="teachers">Guru</TabsTrigger>
@@ -433,8 +428,8 @@ export default function Majors() {
 
         <TabsContent value="classes" className="mt-6">
           {isLoading ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Memuat data kelas...
+            <div className="text-center py-10 text-muted-foreground" aria-live="polite">
+              Memuat data kelas…
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -477,8 +472,8 @@ export default function Majors() {
 
         <TabsContent value="students" className="mt-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              Memuat data siswa...
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground" aria-live="polite">
+              Memuat data siswa…
             </div>
           ) : filteredStudents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -507,8 +502,8 @@ export default function Majors() {
 
         <TabsContent value="teachers" className="mt-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              Memuat data guru...
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground" aria-live="polite">
+              Memuat data guru…
             </div>
           ) : filteredTeachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
@@ -554,6 +549,8 @@ export default function Majors() {
                 }
                 placeholder="RPL"
                 maxLength={10}
+                name="code"
+                autoComplete="off"
                 required
               />
             </div>
@@ -569,6 +566,8 @@ export default function Majors() {
                   }))
                 }
                 placeholder="Rekayasa Perangkat Lunak"
+                name="name"
+                autoComplete="organization-title"
               />
             </div>
             <div className="space-y-2">
@@ -582,7 +581,8 @@ export default function Majors() {
                     description: event.target.value,
                   }))
                 }
-                placeholder="Deskripsi singkat jurusan"
+                placeholder="Deskripsi singkat jurusan…"
+                name="description"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -619,17 +619,17 @@ export default function Majors() {
               ) : (
                 <div className="space-y-3">
                   {teachers.map((teacher) => (
-                    <div
+                    <label
                       key={teacher.id}
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                      onClick={() => handleToggleTeacher(teacher.id)}
+                      className="flex cursor-pointer items-center space-x-3 rounded-lg p-2 hover:bg-muted/50"
                     >
                       <Checkbox
                         checked={selectedTeacherIds.includes(teacher.id)}
                         onCheckedChange={() => handleToggleTeacher(teacher.id)}
+                        aria-label={`Pilih guru ${teacher.name}`}
                       />
                       <span className="text-sm">{teacher.name}</span>
-                    </div>
+                    </label>
                   ))}
                 </div>
               )}

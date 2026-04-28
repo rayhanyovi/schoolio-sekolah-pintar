@@ -68,11 +68,11 @@ import {
 } from "@/lib/schemas";
 
 const fileTypeIcons: Record<string, string> = {
-  pdf: "📄",
-  pptx: "📊",
-  docx: "📝",
-  video: "🎥",
-  default: "📎",
+  pdf: "ðŸ“„",
+  pptx: "ðŸ“Š",
+  docx: "ðŸ“",
+  video: "ðŸŽ¥",
+  default: "ðŸ“Ž",
 };
 
 export default function Materials() {
@@ -254,10 +254,36 @@ function TeacherMaterialsView() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Learning Materials
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Materi Pembelajaran</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
+                Kelola materi, lampiran, dan distribusi konten untuk kelas Anda dalam satu ruang kerja.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {materials.length} materi aktif
+            </div>
+            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
+              {subjects.length} mata pelajaran
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Materi Pembelajaran</h1>
-          <p className="text-muted-foreground">Kelola materi untuk kelas Anda</p>
+        <div className="text-sm text-muted-foreground">
+          Tambahkan materi baru atau rapikan materi per jadwal pelajaran.
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -290,11 +316,11 @@ function TeacherMaterialsView() {
         </Dialog>
       </div>
 
-      <Card>
+      <Card className="dashboard-panel border-border/80">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <Select value={selectedScheduleId} onValueChange={setSelectedScheduleId}>
-              <SelectTrigger className="w-full sm:w-[300px]">
+              <SelectTrigger className="w-full sm:w-[300px]" aria-label="Filter materi berdasarkan jadwal">
                 <SelectValue placeholder="Filter berdasarkan jadwal..." />
               </SelectTrigger>
               <SelectContent>
@@ -309,7 +335,10 @@ function TeacherMaterialsView() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari materi..."
+                aria-label="Cari materi"
+                autoComplete="off"
+                name="materials-search"
+                placeholder="Cari materiâ€¦"
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -333,7 +362,7 @@ function TeacherMaterialsView() {
       </div>
 
       {materials.length === 0 && (
-        <Card className="p-12">
+        <Card className="dashboard-panel border-dashed p-12">
           <div className="text-center text-muted-foreground">
             <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-lg font-medium">Belum ada materi</p>
@@ -349,7 +378,7 @@ function TeacherMaterialsView() {
               <SheetHeader>
                 <SheetTitle>{detailMaterial.title}</SheetTitle>
                 <SheetDescription>
-                  {detailMaterial.className} • {detailMaterial.subject}
+                  {detailMaterial.className} â€¢ {detailMaterial.subject}
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-6">
@@ -375,6 +404,7 @@ function TeacherMaterialsView() {
                     <Input
                       id="material-attachment"
                       type="file"
+                      name="material_attachment"
                       onChange={(event) =>
                         setSelectedAttachmentFile(event.target.files?.[0] ?? null)
                       }
@@ -395,7 +425,7 @@ function TeacherMaterialsView() {
                         {isUploadingAttachment ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Upload...
+                            Uploadâ€¦
                           </>
                         ) : (
                           <>
@@ -421,7 +451,7 @@ function TeacherMaterialsView() {
                             <p className="text-xs text-muted-foreground">{file.size}</p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" aria-label={`Unduh lampiran ${file.name}`}>
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -440,7 +470,9 @@ function TeacherMaterialsView() {
       </Sheet>
 
       {isLoading && (
-        <p className="text-sm text-muted-foreground">Memuat materi...</p>
+        <p aria-live="polite" className="inline-flex rounded-full border border-border/80 bg-background/70 px-4 py-2 text-sm text-muted-foreground">
+          Memuat materiâ€¦
+        </p>
       )}
     </div>
   );
@@ -518,14 +550,35 @@ function StudentMaterialsView({
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
+        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <Badge
+              variant="outline"
+              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
+            >
+              Material Overview
+            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">{description}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+              {filteredMaterials.length} materi sesuai filter
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-          <p className="text-muted-foreground">{description}</p>
+        <div className="text-sm text-muted-foreground">
+          Gunakan filter mata pelajaran dan pencarian untuk mempersempit daftar materi.
         </div>
         {allowStudentSelect && (
           <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-            <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]" aria-label="Pilih siswa">
               <SelectValue placeholder="Pilih siswa..." />
             </SelectTrigger>
             <SelectContent>
@@ -548,7 +601,7 @@ function StudentMaterialsView({
       </div>
 
       {showNoStudents && (
-        <Card className="p-10">
+        <Card className="dashboard-panel border-dashed p-10">
           <div className="text-center text-muted-foreground">
             <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="text-lg font-medium">Belum ada siswa terhubung</p>
@@ -614,11 +667,11 @@ function StudentMaterialsView({
         </Card>
       </div>
 
-      <Card>
+      <Card className="dashboard-panel border-border/80">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-              <SelectTrigger className="w-full sm:w-[250px]">
+              <SelectTrigger className="w-full sm:w-[250px]" aria-label="Pilih mata pelajaran">
                 <SelectValue placeholder="Pilih mata pelajaran..." />
               </SelectTrigger>
             <SelectContent>
@@ -638,7 +691,10 @@ function StudentMaterialsView({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-                placeholder="Cari materi..."
+                aria-label="Cari materi"
+                autoComplete="off"
+                name="student-materials-search"
+                placeholder="Cari materiâ€¦"
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -659,7 +715,7 @@ function StudentMaterialsView({
       </div>
 
       {!isLoading && !showNoStudents && filteredMaterials.length === 0 && (
-        <Card className="p-10">
+        <Card className="dashboard-panel border-dashed p-10">
           <div className="text-center text-muted-foreground">
             <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="text-lg font-medium">
@@ -683,7 +739,7 @@ function StudentMaterialsView({
               <SheetHeader>
                 <SheetTitle>{detailMaterial.title}</SheetTitle>
                 <SheetDescription>
-                  {detailMaterial.subject} • {detailMaterial.teacher}
+                  {detailMaterial.subject} â€¢ {detailMaterial.teacher}
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-6">
@@ -737,7 +793,9 @@ function StudentMaterialsView({
       </Sheet>
 
       {isLoading && (
-        <p className="text-sm text-muted-foreground">Memuat materi...</p>
+        <p aria-live="polite" className="inline-flex rounded-full border border-border/80 bg-background/70 px-4 py-2 text-sm text-muted-foreground">
+          Memuat materiâ€¦
+        </p>
       )}
     </div>
   );
@@ -761,10 +819,22 @@ function MaterialCard({ material, onView, onEdit, onDelete, showActions }: Mater
           </Badge>
           {showActions && (
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={onEdit}
+                aria-label={`Edit materi ${material.title}`}
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onDelete}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive"
+                onClick={onDelete}
+                aria-label={`Hapus materi ${material.title}`}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -854,8 +924,8 @@ function MaterialForm({
       <div className="space-y-2">
         <Label htmlFor="schedule">Jadwal</Label>
         <Select value={scheduleId} onValueChange={setScheduleId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Pilih jadwal..." />
+          <SelectTrigger id="schedule" aria-label="Pilih jadwal">
+            <SelectValue placeholder="Pilih jadwalâ€¦" />
           </SelectTrigger>
           <SelectContent>
             {schedules.map((schedule) => (
@@ -876,7 +946,9 @@ function MaterialForm({
         <Label htmlFor="title">Judul Materi</Label>
         <Input
           id="title"
-          placeholder="Masukkan judul materi..."
+          name="title"
+          autoComplete="off"
+          placeholder="Masukkan judul materi…"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
@@ -886,7 +958,9 @@ function MaterialForm({
         <Label htmlFor="description">Deskripsi</Label>
         <Textarea
           id="description"
-          placeholder="Jelaskan isi materi..."
+          name="description"
+          autoComplete="off"
+          placeholder="Jelaskan isi materi…"
           rows={4}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -904,3 +978,4 @@ function MaterialForm({
     </div>
   );
 }
+
