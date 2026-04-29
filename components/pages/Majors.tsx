@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRoleContext } from "@/hooks/useRoleContext";
@@ -29,7 +29,12 @@ import {
 import { UserCard } from "@/components/admin/UserCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,12 +47,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  UserCircle,
-  Plus,
-  GraduationCap,
-  BookOpen,
-} from "lucide-react";
+import { UserCircle, Plus, GraduationCap, BookOpen } from "lucide-react";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 
 const normalizeMajor = (value?: string | null) => {
   const trimmed = value?.trim();
@@ -95,19 +96,14 @@ export default function Majors() {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [
-          classData,
-          studentData,
-          teacherData,
-          scheduleData,
-          majorData,
-        ] = await Promise.all([
-          listClasses(),
-          listStudents(),
-          listTeachers(),
-          listSchedules(),
-          listMajors(),
-        ]);
+        const [classData, studentData, teacherData, scheduleData, majorData] =
+          await Promise.all([
+            listClasses(),
+            listStudents(),
+            listTeachers(),
+            listSchedules(),
+            listMajors(),
+          ]);
         if (!isActive) return;
         setClasses(classData);
         setStudents(studentData);
@@ -118,7 +114,8 @@ export default function Majors() {
         if (!isActive) return;
         toast({
           title: "Gagal memuat jurusan",
-          description: error instanceof Error ? error.message : "Terjadi kesalahan",
+          description:
+            error instanceof Error ? error.message : "Terjadi kesalahan",
         });
       } finally {
         if (isActive) setIsLoading(false);
@@ -145,7 +142,7 @@ export default function Majors() {
           } catch {
             return [major.id, []] as const;
           }
-        })
+        }),
       );
       if (!isActive) return;
       const next: Record<string, UserSummary[]> = {};
@@ -184,9 +181,7 @@ export default function Majors() {
 
   const selectedMajorRecord = useMemo(() => {
     if (selectedMajor === "all" || selectedMajor === "UMUM") return null;
-    return majors.find(
-      (major) => normalizeMajor(major.code) === selectedMajor
-    );
+    return majors.find((major) => normalizeMajor(major.code) === selectedMajor);
   }, [majors, selectedMajor]);
 
   useEffect(() => {
@@ -198,13 +193,13 @@ export default function Majors() {
   const filteredClasses = useMemo(() => {
     if (selectedMajor === "all") return classes;
     return classes.filter(
-      (item) => normalizeMajor(item.major) === selectedMajor
+      (item) => normalizeMajor(item.major) === selectedMajor,
     );
   }, [classes, selectedMajor]);
 
   const classMap = useMemo(
     () => new Map(classes.map((item) => [item.id, item])),
-    [classes]
+    [classes],
   );
 
   const getClassName = (classId: string | null | undefined) => {
@@ -214,7 +209,7 @@ export default function Majors() {
 
   const classIds = useMemo(
     () => new Set(filteredClasses.map((item) => item.id)),
-    [filteredClasses]
+    [filteredClasses],
   );
 
   const filteredStudents = useMemo(() => {
@@ -255,7 +250,13 @@ export default function Majors() {
     }
     if (selectedMajor === "UMUM") return [];
     return teachers.filter((teacher) => teacherIds.has(teacher.id));
-  }, [teachers, teacherIds, selectedMajorRecord, majorTeachersMap, selectedMajor]);
+  }, [
+    teachers,
+    teacherIds,
+    selectedMajorRecord,
+    majorTeachersMap,
+    selectedMajor,
+  ]);
 
   const handleCreateMajor = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -288,7 +289,8 @@ export default function Majors() {
     } catch (error) {
       toast({
         title: "Gagal menambahkan jurusan",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
     } finally {
@@ -300,7 +302,7 @@ export default function Majors() {
     setSelectedTeacherIds((prev) =>
       prev.includes(teacherId)
         ? prev.filter((id) => id !== teacherId)
-        : [...prev, teacherId]
+        : [...prev, teacherId],
     );
   };
 
@@ -310,7 +312,7 @@ export default function Majors() {
       setIsSavingTeachers(true);
       await setMajorTeachers(selectedMajorRecord.id, selectedTeacherIds);
       const assignedTeachers = teachers.filter((teacher) =>
-        selectedTeacherIds.includes(teacher.id)
+        selectedTeacherIds.includes(teacher.id),
       );
       setMajorTeachersMap((prev) => ({
         ...prev,
@@ -321,7 +323,8 @@ export default function Majors() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan guru jurusan",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
     } finally {
@@ -346,41 +349,31 @@ export default function Majors() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-3">
-            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-              Jurusan
-            </span>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Pantau struktur jurusan tanpa kehilangan konteks kelas, siswa, dan guru.
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Tampilan ini dirapikan untuk membantu admin menyaring jurusan, melihat
-                populasi, dan mengatur guru pembina dengan lebih cepat.
-              </p>
-            </div>
-          </div>
+      <section>
+        <div className="flex justify-end">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Kelas</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{filteredClasses.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Siswa</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{filteredStudents.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Guru</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{filteredTeachers.length}</p>
-              </CardContent>
-            </Card>
+            <InfoStatCard
+              title="Kelas"
+              value={filteredClasses.length}
+              caption="Dalam jurusan"
+              icon={GraduationCap}
+            />
+            <InfoStatCard
+              title="Siswa"
+              value={filteredStudents.length}
+              caption="Populasi jurusan"
+              icon={UserCircle}
+              iconColor="text-success"
+              iconBackground="bg-success/10"
+            />
+            <InfoStatCard
+              title="Guru"
+              value={filteredTeachers.length}
+              caption="Pengampu aktif"
+              icon={BookOpen}
+              iconColor="text-info"
+              iconBackground="bg-info/10"
+            />
           </div>
         </div>
       </section>
@@ -392,13 +385,19 @@ export default function Majors() {
             Tambah Jurusan
           </Button>
           {selectedMajorRecord && activeTab === "teachers" && (
-            <Button variant="outline" onClick={() => setAssignTeachersOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={() => setAssignTeachersOpen(true)}
+            >
               <UserCircle className="h-4 w-4 mr-2" />
               Atur Guru Jurusan
             </Button>
           )}
           <Select value={selectedMajor} onValueChange={setSelectedMajor}>
-            <SelectTrigger className="w-full sm:w-[240px]" aria-label="Filter jurusan">
+            <SelectTrigger
+              className="w-full sm:w-[240px]"
+              aria-label="Filter jurusan"
+            >
               <SelectValue placeholder="Pilih jurusan..." />
             </SelectTrigger>
             <SelectContent>
@@ -416,9 +415,7 @@ export default function Majors() {
       <Tabs
         defaultValue="classes"
         value={activeTab}
-        onValueChange={(value) =>
-          setActiveTab(value as typeof activeTab)
-        }
+        onValueChange={(value) => setActiveTab(value as typeof activeTab)}
       >
         <TabsList className="flex-wrap rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="classes">Kelas</TabsTrigger>
@@ -428,7 +425,10 @@ export default function Majors() {
 
         <TabsContent value="classes" className="mt-6">
           {isLoading ? (
-            <div className="text-center py-10 text-muted-foreground" aria-live="polite">
+            <div
+              className="text-center py-10 text-muted-foreground"
+              aria-live="polite"
+            >
               Memuat data kelas…
             </div>
           ) : (
@@ -437,30 +437,33 @@ export default function Majors() {
                 const majorCode = normalizeMajor(item.major);
                 const majorLabel =
                   majorCode && majorCode !== "UMUM"
-                    ? majorLabelMap.get(majorCode) ?? majorCode
+                    ? (majorLabelMap.get(majorCode) ?? majorCode)
                     : "";
                 return (
-                <Card key={item.id}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{item.name}</CardTitle>
-                    <CardDescription>
-                      Kelas {item.grade}
-                      {majorLabel ? ` • ${majorLabel}` : ""}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="text-sm text-muted-foreground">
-                      Wali kelas: {item.homeroomTeacher || "-"}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline">Siswa {item.studentCount}</Badge>
-                      <Badge variant="outline">
-                        L/P {item.maleCount}/{item.femaleCount}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              );})}
+                  <Card key={item.id}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{item.name}</CardTitle>
+                      <CardDescription>
+                        Kelas {item.grade}
+                        {majorLabel ? ` • ${majorLabel}` : ""}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        Wali kelas: {item.homeroomTeacher || "-"}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline">
+                          Siswa {item.studentCount}
+                        </Badge>
+                        <Badge variant="outline">
+                          L/P {item.maleCount}/{item.femaleCount}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
               {filteredClasses.length === 0 && (
                 <div className="text-center py-10 text-muted-foreground col-span-full">
                   Tidak ada kelas untuk jurusan ini
@@ -472,7 +475,10 @@ export default function Majors() {
 
         <TabsContent value="students" className="mt-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground" aria-live="polite">
+            <div
+              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
+              aria-live="polite"
+            >
               Memuat data siswa…
             </div>
           ) : filteredStudents.length === 0 ? (
@@ -502,16 +508,17 @@ export default function Majors() {
 
         <TabsContent value="teachers" className="mt-6">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground" aria-live="polite">
+            <div
+              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
+              aria-live="polite"
+            >
               Memuat data guru…
             </div>
           ) : filteredTeachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BookOpen className="h-12 w-12 mb-4 opacity-50" />
               <p className="text-lg font-medium">Tidak ada guru ditemukan</p>
-              <p className="text-sm">
-                Belum ada guru untuk jurusan ini
-              </p>
+              <p className="text-sm">Belum ada guru untuk jurusan ini</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -527,7 +534,6 @@ export default function Majors() {
             </div>
           )}
         </TabsContent>
-
       </Tabs>
 
       <Dialog open={majorDialogOpen} onOpenChange={setMajorDialogOpen}>
@@ -608,8 +614,8 @@ export default function Majors() {
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Pilih guru yang termasuk dalam jurusan ini. Satu guru bisa masuk ke
-              banyak jurusan.
+              Pilih guru yang termasuk dalam jurusan ini. Satu guru bisa masuk
+              ke banyak jurusan.
             </p>
             <ScrollArea className="h-[300px] rounded-md border p-4">
               {teachers.length === 0 ? (
@@ -635,10 +641,16 @@ export default function Majors() {
               )}
             </ScrollArea>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setAssignTeachersOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setAssignTeachersOpen(false)}
+              >
                 Batal
               </Button>
-              <Button onClick={handleSaveMajorTeachers} disabled={isSavingTeachers}>
+              <Button
+                onClick={handleSaveMajorTeachers}
+                disabled={isSavingTeachers}
+              >
                 {isSavingTeachers
                   ? "Menyimpan..."
                   : `Simpan (${selectedTeacherIds.length} guru)`}

@@ -33,6 +33,7 @@ import {
   FileText,
   Calendar,
 } from "lucide-react";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 import { cn } from "@/lib/utils";
 import {
   endOfMonth,
@@ -920,23 +921,13 @@ function StudentAttendanceView({
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="col-span-2 md:col-span-1 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Tingkat Kehadiran
-                </p>
-                <p className="text-2xl font-bold text-primary">
-                  {attendanceRate}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <InfoStatCard
+          title="Tingkat Kehadiran"
+          value={`${attendanceRate}%`}
+          caption="Persentase hadir"
+          icon={TrendingUp}
+          className="col-span-2 md:col-span-1"
+        />
 
         {(
           Object.entries({
@@ -949,26 +940,15 @@ function StudentAttendanceView({
           const config = statusConfig[status];
           const Icon = config.icon;
           return (
-            <Card key={status}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "h-10 w-10 rounded-full flex items-center justify-center",
-                      config.bgColor,
-                    )}
-                  >
-                    <Icon className={cn("h-5 w-5", config.color)} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      {ATTENDANCE_STATUS[status]}
-                    </p>
-                    <p className="text-xl font-bold">{count}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <InfoStatCard
+              key={status}
+              title={ATTENDANCE_STATUS[status]}
+              value={count}
+              caption="Rekap status"
+              icon={Icon}
+              iconColor={config.color}
+              iconBackground={config.bgColor}
+            />
           );
         })}
       </div>

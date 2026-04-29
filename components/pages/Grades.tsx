@@ -25,6 +25,7 @@ import {
   FileText,
   User,
 } from "lucide-react";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 import { cn } from "@/lib/utils";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from "recharts";
 import { listSchedules } from "@/lib/handlers/schedules";
@@ -38,12 +39,12 @@ import {
 } from "@/lib/schemas";
 
 const chartColors = [
-  "hsl(var(--primary))",
-  "hsl(var(--secondary))",
-  "hsl(var(--accent))",
-  "hsl(var(--info))",
-  "hsl(var(--success))",
-  "hsl(var(--warning))",
+  "var(--primary)",
+  "var(--secondary)",
+  "var(--accent)",
+  "var(--info)",
+  "var(--success)",
+  "var(--warning)",
 ];
 
 export default function Grades() {
@@ -150,58 +151,36 @@ function TeacherGradesView() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Siswa</p>
-                <p className="text-xl font-bold">{gradeSummary.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <Calculator className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Rata-rata Kelas</p>
-                <p className="text-xl font-bold">{classAverage.toFixed(1)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Tertinggi</p>
-                <p className="text-xl font-bold">{highestAvg.toFixed(1)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                <TrendingDown className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Terendah</p>
-                <p className="text-xl font-bold">{lowestAvg.toFixed(1)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <InfoStatCard
+          title="Total Siswa"
+          value={gradeSummary.length}
+          caption="Siswa dalam rekap"
+          icon={Users}
+        />
+        <InfoStatCard
+          title="Rata-rata Kelas"
+          value={classAverage.toFixed(1)}
+          caption="Mean nilai"
+          icon={Calculator}
+          iconColor="text-success"
+          iconBackground="bg-success/10"
+        />
+        <InfoStatCard
+          title="Tertinggi"
+          value={highestAvg.toFixed(1)}
+          caption="Nilai terbaik"
+          icon={TrendingUp}
+          iconColor="text-info"
+          iconBackground="bg-info/10"
+        />
+        <InfoStatCard
+          title="Terendah"
+          value={lowestAvg.toFixed(1)}
+          caption="Nilai terendah"
+          icon={TrendingDown}
+          iconColor="text-warning"
+          iconBackground="bg-warning/10"
+        />
       </div>
 
       <Card className="dashboard-panel border-border/80">
@@ -534,18 +513,18 @@ function StudentGradesView({ title, allowStudentSelect }: StudentGradesViewProps
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
                   />
                   <YAxis
                     domain={[0, 100]}
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
                   />
                   <Tooltip
                     content={({ active, payload }) => {

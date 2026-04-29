@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Search, StickyNote, Pin, Pencil, Trash2 } from "lucide-react";
 import {
   createNote,
@@ -26,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 
 const NOTE_COLORS = [
   "bg-blue-100 dark:bg-blue-900/30",
@@ -47,7 +59,13 @@ export default function Notes() {
   const [activeTab, setActiveTab] = useState("my");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<NoteSummary | null>(null);
-  const [formData, setFormData] = useState({ title: "", content: "", subjectId: "", visibility: "PRIVATE" as NoteVisibility, color: NOTE_COLORS[0] });
+  const [formData, setFormData] = useState({
+    title: "",
+    content: "",
+    subjectId: "",
+    visibility: "PRIVATE" as NoteVisibility,
+    color: NOTE_COLORS[0],
+  });
 
   const isTeacher = role === "TEACHER";
   const canCreateClassNotes = isTeacher || role === "ADMIN";
@@ -68,13 +86,14 @@ export default function Notes() {
         role === "TEACHER"
           ? teacherData[0]?.id
           : role === "STUDENT"
-          ? studentData[0]?.id
-          : teacherData[0]?.id ?? studentData[0]?.id;
+            ? studentData[0]?.id
+            : (teacherData[0]?.id ?? studentData[0]?.id);
       setCurrentUserId(defaultUser);
     } catch (error) {
       toast({
         title: "Gagal memuat catatan",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       });
     } finally {
       setIsLoading(false);
@@ -86,8 +105,13 @@ export default function Notes() {
   }, [loadData]);
 
   const filteredNotes = notes.filter((n) => {
-    const matchesSearch = n.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTab = activeTab === "my" ? n.visibility === "PRIVATE" : n.visibility === "CLASS";
+    const matchesSearch = n.title
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesTab =
+      activeTab === "my"
+        ? n.visibility === "PRIVATE"
+        : n.visibility === "CLASS";
     return matchesSearch && matchesTab;
   });
 
@@ -95,7 +119,8 @@ export default function Notes() {
     if (!currentUserId) {
       toast({
         title: "Tidak ada pengguna",
-        description: "Tambahkan pengguna terlebih dahulu sebelum membuat catatan.",
+        description:
+          "Tambahkan pengguna terlebih dahulu sebelum membuat catatan.",
       });
       return;
     }
@@ -110,13 +135,19 @@ export default function Notes() {
       };
       if (selectedNote) {
         await updateNote(selectedNote.id, payload);
-        toast({ title: "Berhasil", description: "Catatan berhasil diperbarui" });
+        toast({
+          title: "Berhasil",
+          description: "Catatan berhasil diperbarui",
+        });
       } else {
         await createNote({
           ...payload,
           authorId: currentUserId,
         });
-        toast({ title: "Berhasil", description: "Catatan baru berhasil dibuat" });
+        toast({
+          title: "Berhasil",
+          description: "Catatan baru berhasil dibuat",
+        });
       }
       setFormDialogOpen(false);
       setSelectedNote(null);
@@ -124,7 +155,8 @@ export default function Notes() {
     } catch (error) {
       toast({
         title: "Gagal menyimpan catatan",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       });
     }
   };
@@ -149,7 +181,8 @@ export default function Notes() {
     } catch (error) {
       toast({
         title: "Gagal menghapus catatan",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       });
     }
   };
@@ -161,14 +194,22 @@ export default function Notes() {
     } catch (error) {
       toast({
         title: "Gagal mengubah pin",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
       });
     }
   };
 
   const openNewNote = () => {
     setSelectedNote(null);
-    setFormData({ title: "", content: "", subjectId: "", visibility: activeTab === "class" && canCreateClassNotes ? "CLASS" : "PRIVATE", color: NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)] });
+    setFormData({
+      title: "",
+      content: "",
+      subjectId: "",
+      visibility:
+        activeTab === "class" && canCreateClassNotes ? "CLASS" : "PRIVATE",
+      color: NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)],
+    });
     setFormDialogOpen(true);
   };
 
@@ -180,43 +221,31 @@ export default function Notes() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-3">
-            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-              Catatan
-            </span>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Simpan catatan pribadi dan catatan kelas tanpa terasa semrawut.
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Gunakan warna, pin, dan filter sederhana untuk menjaga ide penting tetap
-                mudah ditemukan saat materi mulai bertambah.
-              </p>
-            </div>
-          </div>
+      <section>
+        <div className="flex justify-end">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total Catatan</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{notes.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Tersimpan Pin</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{notes.filter((note) => note.isPinned).length}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Mode Aktif</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
-                  {activeTab === "my" ? "Catatan Saya" : "Catatan Kelas"}
-                </p>
-              </CardContent>
-            </Card>
+            <InfoStatCard
+              title="Total Catatan"
+              value={notes.length}
+              caption="Semua catatan"
+              icon={StickyNote}
+            />
+            <InfoStatCard
+              title="Tersimpan Pin"
+              value={notes.filter((note) => note.isPinned).length}
+              caption="Catatan prioritas"
+              icon={Pin}
+              iconColor="text-warning"
+              iconBackground="bg-warning/10"
+            />
+            <InfoStatCard
+              title="Mode Aktif"
+              value={activeTab === "my" ? "Saya" : "Kelas"}
+              caption={activeTab === "my" ? "Catatan pribadi" : "Catatan bersama"}
+              icon={Pencil}
+              iconColor="text-info"
+              iconBackground="bg-info/10"
+            />
           </div>
         </div>
       </section>
@@ -247,37 +276,71 @@ export default function Notes() {
 
         <TabsContent value={activeTab} className="mt-6">
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground" aria-live="polite">
+            <div
+              className="text-center py-12 text-muted-foreground"
+              aria-live="polite"
+            >
               Memuat catatan…
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {sortedNotes.map((note) => (
-                <Card key={note.id} className={`group hover:shadow-lg transition-all ${note.color}`}>
+                <Card
+                  key={note.id}
+                  className={`group hover:shadow-lg transition-all ${note.color}`}
+                >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
-                        {note.isPinned && <Pin className="h-4 w-4 text-primary" />}
+                        {note.isPinned && (
+                          <Pin className="h-4 w-4 text-primary" />
+                        )}
                         <h3 className="font-semibold">{note.title}</h3>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Sematkan ${note.title}`} onClick={() => handleTogglePin(note.id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label={`Sematkan ${note.title}`}
+                          onClick={() => handleTogglePin(note.id)}
+                        >
                           <Pin className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit ${note.title}`} onClick={() => handleEdit(note)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label={`Edit ${note.title}`}
+                          onClick={() => handleEdit(note)}
+                        >
                           <Pencil className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" aria-label={`Hapus ${note.title}`} onClick={() => handleDelete(note.id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          aria-label={`Hapus ${note.title}`}
+                          onClick={() => handleDelete(note.id)}
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-4 whitespace-pre-wrap">{note.content}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-4 whitespace-pre-wrap">
+                      {note.content}
+                    </p>
                     <div className="flex items-center justify-between mt-4 pt-2 border-t">
-                      {note.subjectName && <Badge variant="outline" className="text-xs">{note.subjectName}</Badge>}
-                      <span className="text-xs text-muted-foreground">{format(note.updatedAt, "d MMM", { locale: id })}</span>
+                      {note.subjectName && (
+                        <Badge variant="outline" className="text-xs">
+                          {note.subjectName}
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {format(note.updatedAt, "d MMM", { locale: id })}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -296,30 +359,71 @@ export default function Notes() {
       <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{selectedNote ? "Edit Catatan" : "Buat Catatan Baru"}</DialogTitle>
+            <DialogTitle>
+              {selectedNote ? "Edit Catatan" : "Buat Catatan Baru"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="note-title">Judul</Label>
-              <Input id="note-title" name="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Judul catatan" />
+              <Input
+                id="note-title"
+                name="title"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                placeholder="Judul catatan"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="note-subject">Mata Pelajaran</Label>
-                <Select value={formData.subjectId} onValueChange={(v) => setFormData({ ...formData, subjectId: v })}>
-                  <SelectTrigger id="note-subject" aria-label="Pilih mata pelajaran"><SelectValue placeholder="Pilih mapel" /></SelectTrigger>
+                <Select
+                  value={formData.subjectId}
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, subjectId: v })
+                  }
+                >
+                  <SelectTrigger
+                    id="note-subject"
+                    aria-label="Pilih mata pelajaran"
+                  >
+                    <SelectValue placeholder="Pilih mapel" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {subjects.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
+                    {subjects.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               {canCreateClassNotes && (
                 <div className="space-y-2">
                   <Label htmlFor="note-visibility">Visibilitas</Label>
-                  <Select value={formData.visibility} onValueChange={(v) => setFormData({ ...formData, visibility: v as NoteVisibility })}>
-                    <SelectTrigger id="note-visibility" aria-label="Pilih visibilitas catatan"><SelectValue /></SelectTrigger>
+                  <Select
+                    value={formData.visibility}
+                    onValueChange={(v) =>
+                      setFormData({
+                        ...formData,
+                        visibility: v as NoteVisibility,
+                      })
+                    }
+                  >
+                    <SelectTrigger
+                      id="note-visibility"
+                      aria-label="Pilih visibilitas catatan"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(NOTE_VISIBILITY).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
+                      {Object.entries(NOTE_VISIBILITY).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>
+                          {v}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -327,7 +431,16 @@ export default function Notes() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="note-content">Isi Catatan</Label>
-              <Textarea id="note-content" name="content" value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} rows={6} placeholder="Tulis catatan…" />
+              <Textarea
+                id="note-content"
+                name="content"
+                value={formData.content}
+                onChange={(e) =>
+                  setFormData({ ...formData, content: e.target.value })
+                }
+                rows={6}
+                placeholder="Tulis catatan…"
+              />
             </div>
             <div className="space-y-2">
               <Label>Warna</Label>
@@ -344,8 +457,15 @@ export default function Notes() {
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setFormDialogOpen(false)}>Batal</Button>
-              <Button onClick={handleSubmit}>{selectedNote ? "Simpan" : "Buat Catatan"}</Button>
+              <Button
+                variant="outline"
+                onClick={() => setFormDialogOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button onClick={handleSubmit}>
+                {selectedNote ? "Simpan" : "Buat Catatan"}
+              </Button>
             </div>
           </div>
         </DialogContent>

@@ -23,7 +23,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { UserCard } from "@/components/admin/UserCard";
-import { UserFormDialog, type UserFormData } from "@/components/admin/UserFormDialog";
+import {
+  UserFormDialog,
+  type UserFormData,
+} from "@/components/admin/UserFormDialog";
 import { LinkUserDialog } from "@/components/admin/LinkUserDialog";
 import { UserStatsCard } from "@/components/admin/UserStatsCard";
 import { Grade, Role, ROLES, GRADES } from "@/lib/constants";
@@ -90,12 +93,12 @@ export default function Users({ isSaasMode = false }: UsersProps) {
 
   const classById = useMemo(
     () => new Map(classes.map((cls) => [cls.id, cls])),
-    [classes]
+    [classes],
   );
 
   const studentById = useMemo(
     () => new Map(students.map((student) => [student.id, student])),
-    [students]
+    [students],
   );
 
   const parentByStudentId = useMemo(() => {
@@ -144,7 +147,9 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         const profile = await getSchoolProfile();
         if (!isActive) return;
         setSchoolInviteCode(profile.schoolCode?.trim() ?? "");
-        setSchoolInviteSchoolId(typeof profile.id === "string" ? profile.id.trim() : "");
+        setSchoolInviteSchoolId(
+          typeof profile.id === "string" ? profile.id.trim() : "",
+        );
       } catch {
         if (!isActive) return;
         toast.error("Gagal memuat kode invite sekolah");
@@ -215,12 +220,16 @@ export default function Users({ isSaasMode = false }: UsersProps) {
 
   const buildFormData = (user: UserRow | UserSummary): UserFormData => {
     const classId =
-      "studentProfile" in user ? user.studentProfile?.classId ?? undefined : undefined;
-    const grade = classId ? (classById.get(classId)?.grade as Grade | undefined) : undefined;
+      "studentProfile" in user
+        ? (user.studentProfile?.classId ?? undefined)
+        : undefined;
+    const grade = classId
+      ? (classById.get(classId)?.grade as Grade | undefined)
+      : undefined;
     const childIds =
       user.role === ROLES.PARENT
         ? (("parentLinks" in user ? user.parentLinks : []) ?? []).map(
-            (link) => link.studentId
+            (link) => link.studentId,
           )
         : [];
     return {
@@ -237,7 +246,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
 
   const getParentChildIds = (parentId: string) =>
     (parents.find((parent) => parent.id === parentId)?.parentLinks ?? []).map(
-      (link) => link.studentId
+      (link) => link.studentId,
     );
 
   const syncParentLinks = async (parentId: string, targetUserIds: string[]) => {
@@ -283,7 +292,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
       toast.success(
         schoolInviteCode
           ? `Kode invite tersalin: ${schoolInviteCode}`
-          : "Link invite sekolah tersalin"
+          : "Link invite sekolah tersalin",
       );
     } catch {
       toast.error("Gagal menyalin kode invite");
@@ -291,7 +300,9 @@ export default function Users({ isSaasMode = false }: UsersProps) {
   };
 
   const handleEditUser = (id: string) => {
-    const user = [...students, ...teachers, ...parents].find((u) => u.id === id);
+    const user = [...students, ...teachers, ...parents].find(
+      (u) => u.id === id,
+    );
     if (user) {
       setEditingUser(buildFormData(user));
       setFormDialogOpen(true);
@@ -331,8 +342,8 @@ export default function Users({ isSaasMode = false }: UsersProps) {
       await navigator.clipboard.writeText(invite.code);
       toast.success(
         `Kode undangan tersalin: ${invite.code} (berlaku sampai ${new Date(
-          invite.expiresAt
-        ).toLocaleString("id-ID")})`
+          invite.expiresAt,
+        ).toLocaleString("id-ID")})`,
       );
     } catch {
       toast.error("Gagal membuat kode undangan orang tua");
@@ -341,7 +352,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
 
   const handleResetPasswordToDefault = async (userId: string) => {
     const confirmed = window.confirm(
-      "Reset password user ini ke password default server? User akan diminta ganti password saat login."
+      "Reset password user ini ke password default server? User akan diminta ganti password saat login.",
     );
     if (!confirmed) return;
 
@@ -352,7 +363,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Gagal reset password ke default"
+          : "Gagal reset password ke default",
       );
     }
   };
@@ -384,14 +395,14 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         if (data.role === ROLES.PARENT && data.childIds?.length) {
           await Promise.all(
             data.childIds.map((studentId) =>
-              linkParentStudent(created.id, studentId)
-            )
+              linkParentStudent(created.id, studentId),
+            ),
           );
         }
         toast.success(
           isSaasMode
             ? "Pengguna baru berhasil ditambahkan"
-            : "Pengguna baru aktif dengan password default server dan wajib ganti password saat login pertama"
+            : "Pengguna baru aktif dengan password default server dan wajib ganti password saat login pertama",
         );
       }
       await reloadData();
@@ -402,7 +413,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
 
   const handleLinkSubmit = async (
     sourceUserId: string,
-    targetUserIds: string[]
+    targetUserIds: string[],
   ) => {
     if (!linkingUser) return;
     try {
@@ -411,17 +422,19 @@ export default function Users({ isSaasMode = false }: UsersProps) {
       } else {
         const currentParentIds = parents
           .filter((parent) =>
-            parent.parentLinks?.some((link) => link.studentId === sourceUserId)
+            parent.parentLinks?.some((link) => link.studentId === sourceUserId),
           )
           .map((parent) => parent.id);
-        const toAdd = targetUserIds.filter((id) => !currentParentIds.includes(id));
+        const toAdd = targetUserIds.filter(
+          (id) => !currentParentIds.includes(id),
+        );
         const toRemove = currentParentIds.filter(
-          (id) => !targetUserIds.includes(id)
+          (id) => !targetUserIds.includes(id),
         );
         await Promise.all([
           ...toAdd.map((parentId) => linkParentStudent(parentId, sourceUserId)),
           ...toRemove.map((parentId) =>
-            unlinkParentStudent(parentId, sourceUserId)
+            unlinkParentStudent(parentId, sourceUserId),
           ),
         ]);
       }
@@ -461,41 +474,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <section className="dashboard-panel overflow-hidden rounded-[1.75rem] border border-border/80">
-        <div className="flex flex-col gap-5 px-6 py-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <Badge
-              variant="outline"
-              className="rounded-full border-primary/20 bg-primary/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-primary"
-            >
-              User Directory
-            </Badge>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Manajemen Pengguna
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground md:text-base">
-                {isSaasMode
-                  ? "Kelola data siswa, guru, dan orang tua melalui kode invite dan hubungan akun."
-                  : "Kelola data siswa, guru, dan orang tua dalam satu panel operasional."}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <div className="rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-              {stats.totalStudents + stats.totalTeachers + stats.totalParents} total akun
-            </div>
-            <div className="rounded-full border border-accent/35 bg-accent/15 px-4 py-2 text-sm font-medium text-foreground">
-              {stats.linkedStudents} siswa terhubung
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="text-sm text-muted-foreground">
-          Gunakan tab dan filter untuk mempersempit daftar pengguna aktif.
-        </div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-end">
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
             <Upload className="h-4 w-4 mr-2" />
@@ -531,6 +510,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         <UserStatsCard
           title="Total Siswa"
           value={stats.totalStudents}
+          caption="Total data siswa"
           icon={GraduationCap}
           iconColor="text-success"
           bgColor="bg-success/10"
@@ -538,6 +518,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         <UserStatsCard
           title="Total Guru"
           value={stats.totalTeachers}
+          caption="Tenaga pengajar"
           icon={BookOpen}
           iconColor="text-primary"
           bgColor="bg-primary/10"
@@ -545,6 +526,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         <UserStatsCard
           title="Total Orang Tua"
           value={stats.totalParents}
+          caption="Akun pendamping"
           icon={UsersIcon}
           iconColor="text-warning"
           bgColor="bg-warning/10"
@@ -552,10 +534,10 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         <UserStatsCard
           title="Siswa Terhubung"
           value={stats.linkedStudents}
+          caption="Sudah tertaut"
           icon={UserCheck}
           iconColor="text-info"
           bgColor="bg-info/10"
-          trend={{ value: 12, isPositive: true }}
         />
       </div>
 
@@ -607,7 +589,10 @@ export default function Users({ isSaasMode = false }: UsersProps) {
             {activeTab === "students" && (
               <>
                 <Select value={gradeFilter} onValueChange={setGradeFilter}>
-                  <SelectTrigger className="w-full sm:w-32" aria-label="Filter tingkat">
+                  <SelectTrigger
+                    className="w-full sm:w-32"
+                    aria-label="Filter tingkat"
+                  >
                     <SelectValue placeholder="Tingkat" />
                   </SelectTrigger>
                   <SelectContent>
@@ -621,7 +606,10 @@ export default function Users({ isSaasMode = false }: UsersProps) {
                 </Select>
 
                 <Select value={classFilter} onValueChange={setClassFilter}>
-                  <SelectTrigger className="w-full sm:w-36" aria-label="Filter kelas">
+                  <SelectTrigger
+                    className="w-full sm:w-36"
+                    aria-label="Filter kelas"
+                  >
                     <SelectValue placeholder="Kelas" />
                   </SelectTrigger>
                   <SelectContent>
@@ -630,7 +618,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
                       .filter(
                         (c) =>
                           gradeFilter === "all" ||
-                          c.grade.toString() === gradeFilter
+                          c.grade.toString() === gradeFilter,
                       )
                       .map((cls) => (
                         <SelectItem key={cls.id} value={cls.id}>
@@ -647,7 +635,10 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         {/* Students Tab */}
         <TabsContent value="students" className="mt-6">
           {isLoading ? (
-            <div aria-live="polite" className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div
+              aria-live="polite"
+              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
+            >
               Memuat data siswa…
             </div>
           ) : filteredStudents.length === 0 ? (
@@ -673,8 +664,8 @@ export default function Users({ isSaasMode = false }: UsersProps) {
                     getParentName(student.id)
                       ? `Ortu: ${getParentName(student.id)}`
                       : getClassName(student.studentProfile?.classId)
-                      ? `Kelas: ${getClassName(student.studentProfile?.classId)}`
-                      : undefined
+                        ? `Kelas: ${getClassName(student.studentProfile?.classId)}`
+                        : undefined
                   }
                   onEdit={handleEditUser}
                   onDelete={handleDeleteUser}
@@ -692,7 +683,10 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         {/* Teachers Tab */}
         <TabsContent value="teachers" className="mt-6">
           {isLoading ? (
-            <div aria-live="polite" className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div
+              aria-live="polite"
+              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
+            >
               Memuat data guru…
             </div>
           ) : filteredTeachers.length === 0 ? (
@@ -728,7 +722,10 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         {/* Parents Tab */}
         <TabsContent value="parents" className="mt-6">
           {isLoading ? (
-            <div aria-live="polite" className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div
+              aria-live="polite"
+              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
+            >
               Memuat data orang tua…
             </div>
           ) : filteredParents.length === 0 ? (
@@ -755,7 +752,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
                   linkedTo={
                     parent.parentLinks && parent.parentLinks.length > 0
                       ? `Anak: ${getChildrenNames(
-                          parent.parentLinks.map((link) => link.studentId)
+                          parent.parentLinks.map((link) => link.studentId),
                         )}`
                       : undefined
                   }
@@ -804,13 +801,13 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         linkedUserIds={
           linkingUser?.role === ROLES.PARENT
             ? linkingUser?.parentLinks?.map(
-                (link: { studentId: string }) => link.studentId
+                (link: { studentId: string }) => link.studentId,
               ) || []
             : parents
                 .filter((parent) =>
                   parent.parentLinks?.some(
-                    (link) => link.studentId === linkingUser?.id
-                  )
+                    (link) => link.studentId === linkingUser?.id,
+                  ),
                 )
                 .map((parent) => parent.id)
         }

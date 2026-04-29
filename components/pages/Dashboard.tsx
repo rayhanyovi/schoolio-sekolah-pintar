@@ -284,8 +284,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <section className="dashboard-panel overflow-hidden rounded-[1.9rem] border border-border/80">
-        <div className="grid gap-8 px-6 py-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:px-8">
+      <section>
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
           <div className="space-y-4">
             <Badge
               variant="outline"
@@ -319,8 +319,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid gap-3 rounded-[1.6rem] border border-border/70 bg-background/55 p-4 md:grid-cols-3 lg:grid-cols-1">
-            <div className="flex items-center gap-3 rounded-[1.25rem] border border-accent/25 bg-accent/10 px-4 py-3 text-foreground">
+          <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-1">
+            <Card className="border-accent/25 bg-accent/10 shadow-none">
+              <CardContent className="flex items-center gap-3 p-4">
               <div className="rounded-full bg-primary p-2 text-primary-foreground">
                 <Sparkles className="h-4 w-4" />
               </div>
@@ -334,17 +335,22 @@ export default function Dashboard() {
                     : scheduleCards[0]?.subject || "Belum ada sesi terjadwal"}
                 </p>
               </div>
-            </div>
+              </CardContent>
+            </Card>
             {weeklyHighlights.map((item) => (
-              <div
+              <Card
                 key={item.label}
-                className="rounded-[1.25rem] border border-border/70 bg-card/80 px-4 py-4"
+                className="border-border/70 bg-card/80 shadow-none"
               >
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                  {item.label}
-                </p>
-                <p className="mt-2 text-xl font-semibold text-foreground">{item.value}</p>
-              </div>
+                <CardContent className="p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    {item.label}
+                  </p>
+                  <p className="mt-2 text-xl font-semibold text-foreground">
+                    {item.value}
+                  </p>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>

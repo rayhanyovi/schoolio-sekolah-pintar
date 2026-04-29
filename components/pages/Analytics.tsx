@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Users,
-  TrendingUp,
   Calendar,
   Award,
   AlertTriangle,
@@ -20,6 +19,7 @@ import {
   BarChart3,
   PieChart,
 } from "lucide-react";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 import { useRoleContext } from "@/hooks/useRoleContext";
 import {
   BarChart,
@@ -71,15 +71,14 @@ type AttendanceCounts = {
 export default function Analytics() {
   const { role } = useRoleContext();
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
-  const [attendance, setAttendance] = useState<AnalyticsAttendance | null>(null);
+  const [attendance, setAttendance] = useState<AnalyticsAttendance | null>(
+    null,
+  );
   const [grades, setGrades] = useState<AnalyticsGrades | null>(null);
   const [demographics, setDemographics] =
     useState<AnalyticsDemographics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true);
       const [overviewResult, attendanceResult, gradesResult, demoResult] =
         await Promise.allSettled([
           getAnalyticsOverview(),
@@ -99,7 +98,6 @@ export default function Analytics() {
       if (demoResult.status === "fulfilled") {
         setDemographics(demoResult.value);
       }
-      setIsLoading(false);
     };
 
     loadData();
@@ -113,16 +111,18 @@ export default function Analytics() {
   };
   const attendanceTotal = Object.values(attendanceCounts).reduce(
     (sum, value) => sum + value,
-    0
+    0,
   );
   const attendanceRate = attendanceTotal
     ? Math.round((attendanceCounts.PRESENT / attendanceTotal) * 1000) / 10
     : 0;
 
-  const attendanceChartData = (Object.entries(attendanceCounts) as [
-    keyof typeof attendanceCounts,
-    number
-  ][]).map(([key, count]) => ({
+  const attendanceChartData = (
+    Object.entries(attendanceCounts) as [
+      keyof typeof attendanceCounts,
+      number,
+    ][]
+  ).map(([key, count]) => ({
     key,
     label: ATTENDANCE_STATUS[key],
     count,
@@ -135,7 +135,7 @@ export default function Analytics() {
     if (gradeData.length === 0) return 0;
     const totalSubmissions = gradeData.reduce(
       (sum, row) => sum + row.submissions,
-      0
+      0,
     );
     if (totalSubmissions === 0) {
       const total = gradeData.reduce((sum, row) => sum + row.average, 0);
@@ -143,7 +143,7 @@ export default function Analytics() {
     }
     const totalScore = gradeData.reduce(
       (sum, row) => sum + row.average * row.submissions,
-      0
+      0,
     );
     return totalScore / totalSubmissions;
   }, [gradeData]);
@@ -170,7 +170,11 @@ export default function Analytics() {
   const genderData = [
     { name: "Laki-laki", value: genderCounts.MALE, fill: GENDER_COLORS[0] },
     { name: "Perempuan", value: genderCounts.FEMALE, fill: GENDER_COLORS[1] },
-    { name: "Belum Diisi", value: genderCounts.UNKNOWN, fill: GENDER_COLORS[2] },
+    {
+      name: "Belum Diisi",
+      value: genderCounts.UNKNOWN,
+      fill: GENDER_COLORS[2],
+    },
   ];
   const totalGender = genderData.reduce((sum, item) => sum + item.value, 0);
 
@@ -191,134 +195,38 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-3">
-            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-              Analytics
-            </span>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Baca performa sekolah dari absensi, nilai, dan demografi.
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Dashboard ini dirapikan supaya metrik utama, grafik, dan area perhatian
-                lebih cepat dipahami saat rapat maupun evaluasi harian.
-              </p>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Siswa</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{overview?.totalStudents ?? 0}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Rata-rata Nilai</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{weightedAverage.toFixed(1)}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Tingkat Hadir</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{attendanceRate}%</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <div>
-        <p className="text-sm text-muted-foreground" aria-live="polite">
-          Statistik dan analisis performa sekolah{isLoading ? " • Memuat data…" : ""}
-        </p>
-      </div>
-
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Siswa</p>
-                <p className="text-2xl font-bold">
-                  {overview?.totalStudents ?? 0}
-                </p>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <Users className="h-3 w-3" />
-                  <span>Total data siswa</span>
-                </div>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Rata-rata Nilai</p>
-                <p className="text-2xl font-bold">
-                  {weightedAverage.toFixed(1)}
-                </p>
-                <div className="flex items-center gap-1 text-xs text-success mt-1">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>Rata-rata pengumpulan</span>
-                </div>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-secondary/10 flex items-center justify-center">
-                <Award className="h-6 w-6 text-secondary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Tingkat Kehadiran
-                </p>
-                <p className="text-2xl font-bold">{attendanceRate}%</p>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <CheckCircle className="h-3 w-3" />
-                  <span>Rasio hadir</span>
-                </div>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-success" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Catatan Tidak Hadir
-                </p>
-                <p className="text-2xl font-bold">
-                  {attendanceCounts.ABSENT}
-                </p>
-                <div className="flex items-center gap-1 text-xs text-warning mt-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  <span>Rekap absensi</span>
-                </div>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-warning" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <InfoStatCard
+          title="Total Siswa"
+          value={overview?.totalStudents ?? 0}
+          caption="Total data siswa"
+          icon={Users}
+        />
+        <InfoStatCard
+          title="Rata-rata Nilai"
+          value={weightedAverage.toFixed(1)}
+          caption="Rata-rata pengumpulan"
+          icon={Award}
+          iconColor="text-info"
+          iconBackground="bg-info/10"
+        />
+        <InfoStatCard
+          title="Tingkat Kehadiran"
+          value={`${attendanceRate}%`}
+          caption="Rasio hadir"
+          icon={CheckCircle}
+          iconColor="text-success"
+          iconBackground="bg-success/10"
+        />
+        <InfoStatCard
+          title="Catatan Tidak Hadir"
+          value={attendanceCounts.ABSENT}
+          caption="Rekap absensi"
+          icon={AlertTriangle}
+          iconColor="text-warning"
+          iconBackground="bg-warning/10"
+        />
       </div>
 
       <Tabs defaultValue="attendance" className="space-y-6">
@@ -350,13 +258,16 @@ export default function Analytics() {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={attendanceChartData}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-muted"
+                    />
                     <XAxis dataKey="label" className="text-xs" />
                     <YAxis className="text-xs" allowDecimals={false} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
                         borderRadius: "8px",
                       }}
                     />
@@ -397,7 +308,10 @@ export default function Analytics() {
                         <div className="w-32 bg-muted rounded-full h-2">
                           <div
                             className="h-2 rounded-full"
-                            style={{ width: `${row.percent}%`, backgroundColor: row.fill }}
+                            style={{
+                              width: `${row.percent}%`,
+                              backgroundColor: row.fill,
+                            }}
                           />
                         </div>
                         <span className="font-semibold w-12 text-right">
@@ -459,13 +373,16 @@ export default function Analytics() {
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={gradeChartData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="stroke-muted"
+                      />
                       <XAxis type="number" domain={[0, 100]} />
                       <YAxis dataKey="short" type="category" width={50} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
                           borderRadius: "8px",
                         }}
                         formatter={(value, _, entry) => [
@@ -488,19 +405,24 @@ export default function Analytics() {
             <Card>
               <CardHeader>
                 <CardTitle>Pengumpulan per Mapel</CardTitle>
-                <CardDescription>Jumlah submission yang dinilai</CardDescription>
+                <CardDescription>
+                  Jumlah submission yang dinilai
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={gradeChartData}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="stroke-muted"
+                      />
                       <XAxis dataKey="short" />
                       <YAxis allowDecimals={false} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
                           borderRadius: "8px",
                         }}
                         formatter={(value, _, entry) => [
@@ -662,10 +584,7 @@ export default function Analytics() {
                         dataKey="value"
                       >
                         {genderData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={entry.fill}
-                          />
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -685,7 +604,7 @@ export default function Analytics() {
                       <p className="text-sm text-muted-foreground">
                         {totalGender
                           ? `${entry.name} (${Math.round(
-                              (entry.value / totalGender) * 100
+                              (entry.value / totalGender) * 100,
                             )}%)`
                           : entry.name}
                       </p>
@@ -700,4 +619,3 @@ export default function Analytics() {
     </div>
   );
 }
-

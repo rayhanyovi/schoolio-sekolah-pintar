@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 
 interface StatCardProps {
   title: string;
@@ -17,24 +17,24 @@ interface StatCardProps {
 
 const variants = {
   default: {
-    card: "bg-card border-border/80",
-    icon: "bg-muted/80 text-primary",
+    icon: "text-primary",
+    background: "bg-primary/10",
   },
   primary: {
-    card: "bg-primary/5 border-primary/20",
-    icon: "bg-primary text-primary-foreground shadow-sm",
+    icon: "text-primary",
+    background: "bg-primary/10",
   },
   success: {
-    card: "bg-success/5 border-success/20",
-    icon: "bg-success/15 text-success",
+    icon: "text-success",
+    background: "bg-success/10",
   },
   warning: {
-    card: "bg-warning/10 border-warning/25",
-    icon: "bg-warning/20 text-foreground",
+    icon: "text-warning",
+    background: "bg-warning/10",
   },
   info: {
-    card: "bg-info/5 border-info/20",
-    icon: "bg-info/15 text-info",
+    icon: "text-info",
+    background: "bg-info/10",
   },
 };
 
@@ -47,39 +47,19 @@ export function StatCard({
   variant = "default",
 }: StatCardProps) {
   const styles = variants[variant];
+  const trendText = trend
+    ? `${trend.isPositive ? "+" : "-"}${Math.abs(trend.value)}% dari bulan lalu`
+    : undefined;
 
   return (
-    <div
-      className={cn(
-        "dashboard-panel p-6 rounded-[1.4rem] border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
-        styles.card
-      )}
-    >
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold text-foreground">{value}</p>
-          {subtitle && (
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
-          )}
-          {trend && (
-            <p
-              className={cn(
-                "text-sm font-medium",
-                trend.isPositive ? "text-success" : "text-destructive"
-              )}
-            >
-              {trend.isPositive ? "+" : "-"}{Math.abs(trend.value)}%{" "}
-              <span className="text-muted-foreground font-normal">
-                dari bulan lalu
-              </span>
-            </p>
-          )}
-        </div>
-        <div className={cn("p-3 rounded-xl", styles.icon)}>
-          <Icon className="h-6 w-6" />
-        </div>
-      </div>
-    </div>
+    <InfoStatCard
+      title={title}
+      value={value}
+      caption={subtitle ?? trendText}
+      icon={Icon}
+      iconColor={styles.icon}
+      iconBackground={styles.background}
+      className="transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+    />
   );
 }

@@ -47,6 +47,7 @@ import {
   LayoutGrid,
   List,
 } from "lucide-react";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 import {
   ASSIGNMENT_TYPES,
   AssignmentType,
@@ -284,37 +285,31 @@ export default function QuestionBank() {
 
   return (
     <div className="space-y-6">
-      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-3">
-            <span className="inline-flex w-fit rounded-full bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-              Bank Soal
-            </span>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Koleksi soal dan paket yang lebih teratur untuk proses mengajar.
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Filter, mode tampilan, dan panel aksi kini lebih selaras dengan tema
-                dashboard sambil tetap mudah diakses lewat keyboard.
-              </p>
-            </div>
-          </div>
+      <section>
+        <div className="flex justify-end">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="border-primary/10 bg-white/88 p-4 shadow-none">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total Soal</p>
-              <p className="mt-2 text-3xl font-semibold text-foreground">{stats.totalQuestions}</p>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 p-4 shadow-none">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Paket Soal</p>
-              <p className="mt-2 text-3xl font-semibold text-foreground">{stats.totalPackages}</p>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 p-4 shadow-none">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Mode Tampilan</p>
-              <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
-                {viewMode === "grid" ? "Grid" : "Daftar"}
-              </p>
-            </Card>
+            <InfoStatCard
+              title="Total Soal"
+              value={stats.totalQuestions}
+              caption="Bank soal aktif"
+              icon={Library}
+            />
+            <InfoStatCard
+              title="Paket Soal"
+              value={stats.totalPackages}
+              caption="Paket tersimpan"
+              icon={Package}
+              iconColor="text-success"
+              iconBackground="bg-success/10"
+            />
+            <InfoStatCard
+              title="Mode Tampilan"
+              value={viewMode === "grid" ? "Grid" : "Daftar"}
+              caption="Layout aktif"
+              icon={viewMode === "grid" ? LayoutGrid : List}
+              iconColor="text-info"
+              iconBackground="bg-info/10"
+            />
           </div>
         </div>
       </section>
@@ -431,7 +426,10 @@ export default function QuestionBank() {
               />
             </div>
             <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-              <SelectTrigger className="w-[140px]" aria-label="Filter mata pelajaran">
+              <SelectTrigger
+                className="w-[140px]"
+                aria-label="Filter mata pelajaran"
+              >
                 <SelectValue placeholder="Mapel" />
               </SelectTrigger>
               <SelectContent>
@@ -446,7 +444,10 @@ export default function QuestionBank() {
             {activeTab === "questions" && (
               <>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-[130px]" aria-label="Filter tipe soal">
+                  <SelectTrigger
+                    className="w-[130px]"
+                    aria-label="Filter tipe soal"
+                  >
                     <SelectValue placeholder="Tipe" />
                   </SelectTrigger>
                   <SelectContent>
@@ -464,7 +465,10 @@ export default function QuestionBank() {
                   value={difficultyFilter}
                   onValueChange={setDifficultyFilter}
                 >
-                  <SelectTrigger className="w-[120px]" aria-label="Filter tingkat kesulitan">
+                  <SelectTrigger
+                    className="w-[120px]"
+                    aria-label="Filter tingkat kesulitan"
+                  >
                     <SelectValue placeholder="Level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -506,7 +510,10 @@ export default function QuestionBank() {
         {/* Questions Tab */}
         <TabsContent value="questions" className="mt-4">
           {isLoading ? (
-            <div className="text-center py-16 text-muted-foreground" aria-live="polite">
+            <div
+              className="text-center py-16 text-muted-foreground"
+              aria-live="polite"
+            >
               Memuat soal…
             </div>
           ) : (
@@ -562,7 +569,10 @@ export default function QuestionBank() {
         {/* Packages Tab */}
         <TabsContent value="packages" className="mt-4">
           {isLoading ? (
-            <div className="text-center py-16 text-muted-foreground" aria-live="polite">
+            <div
+              className="text-center py-16 text-muted-foreground"
+              aria-live="polite"
+            >
               Memuat paket soal…
             </div>
           ) : (

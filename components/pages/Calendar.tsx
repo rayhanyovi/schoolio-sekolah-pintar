@@ -15,6 +15,7 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 import { EventCard } from "@/components/calendar/EventCard";
 import { EventFormDialog } from "@/components/calendar/EventFormDialog";
 import {
@@ -59,23 +60,26 @@ export default function AcademicCalendar() {
     ? format(selectedDate, "d MMMM yyyy", { locale: id })
     : "Belum memilih tanggal";
 
-  const loadEvents = useCallback(async (month: Date) => {
-    try {
-      setIsLoading(true);
-      const from = startOfMonth(month).toISOString();
-      const to = addDays(endOfMonth(month), 7).toISOString();
-      const data = await listEvents({ dateFrom: from, dateTo: to });
-      setEvents(data);
-    } catch (error) {
-      toast({
-        title: "Gagal memuat event",
-        description:
-          error instanceof Error ? error.message : "Terjadi kesalahan",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+  const loadEvents = useCallback(
+    async (month: Date) => {
+      try {
+        setIsLoading(true);
+        const from = startOfMonth(month).toISOString();
+        const to = addDays(endOfMonth(month), 7).toISOString();
+        const data = await listEvents({ dateFrom: from, dateTo: to });
+        setEvents(data);
+      } catch (error) {
+        toast({
+          title: "Gagal memuat event",
+          description:
+            error instanceof Error ? error.message : "Terjadi kesalahan",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [toast],
+  );
 
   useEffect(() => {
     loadEvents(currentMonth);
@@ -113,7 +117,12 @@ export default function AcademicCalendar() {
   }, [filteredEvents]);
 
   const dayHighlightTypeMap = useMemo(() => {
-    const priority: EventType[] = ["HOLIDAY", "DEADLINE", "ACTIVITY", "ACADEMIC"];
+    const priority: EventType[] = [
+      "HOLIDAY",
+      "DEADLINE",
+      "ACTIVITY",
+      "ACADEMIC",
+    ];
     const map = new Map<string, EventType>();
     eventTypeMap.forEach((types, key) => {
       const winner = priority.find((type) => types.has(type));
@@ -188,49 +197,31 @@ export default function AcademicCalendar() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-3">
-            <Badge className="w-fit rounded-full border-0 bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-              Kalender Akademik
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Ritme semester, ujian, dan agenda sekolah dalam satu tampilan.
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Pantau kegiatan penting, tenggat, dan agenda harian dengan nuansa
-                yang lebih tenang dan mudah dipindai.
-              </p>
-            </div>
-          </div>
+      <section>
+        <div className="flex justify-end">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="min-w-[170px] border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Total Event
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{events.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="min-w-[170px] border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  7 Hari Ke Depan
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{upcomingEvents.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="min-w-[170px] border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Tanggal Aktif
-                </p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-foreground">
-                  {selectedDateLabel}
-                </p>
-              </CardContent>
-            </Card>
+            <InfoStatCard
+              title="Total Event"
+              value={events.length}
+              caption="Seluruh agenda"
+              icon={CalendarDays}
+            />
+            <InfoStatCard
+              title="7 Hari Ke Depan"
+              value={upcomingEvents.length}
+              caption="Event terdekat"
+              icon={Clock}
+              iconColor="text-success"
+              iconBackground="bg-success/10"
+            />
+            <InfoStatCard
+              title="Tanggal Aktif"
+              value={selectedDateLabel}
+              caption="Filter kalender"
+              icon={ChevronRight}
+              iconColor="text-warning"
+              iconBackground="bg-warning/10"
+            />
           </div>
         </div>
       </section>
@@ -386,7 +377,10 @@ export default function AcademicCalendar() {
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <AlertCircle className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground" aria-live="polite">
+                    <p
+                      className="text-sm text-muted-foreground"
+                      aria-live="polite"
+                    >
                       Memuat event…
                     </p>
                   </div>
