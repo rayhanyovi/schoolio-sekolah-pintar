@@ -690,7 +690,7 @@ export const assignmentSchema = z.object({
   classIds: stringArray,
   dueDate: dateSchema,
   allowLateSubmission: z.boolean().default(false),
-  lateUntil: dateOptionalSchema,
+  lateUntil: dateNullableSchema,
   maxAttempts: z.number().int().positive().nullish(),
   gradingPolicy: z.string().default("LATEST"),
   gradeComponent: z.string().default("HOMEWORK"),

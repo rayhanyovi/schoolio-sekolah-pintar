@@ -1,23 +1,64 @@
-'use client';
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek, addMonths, subMonths, isAfter } from "date-fns";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameMonth,
+  isSameDay,
+  startOfWeek,
+  endOfWeek,
+  addMonths,
+  subMonths,
+  isAfter,
+} from "date-fns";
 import { id } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { getErrorMessage } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DAYS_OF_WEEK, DayOfWeek, ROLES } from "@/lib/constants";
-import { ChevronLeft, ChevronRight, Clock, User, BookOpen, MapPin, FileText, AlertCircle, Plus } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  User,
+  BookOpen,
+  MapPin,
+  FileText,
+  AlertCircle,
+  Plus,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
+import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 import { listAssignments } from "@/lib/handlers/assignments";
 import { listClasses } from "@/lib/handlers/classes";
 import {
@@ -29,7 +70,12 @@ import {
 import { createSchedule, listSchedules } from "@/lib/handlers/schedules";
 import { getScheduleTemplates } from "@/lib/handlers/settings";
 import { listSubjects } from "@/lib/handlers/subjects";
-import { getUser, listParents, listStudents, listTeachers } from "@/lib/handlers/users";
+import {
+  getUser,
+  listParents,
+  listStudents,
+  listTeachers,
+} from "@/lib/handlers/users";
 import {
   AssignmentSummary,
   ClassSummary,
@@ -57,7 +103,7 @@ const getDayOfWeek = (date: Date): DayOfWeek | null => {
 
 const getSchedulesForDate = (
   date: Date,
-  schedules: ScheduleSummary[]
+  schedules: ScheduleSummary[],
 ): ScheduleSummary[] => {
   const dayOfWeek = getDayOfWeek(date);
   if (!dayOfWeek) return [];
@@ -68,11 +114,13 @@ const getSchedulesForDate = (
 const getActiveAssignmentsForSubject = (
   subjectName: string,
   date: Date,
-  assignments: AssignmentSummary[]
+  assignments: AssignmentSummary[],
 ): AssignmentSummary[] => {
   return assignments.filter((assignment) => {
     const subjectMatch =
-      assignment.subjectName.toLowerCase().includes(subjectName.toLowerCase()) ||
+      assignment.subjectName
+        .toLowerCase()
+        .includes(subjectName.toLowerCase()) ||
       subjectName.toLowerCase().includes(assignment.subjectName.toLowerCase());
 
     const isActive =
@@ -95,7 +143,7 @@ const hasTimeOverlap = (
   startA: string,
   endA: string,
   startB: string,
-  endB: string
+  endB: string,
 ) => {
   const aStart = toMinutes(startA);
   const aEnd = toMinutes(endA);
@@ -139,27 +187,31 @@ export default function Schedules() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [schedules, setSchedules] = useState<ScheduleSummary[]>([]);
-  const [validationSchedules, setValidationSchedules] = useState<ScheduleSummary[]>([]);
+  const [validationSchedules, setValidationSchedules] = useState<
+    ScheduleSummary[]
+  >([]);
   const [assignments, setAssignments] = useState<AssignmentSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<ClassSummary[]>([]);
   const [subjects, setSubjects] = useState<SubjectSummary[]>([]);
   const [teachers, setTeachers] = useState<UserSummary[]>([]);
-  const [scheduleTemplates, setScheduleTemplates] = useState<ScheduleTemplateSummary[]>([]);
+  const [scheduleTemplates, setScheduleTemplates] = useState<
+    ScheduleTemplateSummary[]
+  >([]);
   const [selectedClassId, setSelectedClassId] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLookupLoading, setIsLookupLoading] = useState(false);
-  const [todaySessions, setTodaySessions] = useState<AttendanceSessionSummary[]>(
-    []
-  );
+  const [todaySessions, setTodaySessions] = useState<
+    AttendanceSessionSummary[]
+  >([]);
   const [todayTeacherAttendance, setTodayTeacherAttendance] = useState<
     TeacherAttendanceSummary[]
   >([]);
   const [assignMap, setAssignMap] = useState<Record<string, string>>({});
   const [isAssigningSubstitute, setIsAssigningSubstitute] = useState(false);
   const [formData, setFormData] = useState<ScheduleFormState>(() =>
-    createEmptyScheduleForm()
+    createEmptyScheduleForm(),
   );
   const lessonTemplates = scheduleTemplates.filter((slot) => !slot.isBreak);
   const todayStr = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
@@ -170,7 +222,7 @@ export default function Schedules() {
       let scheduleData: ScheduleSummary[] = [];
       if (isAdmin) {
         scheduleData = await listSchedules(
-          selectedClassId !== "all" ? { classId: selectedClassId } : undefined
+          selectedClassId !== "all" ? { classId: selectedClassId } : undefined,
         );
       } else if (role === ROLES.TEACHER && userId) {
         scheduleData = await listSchedules({ teacherId: userId });
@@ -181,7 +233,8 @@ export default function Schedules() {
       } else if (role === ROLES.PARENT && userId) {
         const parents = await listParents();
         const parent = parents.find((item) => item.id === userId);
-        const childIds = parent?.parentLinks?.map((link) => link.studentId) ?? [];
+        const childIds =
+          parent?.parentLinks?.map((link) => link.studentId) ?? [];
         if (childIds.length) {
           const students = await listStudents();
           const classIds = Array.from(
@@ -189,13 +242,13 @@ export default function Schedules() {
               students
                 .filter((student) => childIds.includes(student.id))
                 .map((student) => student.studentProfile?.classId)
-                .filter(Boolean) as string[]
-            )
+                .filter(Boolean) as string[],
+            ),
           );
           if (classIds.length) {
             const allSchedules = await listSchedules();
             scheduleData = allSchedules.filter((schedule) =>
-              classIds.includes(schedule.classId)
+              classIds.includes(schedule.classId),
             );
           }
         }
@@ -206,7 +259,7 @@ export default function Schedules() {
     } catch (error) {
       toast({
         title: "Gagal memuat jadwal",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description: getErrorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -228,7 +281,7 @@ export default function Schedules() {
         if (!isActive) return;
         toast({
           title: "Gagal memuat tugas",
-          description: error instanceof Error ? error.message : "Terjadi kesalahan",
+          description: getErrorMessage(error, "Tugas tidak dapat dimuat"),
         });
       }
     };
@@ -268,12 +321,13 @@ export default function Schedules() {
     const loadLookups = async () => {
       setIsLookupLoading(true);
       try {
-        const [classData, subjectData, teacherData, templateData] = await Promise.all([
-          listClasses(),
-          listSubjects(),
-          listTeachers(),
-          getScheduleTemplates(),
-        ]);
+        const [classData, subjectData, teacherData, templateData] =
+          await Promise.all([
+            listClasses(),
+            listSubjects(),
+            listTeachers(),
+            getScheduleTemplates(),
+          ]);
         if (!isActive) return;
         setClasses(classData);
         setSubjects(subjectData);
@@ -283,7 +337,8 @@ export default function Schedules() {
         if (!isActive) return;
         toast({
           title: "Gagal memuat data referensi",
-          description: error instanceof Error ? error.message : "Terjadi kesalahan",
+          description:
+            error instanceof Error ? error.message : "Terjadi kesalahan",
         });
       } finally {
         if (isActive) setIsLookupLoading(false);
@@ -299,8 +354,8 @@ export default function Schedules() {
     if (!isCreateOpen) return;
     setFormData(
       createEmptyScheduleForm(
-        selectedClassId !== "all" ? selectedClassId : undefined
-      )
+        selectedClassId !== "all" ? selectedClassId : undefined,
+      ),
     );
   }, [isCreateOpen, selectedClassId]);
 
@@ -347,8 +402,8 @@ export default function Schedules() {
           formData.startTime,
           formData.endTime,
           schedule.startTime,
-          schedule.endTime
-        )
+          schedule.endTime,
+        ),
     );
   }, [
     formData.classId,
@@ -449,10 +504,10 @@ export default function Schedules() {
     }
     if (formData.endTemplateId) {
       const startIndex = lessonTemplates.findIndex(
-        (slot) => slot.id === formData.startTemplateId
+        (slot) => slot.id === formData.startTemplateId,
       );
       const endIndex = lessonTemplates.findIndex(
-        (slot) => slot.id === formData.endTemplateId
+        (slot) => slot.id === formData.endTemplateId,
       );
       if (startIndex !== -1 && endIndex !== -1 && endIndex < startIndex) {
         toast({
@@ -486,7 +541,8 @@ export default function Schedules() {
     } catch (error) {
       toast({
         title: "Gagal menambahkan jadwal",
-        description: error instanceof Error ? error.message : "Terjadi kesalahan",
+        description:
+          error instanceof Error ? error.message : "Terjadi kesalahan",
         variant: "destructive",
       });
     } finally {
@@ -516,41 +572,31 @@ export default function Schedules() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <section className="dashboard-shell overflow-hidden rounded-[2rem] border border-primary/15 bg-[radial-gradient(circle_at_top_left,_rgba(14,107,83,0.16),_transparent_42%),linear-gradient(135deg,rgba(248,243,230,0.98),rgba(255,255,255,0.95))] px-6 py-7 shadow-[0_28px_80px_-48px_rgba(34,64,52,0.45)] sm:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl space-y-3">
-            <Badge className="w-fit rounded-full border-0 bg-primary/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-              Jadwal Pelajaran
-            </Badge>
-            <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Kalender pelajaran yang lebih terbaca untuk admin, guru, siswa, dan orang tua.
-              </h1>
-              <p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Pantau sesi aktif, pengganti guru, dan susunan jam belajar dengan ritme
-                visual yang lebih rapi dan lebih mudah dipindai.
-              </p>
-            </div>
-          </div>
+      <section>
+        <div className="flex justify-end">
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total Jadwal</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{schedules.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Butuh Pengganti</p>
-                <p className="mt-2 text-3xl font-semibold text-foreground">{sessionsNeedingSubstitute.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/10 bg-white/88 shadow-none">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Tanggal Aktif</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-foreground">{selectedDateLabel}</p>
-              </CardContent>
-            </Card>
+            <InfoStatCard
+              title="Total Jadwal"
+              value={schedules.length}
+              caption="Sesi terdaftar"
+              icon={BookOpen}
+            />
+            <InfoStatCard
+              title="Butuh Pengganti"
+              value={sessionsNeedingSubstitute.length}
+              caption="Sesi yang perlu guru"
+              icon={AlertCircle}
+              iconColor="text-warning"
+              iconBackground="bg-warning/10"
+            />
+            <InfoStatCard
+              title="Tanggal Aktif"
+              value={selectedDateLabel}
+              caption="Fokus kalender"
+              icon={Clock}
+              iconColor="text-success"
+              iconBackground="bg-success/10"
+            />
           </div>
         </div>
       </section>
@@ -559,7 +605,10 @@ export default function Schedules() {
         {isAdmin && (
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-              <SelectTrigger className="w-full sm:w-[220px]" aria-label="Filter kelas">
+              <SelectTrigger
+                className="w-full sm:w-[220px]"
+                aria-label="Filter kelas"
+              >
                 <SelectValue placeholder="Filter kelas…" />
               </SelectTrigger>
               <SelectContent>
@@ -632,7 +681,10 @@ export default function Schedules() {
                           }))
                         }
                       >
-                        <SelectTrigger className="w-full md:w-[220px]" aria-label={`Pilih guru pengganti untuk ${session.className} ${session.subjectName}`}>
+                        <SelectTrigger
+                          className="w-full md:w-[220px]"
+                          aria-label={`Pilih guru pengganti untuk ${session.className} ${session.subjectName}`}
+                        >
                           <SelectValue placeholder="Pilih guru pengganti…" />
                         </SelectTrigger>
                         <SelectContent>
@@ -731,7 +783,7 @@ export default function Schedules() {
                       : "bg-muted/30 text-muted-foreground",
                     isToday && "ring-2 ring-primary ring-offset-2",
                     isSelected && "bg-primary/10 border-primary",
-                    isSunday && "opacity-50 cursor-not-allowed bg-muted/50"
+                    isSunday && "opacity-50 cursor-not-allowed bg-muted/50",
                   )}
                   aria-label={`Lihat jadwal ${format(day, "d MMMM yyyy", { locale: id })}`}
                 >
@@ -739,33 +791,37 @@ export default function Schedules() {
                     className={cn(
                       "text-sm font-medium mb-1",
                       isToday && "text-primary font-bold",
-                      isSunday && "text-muted-foreground"
+                      isSunday && "text-muted-foreground",
                     )}
                   >
                     {format(day, "d")}
                   </span>
-                  
+
                   {/* Schedule entries */}
                   <div className="flex-1 space-y-1 overflow-hidden">
                     {daySchedules.slice(0, 3).map((schedule) => (
-                      <div
-                        key={schedule.id}
-                        className={cn(
-                          "text-xs px-1.5 py-0.5 rounded text-white",
-                          schedule.color || "bg-primary"
-                        )}
-                      >
-                        <span className="flex items-center justify-between gap-2 w-full">
-                          <span className="truncate min-w-0">
-                            {schedule.subjectCode || schedule.subjectName}
-                          </span>
-                          {selectedClassId === "all" && schedule.className && (
-                            <span className="shrink-0 text-[10px] opacity-90">
-                              {schedule.className}
-                            </span>
+                      <>
+                        <pre>{JSON.stringify(schedule, null, 2)}</pre>
+                        <div
+                          key={schedule.id}
+                          className={cn(
+                            "text-xs px-1.5 py-0.5 rounded ",
+                            schedule.color || "bg-primary",
                           )}
-                        </span>
-                      </div>
+                        >
+                          <span className="flex items-center justify-between gap-2 w-full">
+                            <span className="truncate min-w-0">
+                              {schedule.subjectCode || schedule.subjectName}
+                            </span>
+                            {selectedClassId === "all" &&
+                              schedule.className && (
+                                <span className="shrink-0 text-[10px] opacity-90">
+                                  {schedule.className}
+                                </span>
+                              )}
+                          </span>
+                        </div>
+                      </>
                     ))}
                     {daySchedules.length > 3 && (
                       <div className="text-xs text-muted-foreground pl-1">
@@ -823,7 +879,10 @@ export default function Schedules() {
                     setFormData((prev) => ({ ...prev, subjectId: value }))
                   }
                 >
-                  <SelectTrigger id="schedule-subject" aria-label="Pilih mata pelajaran">
+                  <SelectTrigger
+                    id="schedule-subject"
+                    aria-label="Pilih mata pelajaran"
+                  >
                     <SelectValue placeholder="Pilih mata pelajaran…" />
                   </SelectTrigger>
                   <SelectContent>
@@ -901,15 +960,17 @@ export default function Schedules() {
               <Select
                 value={formData.startTemplateId}
                 onValueChange={(value) => {
-                  const selected = lessonTemplates.find((slot) => slot.id === value);
+                  const selected = lessonTemplates.find(
+                    (slot) => slot.id === value,
+                  );
                   setFormData((prev) => {
                     const nextStartTime = selected?.startTime ?? "";
                     const nextStartEndTime = selected?.endTime ?? "";
                     const startIndex = lessonTemplates.findIndex(
-                      (slot) => slot.id === value
+                      (slot) => slot.id === value,
                     );
                     const endIndex = lessonTemplates.findIndex(
-                      (slot) => slot.id === prev.endTemplateId
+                      (slot) => slot.id === prev.endTemplateId,
                     );
                     const isEndValid =
                       prev.endTemplateId &&
@@ -926,7 +987,10 @@ export default function Schedules() {
                   });
                 }}
               >
-                <SelectTrigger id="schedule-template" aria-label="Pilih jam mulai">
+                <SelectTrigger
+                  id="schedule-template"
+                  aria-label="Pilih jam mulai"
+                >
                   <SelectValue placeholder="Pilih jam pelajaran…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -957,7 +1021,9 @@ export default function Schedules() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="schedule-template-secondary">Jam Selesai (Opsional)</Label>
+              <Label htmlFor="schedule-template-secondary">
+                Jam Selesai (Opsional)
+              </Label>
               <Select
                 value={formData.endTemplateId}
                 onValueChange={(value) => {
@@ -966,22 +1032,33 @@ export default function Schedules() {
                       ...prev,
                       endTemplateId: "",
                       endTime: prev.startTemplateId
-                        ? lessonTemplates.find((slot) => slot.id === prev.startTemplateId)
-                            ?.endTime ?? ""
+                        ? (lessonTemplates.find(
+                            (slot) => slot.id === prev.startTemplateId,
+                          )?.endTime ?? "")
                         : "",
                     }));
                     return;
                   }
-                  const selected = lessonTemplates.find((slot) => slot.id === value);
+                  const selected = lessonTemplates.find(
+                    (slot) => slot.id === value,
+                  );
                   setFormData((prev) => {
                     const startIndex = lessonTemplates.findIndex(
-                      (slot) => slot.id === prev.startTemplateId
+                      (slot) => slot.id === prev.startTemplateId,
                     );
-                    const endIndex = lessonTemplates.findIndex((slot) => slot.id === value);
-                    if (prev.startTemplateId && startIndex !== -1 && endIndex !== -1 && endIndex < startIndex) {
+                    const endIndex = lessonTemplates.findIndex(
+                      (slot) => slot.id === value,
+                    );
+                    if (
+                      prev.startTemplateId &&
+                      startIndex !== -1 &&
+                      endIndex !== -1 &&
+                      endIndex < startIndex
+                    ) {
                       toast({
                         title: "Jam pelajaran tidak valid",
-                        description: "Jam selesai tidak boleh lebih awal dari jam mulai.",
+                        description:
+                          "Jam selesai tidak boleh lebih awal dari jam mulai.",
                         variant: "destructive",
                       });
                       return prev;
@@ -994,7 +1071,10 @@ export default function Schedules() {
                   });
                 }}
               >
-                <SelectTrigger id="schedule-template-secondary" aria-label="Pilih jam selesai">
+                <SelectTrigger
+                  id="schedule-template-secondary"
+                  aria-label="Pilih jam selesai"
+                >
                   <SelectValue placeholder="Pilih jam selesai (opsional)…" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1018,11 +1098,13 @@ export default function Schedules() {
                   )}
                 </SelectContent>
               </Select>
-              {formData.startTime && formData.endTime && formData.endTemplateId && (
-                <p className="text-xs text-muted-foreground">
-                  Rentang jam: {formData.startTime} - {formData.endTime}
-                </p>
-              )}
+              {formData.startTime &&
+                formData.endTime &&
+                formData.endTemplateId && (
+                  <p className="text-xs text-muted-foreground">
+                    Rentang jam: {formData.startTime} - {formData.endTime}
+                  </p>
+                )}
             </div>
 
             <div className="space-y-2">
@@ -1053,7 +1135,10 @@ export default function Schedules() {
                   </p>
                   <div className="mt-2 space-y-1 text-xs">
                     {conflicts.slice(0, 3).map((item) => (
-                      <div key={item.id} className="flex items-center justify-between gap-2">
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-2"
+                      >
                         <span className="truncate min-w-0">
                           {item.subjectCode || item.subjectName}
                         </span>
@@ -1115,12 +1200,25 @@ export default function Schedules() {
                     className="animate-slide-up"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <Card className="overflow-hidden border-l-4" style={{ borderLeftColor: schedule.color.replace('bg-', '').includes('-') ? '' : undefined }}>
-                      <div className={cn("h-1.5", schedule.color || "bg-primary")} />
+                    <Card
+                      className="overflow-hidden border-l-4"
+                      style={{
+                        borderLeftColor: schedule.color
+                          .replace("bg-", "")
+                          .includes("-")
+                          ? ""
+                          : undefined,
+                      }}
+                    >
+                      <div
+                        className={cn("h-1.5", schedule.color || "bg-primary")}
+                      />
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h3 className="font-semibold text-lg">{schedule.subjectName}</h3>
+                            <h3 className="font-semibold text-lg">
+                              {schedule.subjectName}
+                            </h3>
                             <Badge variant="outline" className="mt-1">
                               <Clock className="h-3 w-3 mr-1" />
                               {schedule.startTime && schedule.endTime
@@ -1133,7 +1231,9 @@ export default function Schedules() {
                         <div className="space-y-2 text-sm text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-primary" />
-                            <span>{schedule.teacherName || "Belum ditentukan"}</span>
+                            <span>
+                              {schedule.teacherName || "Belum ditentukan"}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-primary" />
@@ -1142,87 +1242,108 @@ export default function Schedules() {
                         </div>
 
                         {/* Active Assignments Section */}
-                        {selectedDate && (() => {
-                          const activeAssignments = getActiveAssignmentsForSubject(
-                            schedule.subjectName,
-                            selectedDate,
-                            assignments
-                          );
-                          if (activeAssignments.length === 0) return null;
-                          
-                          return (
-                            <div className="mt-4 pt-4 border-t border-border">
-                              <div className="flex items-center gap-2 mb-3">
-                                <FileText className="h-4 w-4 text-amber-500" />
-                                <span className="text-sm font-medium text-foreground">
-                                  Tugas Aktif ({activeAssignments.length})
-                                </span>
-                              </div>
-                              <div className="space-y-2">
-                                {activeAssignments.map((assignment) => {
-                                  const daysUntilDue = Math.ceil(
-                                    (assignment.dueDate.getTime() - selectedDate.getTime()) / (1000 * 60 * 60 * 24)
-                                  );
-                                  const isUrgent = daysUntilDue <= 3;
-                                  const assignmentKind = assignment.kind ?? assignment.type ?? "";
-                                  const kindLabel =
-                                    assignmentKind === "HOMEWORK"
-                                      ? "PR"
-                                      : assignmentKind === "PROJECT"
-                                      ? "Proyek"
-                                      : assignmentKind === "QUIZ"
-                                      ? "Kuis"
-                                      : assignmentKind === "EXAM"
-                                      ? "Ujian"
-                                      : assignmentKind || "Tugas";
-                                  
-                                  return (
-                                    <div
-                                      key={assignment.id}
-                                      className={cn(
-                                        "p-3 rounded-lg border",
-                                        isUrgent 
-                                          ? "bg-destructive/10 border-destructive/30" 
-                                          : "bg-muted/50 border-border"
-                                      )}
-                                    >
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium text-sm text-foreground truncate">
-                                            {assignment.title}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                                            {assignment.description}
-                                          </p>
-                                        </div>
-                                        <Badge 
-                                          variant={isUrgent ? "destructive" : "secondary"}
-                                          className="shrink-0 text-xs"
-                                        >
-                                          {kindLabel}
-                                        </Badge>
-                                      </div>
-                                      <div className="flex items-center gap-1.5 mt-2">
-                                        {isUrgent && (
-                                          <AlertCircle className="h-3 w-3 text-destructive" />
+                        {selectedDate &&
+                          (() => {
+                            const activeAssignments =
+                              getActiveAssignmentsForSubject(
+                                schedule.subjectName,
+                                selectedDate,
+                                assignments,
+                              );
+                            if (activeAssignments.length === 0) return null;
+
+                            return (
+                              <div className="mt-4 pt-4 border-t border-border">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <FileText className="h-4 w-4 text-amber-500" />
+                                  <span className="text-sm font-medium text-foreground">
+                                    Tugas Aktif ({activeAssignments.length})
+                                  </span>
+                                </div>
+                                <div className="space-y-2">
+                                  {activeAssignments.map((assignment) => {
+                                    const daysUntilDue = Math.ceil(
+                                      (assignment.dueDate.getTime() -
+                                        selectedDate.getTime()) /
+                                        (1000 * 60 * 60 * 24),
+                                    );
+                                    const isUrgent = daysUntilDue <= 3;
+                                    const assignmentKind =
+                                      assignment.kind ?? assignment.type ?? "";
+                                    const kindLabel =
+                                      assignmentKind === "HOMEWORK"
+                                        ? "PR"
+                                        : assignmentKind === "PROJECT"
+                                          ? "Proyek"
+                                          : assignmentKind === "QUIZ"
+                                            ? "Kuis"
+                                            : assignmentKind === "EXAM"
+                                              ? "Ujian"
+                                              : assignmentKind || "Tugas";
+
+                                    return (
+                                      <div
+                                        key={assignment.id}
+                                        className={cn(
+                                          "p-3 rounded-lg border",
+                                          isUrgent
+                                            ? "bg-destructive/10 border-destructive/30"
+                                            : "bg-muted/50 border-border",
                                         )}
-                                        <span className={cn(
-                                          "text-xs",
-                                          isUrgent ? "text-destructive font-medium" : "text-muted-foreground"
-                                        )}>
-                                          Deadline: {format(assignment.dueDate, "d MMM yyyy", { locale: id })}
-                                          {daysUntilDue === 0 && " (Hari ini!)"}
-                                          {daysUntilDue === 1 && " (Besok)"}
-                                          {daysUntilDue > 1 && daysUntilDue <= 3 && ` (${daysUntilDue} hari lagi)`}
-                                        </span>
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm text-foreground truncate">
+                                              {assignment.title}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                                              {assignment.description}
+                                            </p>
+                                          </div>
+                                          <Badge
+                                            variant={
+                                              isUrgent
+                                                ? "destructive"
+                                                : "secondary"
+                                            }
+                                            className="shrink-0 text-xs"
+                                          >
+                                            {kindLabel}
+                                          </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 mt-2">
+                                          {isUrgent && (
+                                            <AlertCircle className="h-3 w-3 text-destructive" />
+                                          )}
+                                          <span
+                                            className={cn(
+                                              "text-xs",
+                                              isUrgent
+                                                ? "text-destructive font-medium"
+                                                : "text-muted-foreground",
+                                            )}
+                                          >
+                                            Deadline:{" "}
+                                            {format(
+                                              assignment.dueDate,
+                                              "d MMM yyyy",
+                                              { locale: id },
+                                            )}
+                                            {daysUntilDue === 0 &&
+                                              " (Hari ini!)"}
+                                            {daysUntilDue === 1 && " (Besok)"}
+                                            {daysUntilDue > 1 &&
+                                              daysUntilDue <= 3 &&
+                                              ` (${daysUntilDue} hari lagi)`}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  );
-                                })}
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })()}
+                            );
+                          })()}
                       </CardContent>
                     </Card>
                   </div>
@@ -1231,7 +1352,9 @@ export default function Schedules() {
             ) : (
               <div className="flex flex-col items-center justify-center h-64 text-center">
                 <BookOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground font-medium">Tidak ada jadwal</p>
+                <p className="text-muted-foreground font-medium">
+                  Tidak ada jadwal
+                </p>
                 <p className="text-sm text-muted-foreground/70">
                   Tidak ada pelajaran pada hari ini
                 </p>
