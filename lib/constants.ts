@@ -1,4 +1,5 @@
-export const APP_NAME = "Schoolio";
+export const APP_NAME =
+  process.env.NODE_ENV === "production" ? "Schoolio" : "Schoolio-Development";
 export const APP_DESCRIPTION = "Sistem Manajemen Pembelajaran Sekolah";
 export const ICON = "/favicon.ico";
 
