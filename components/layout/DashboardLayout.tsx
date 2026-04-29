@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { HelpMenu } from "@/components/help/HelpMenu";
 import { apiGet } from "@/lib/api-client";
 import { isDemoModeEnabled } from "@/lib/demo-mode";
+import { DemoWaitlistRibbon } from "./DemoWaitlistRibbon";
 
 type SessionResponse = {
   userId: string;
@@ -28,8 +29,8 @@ interface DashboardLayoutProps {
   children?: React.ReactNode;
 }
 
-export function DashboardLayout({ 
-  initialRole = ROLES.STUDENT, 
+export function DashboardLayout({
+  initialRole = ROLES.STUDENT,
   userName = "Pengguna Demo",
   children,
 }: DashboardLayoutProps) {
@@ -97,7 +98,7 @@ export function DashboardLayout({
         Lewati ke konten utama
       </a>
       <Sidebar role={role} userName={selectedUserName} />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Debug Panel */}
         {showDebugPanel && (
@@ -123,7 +124,7 @@ export function DashboardLayout({
               />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <HelpMenu role={role} />
             <Button
@@ -141,23 +142,21 @@ export function DashboardLayout({
         </header>
 
         {/* Main Content */}
-        <RoleProvider role={role} userId={selectedUserId} userName={selectedUserName}>
-          <main id="dashboard-main" className="relative flex-1 overflow-auto p-6">
+        <RoleProvider
+          role={role}
+          userId={selectedUserId}
+          userName={selectedUserName}
+        >
+          <main
+            id="dashboard-main"
+            className="relative flex-1 overflow-auto p-6"
+          >
             {shouldShowDemoRibbon && (
-              <div className="sticky top-0 z-20 mb-4 flex justify-end pointer-events-none">
-                <div className="rounded-xl border border-amber-300/50 bg-amber-50 px-4 py-2 text-right shadow-sm dark:border-amber-400/30 dark:bg-amber-950/40">
-                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                    Demo App
-                  </p>
-                  <p className="text-xs text-amber-800/80 dark:text-amber-100/75">
-                    Full version is still ongoing
-                  </p>
-                </div>
+              <div className="mb-4 flex justify-end">
+                <DemoWaitlistRibbon />
               </div>
             )}
-            <div className="mx-auto w-full max-w-7xl">
-              {children}
-            </div>
+            <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </RoleProvider>
       </div>

@@ -71,6 +71,11 @@ export const RATE_LIMIT_POLICIES = {
     limit: 30,
     windowMs: 60 * 1000,
   },
+  waitlistSubmit: {
+    name: "waitlist:submit",
+    limit: 8,
+    windowMs: 60 * 1000,
+  },
 } satisfies Record<string, RateLimitPolicy>;
 
 const hashKeyPart = (value: string) =>

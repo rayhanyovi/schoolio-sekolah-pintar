@@ -943,6 +943,27 @@ model SystemHeartbeat {
   @@index([triggeredAt(sort: Desc)])
 }
 
+model WaitlistEntry {
+  id               String   @id @default(cuid())
+  email            String
+  emailNormalized  String   @unique
+  firstSource      String
+  lastSource       String
+  userId           String?
+  schoolId         String?
+  role             Role?
+  demoInstanceId   String?
+  submittedCount   Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([lastSource, updatedAt])
+  @@index([userId])
+  @@index([schoolId])
+  @@index([demoInstanceId])
+}
+
 model DemoInstance {
   id               String   @id @default(cuid())
   schoolId         String   @unique

@@ -14,6 +14,7 @@ const PUBLIC_API_PATHS = new Set([
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
   "/api/demo/session",
+  "/api/waitlist",
 ]);
 
 const MUST_CHANGE_PASSWORD_ALLOWED_API_PATHS = new Set([
@@ -217,6 +218,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/auth",
     "/auth/:path*",
     "/demo",

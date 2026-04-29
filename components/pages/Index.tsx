@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -11,13 +11,18 @@ import {
   FileCheck2,
   GraduationCap,
   LockKeyhole,
+  Loader2,
+  Mail,
   MessageSquareText,
+  Send,
   UploadCloud,
   UsersRound,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { isDemoModeEnabled } from "@/lib/demo-mode";
+import { joinWaitlist } from "@/lib/handlers/waitlist";
+import { getErrorMessage } from "@/lib/utils";
 
 const navItems = [
   { label: "Platform", href: "#platform" },
@@ -567,8 +572,40 @@ function RoleShowcase({ role }: { role: (typeof roleShowcases)[number] }) {
 
 export default function Index() {
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistSubmitState, setWaitlistSubmitState] = useState<
+    "idle" | "submitting" | "success" | "error"
+  >("idle");
+  const [waitlistMessage, setWaitlistMessage] = useState("");
   const isDemo = isDemoModeEnabled();
   const publicEntryHref = isDemo ? "/demo" : "/auth";
+  const visibleNavItems = isDemo
+    ? [...navItems, { label: "Waitlist", href: "#waitlist" }]
+    : navItems;
+
+  const handleWaitlistSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setWaitlistSubmitState("submitting");
+    setWaitlistMessage("");
+
+    try {
+      const result = await joinWaitlist({
+        email: waitlistEmail,
+        source: "landing_demo",
+      });
+      setWaitlistSubmitState("success");
+      setWaitlistMessage(
+        result.status === "already_joined"
+          ? "You are already on the waitlist."
+          : "You are on the waitlist.",
+      );
+    } catch (error) {
+      setWaitlistSubmitState("error");
+      setWaitlistMessage(
+        getErrorMessage(error, "Could not join the waitlist. Try again."),
+      );
+    }
+  };
 
   useEffect(() => {
     const updateHeaderState = () => {
@@ -610,7 +647,7 @@ export default function Index() {
             }`}
             aria-label="Main navigation"
           >
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
@@ -855,6 +892,130 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {isDemo && (
+        <section id="waitlist" className="px-6 pb-20 lg:px-8 lg:pb-24">
+          <div className="mx-auto max-w-7xl rounded-[26px] border border-[#13231f]/14 bg-[#fffaf0] p-6 shadow-[0_18px_46px_rgba(19,35,31,0.08)] dark:border-[#fffaf0]/10 dark:bg-[#17231f] sm:p-8 lg:p-10">
+            <div className="grid gap-10 lg:grid-cols-[0.82fr_1fr] lg:items-center">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#0e6b53] dark:text-[#7fd3b9]">
+                  Early access
+                </p>
+                <h2 className="mt-4 max-w-xl text-[clamp(2.25rem,4vw,3.85rem)] font-semibold leading-[0.98] text-[#13231f] dark:text-[#fffaf0]">
+                  Join the Schoolio rollout waitlist.
+                </h2>
+                <p className="mt-5 max-w-2xl text-base leading-8 text-[#46554e] dark:text-[#b9c0b7]">
+                  Demo mode is open while the full version is still ongoing.
+                  Share your school contact and we will follow up when early
+                  access is ready.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {["Private pilot", "School setup", "Launch support"].map(
+                    (item) => (
+                      <span
+                        key={item}
+                        className="rounded-full border border-[#0e6b53]/16 bg-[#0e6b53]/8 px-3 py-1 text-sm font-semibold text-[#074838] dark:border-[#7fd3b9]/18 dark:bg-[#7fd3b9]/10 dark:text-[#7fd3b9]"
+                      >
+                        {item}
+                      </span>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-[#13231f]/12 bg-[#f8f4ea] p-4 dark:border-[#fffaf0]/10 dark:bg-[#101a17] sm:p-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    [
+                      "Private rollout",
+                      "We are prioritizing schools that need a controlled pilot.",
+                    ],
+                    [
+                      "Real workflows",
+                      "Waitlist conversations focus on setup, data scope, and launch needs.",
+                    ],
+                  ].map(([title, text]) => (
+                    <div
+                      key={title}
+                      className="flex min-h-[116px] gap-3 rounded-[16px] border border-[#13231f]/10 bg-[#fffaf0] p-4 dark:border-[#fffaf0]/10 dark:bg-[#17231f]"
+                    >
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#0e6b53] dark:text-[#7fd3b9]" />
+                      <div>
+                        <h3 className="font-semibold text-[#13231f] dark:text-[#fffaf0]">
+                          {title}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-[#46554e] dark:text-[#b9c0b7]">
+                          {text}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <form
+                  className="mt-4 flex flex-col gap-3 rounded-[18px] border border-[#13231f]/10 bg-[#fffaf0] p-3 dark:border-[#fffaf0]/10 dark:bg-[#17231f] sm:flex-row"
+                  onSubmit={handleWaitlistSubmit}
+                >
+                  <label className="relative min-w-0 flex-1">
+                    <span className="sr-only">School email</span>
+                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#5b685f] dark:text-[#b9c0b7]" />
+                    <input
+                      type="email"
+                      required
+                      value={waitlistEmail}
+                      disabled={waitlistSubmitState === "submitting"}
+                      onChange={(event) => {
+                        setWaitlistEmail(event.target.value);
+                        if (
+                          waitlistSubmitState === "success" ||
+                          waitlistSubmitState === "error"
+                        ) {
+                          setWaitlistSubmitState("idle");
+                          setWaitlistMessage("");
+                        }
+                      }}
+                      placeholder="school@email.sch.id"
+                      className="h-12 w-full rounded-[14px] border border-[#13231f]/12 bg-[#fffaf0] pl-12 pr-4 text-sm font-medium text-[#13231f] outline-none transition placeholder:text-[#5b685f]/70 focus:border-[#0e6b53]/45 focus:ring-4 focus:ring-[#0e6b53]/10 disabled:cursor-not-allowed disabled:opacity-65 dark:border-[#fffaf0]/10 dark:bg-[#101a17] dark:text-[#fffaf0] dark:placeholder:text-[#b9c0b7]/70"
+                    />
+                  </label>
+                  <Button
+                    type="submit"
+                    disabled={
+                      waitlistSubmitState === "submitting" ||
+                      !waitlistEmail.trim()
+                    }
+                    className="h-12 shrink-0 rounded-[14px] border border-[#074838] bg-[#074838] px-5 font-semibold text-[#fffaf0] shadow-none hover:bg-[#0e6b53] dark:border-[#7fd3b9]/20 dark:bg-[#4fb796] dark:text-[#101a17] dark:hover:bg-[#7fd3b9]"
+                  >
+                    {waitlistSubmitState === "submitting"
+                      ? "Joining"
+                      : "Join waitlist"}
+                    {waitlistSubmitState === "submitting" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </form>
+                {waitlistMessage && (
+                  <p
+                    aria-live="polite"
+                    className={`mt-3 flex items-center gap-2 text-sm font-medium ${
+                      waitlistSubmitState === "success"
+                        ? "text-[#0e6b53] dark:text-[#7fd3b9]"
+                        : "text-destructive"
+                    }`}
+                  >
+                    {waitlistSubmitState === "success" && (
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    )}
+                    {waitlistMessage}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="px-6 pb-20 lg:px-8 lg:pb-24">
         <div className="mx-auto flex max-w-7xl flex-col gap-7 rounded-[26px] border border-[#13231f]/16 bg-[#fffaf0] p-8 shadow-[0_22px_58px_rgba(19,35,31,0.1)] dark:border-[#fffaf0]/10 dark:bg-[#17231f] sm:p-9 lg:flex-row lg:items-center lg:justify-between">

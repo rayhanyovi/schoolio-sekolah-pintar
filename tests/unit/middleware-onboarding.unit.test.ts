@@ -71,6 +71,14 @@ describe("middleware onboarding gate", () => {
     expect(response.headers.get("set-cookie")).toContain(CSRF_COOKIE_NAME);
   });
 
+  it("menerbitkan cookie CSRF pada landing page", async () => {
+    const request = new NextRequest("http://localhost/");
+    const response = await middleware(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toContain(CSRF_COOKIE_NAME);
+  });
+
   it("redirect auth ke demo saat demo mode aktif", async () => {
     process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = "true";
     const request = new NextRequest("http://localhost/auth?from=/dashboard");
