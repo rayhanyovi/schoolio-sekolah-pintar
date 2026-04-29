@@ -1,4 +1,5 @@
 import { jsonError, jsonOk } from "@/lib/api";
+import { pruneExpiredDemoInstances } from "@/lib/demo-sandbox";
 import { prisma } from "@/lib/prisma";
 import { timingSafeEqual } from "node:crypto";
 
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) {
     console.error("[heartbeat] CRON_SECRET is not configured");
-    return jsonError("CONFIGURATION_ERROR", "Cron secret is not configured", 500);
+    return jsonError("CONFLICT", "Cron secret is not configured", 500);
   }
 
   const token = getBearerToken(request);
@@ -84,6 +85,7 @@ export async function GET(request: Request) {
         },
       },
     });
+    const demoPruneResult = await pruneExpiredDemoInstances(triggeredAt);
 
     return jsonOk({
       ok: true,
@@ -91,6 +93,7 @@ export async function GET(request: Request) {
       source: heartbeat.source,
       triggeredAt: heartbeat.triggeredAt.toISOString(),
       prunedCount: pruneResult.count,
+      demoPrunedCount: demoPruneResult.deletedCount,
     });
   } catch (error) {
     console.error("[heartbeat] failed", error);

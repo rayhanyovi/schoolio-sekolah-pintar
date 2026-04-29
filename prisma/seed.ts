@@ -569,6 +569,7 @@ const truncateTables = async () => {
     "AuthCredential",
     "AuditLog",
     "SystemHeartbeat",
+    "DemoInstance",
     "User",
     "SchoolProfile",
   ];

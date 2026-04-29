@@ -199,6 +199,10 @@ model User {
   parentInvitesAsStudent ParentInvite[]           @relation("ParentInviteStudent")
   parentInvitesCreated   ParentInvite[]           @relation("ParentInviteCreator")
   parentInvitesRedeemed  ParentInvite[]           @relation("ParentInviteRedeemer")
+  demoInstancesAsAdmin   DemoInstance[]           @relation("DemoInstanceAdminUser")
+  demoInstancesAsTeacher DemoInstance[]           @relation("DemoInstanceTeacherUser")
+  demoInstancesAsStudent DemoInstance[]           @relation("DemoInstanceStudentUser")
+  demoInstancesAsParent  DemoInstance[]           @relation("DemoInstanceParentUser")
 
   @@index([schoolId])
 }
@@ -781,6 +785,8 @@ model SchoolProfile {
   scheduleTemplates ScheduleTemplate[]
   majors            Major[]
   parentInvites     ParentInvite[]
+  demoSandbox        DemoInstance?  @relation("DemoInstanceSchool")
+  demoTemplates      DemoInstance[] @relation("DemoInstanceTemplateSchool")
 }
 
 model ScheduleTemplate {
@@ -935,4 +941,28 @@ model SystemHeartbeat {
   metadata    Json?
 
   @@index([triggeredAt(sort: Desc)])
+}
+
+model DemoInstance {
+  id               String   @id @default(cuid())
+  schoolId         String   @unique
+  templateSchoolId String
+  adminUserId      String
+  teacherUserId    String
+  studentUserId    String
+  parentUserId     String
+  expiresAt        DateTime
+  lastAccessedAt   DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  school         SchoolProfile @relation("DemoInstanceSchool", fields: [schoolId], references: [id])
+  templateSchool SchoolProfile @relation("DemoInstanceTemplateSchool", fields: [templateSchoolId], references: [id])
+  adminUser      User          @relation("DemoInstanceAdminUser", fields: [adminUserId], references: [id])
+  teacherUser    User          @relation("DemoInstanceTeacherUser", fields: [teacherUserId], references: [id])
+  studentUser    User          @relation("DemoInstanceStudentUser", fields: [studentUserId], references: [id])
+  parentUser     User          @relation("DemoInstanceParentUser", fields: [parentUserId], references: [id])
+
+  @@index([expiresAt])
+  @@index([lastAccessedAt])
+  @@index([templateSchoolId])
 }
