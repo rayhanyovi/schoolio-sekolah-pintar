@@ -75,24 +75,22 @@ export default function Demo({ password, roles, school }: DemoProps) {
   };
 
   return (
-    <main className="min-h-screen bg-[#f8f4ea] text-[#13231f] dark:bg-[#101a17] dark:text-[#fffaf0]">
-      <section className="relative overflow-hidden border-b border-[#13231f]/10 bg-[#13231f] px-6 py-12 text-[#fffaf0] dark:border-[#fffaf0]/10 dark:bg-[#fffaf0] dark:text-[#13231f] lg:px-8">
+    <main className="flex flex-col min-h-screen bg-[#f8f4ea] text-[#13231f] dark:bg-[#101a17] dark:text-[#fffaf0]">
+      <div className="!flex !flex-col !h-full !flex-1 items-center justify-center relative overflow-hidden border-b border-[#13231f]/10 bg-[#13231f] px-6 py-12 text-[#fffaf0] dark:border-[#fffaf0]/10 dark:bg-[#fffaf0] dark:text-[#13231f] lg:px-8">
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,250,240,0.055)_1px,transparent_1px),linear-gradient(0deg,rgba(255,250,240,0.04)_1px,transparent_1px)] bg-[length:42px_42px] dark:bg-[linear-gradient(90deg,rgba(19,35,31,0.055)_1px,transparent_1px),linear-gradient(0deg,rgba(19,35,31,0.04)_1px,transparent_1px)]" />
-        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1fr] lg:items-end">
+
+        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1fr] lg:items-center">
           <div>
-            <Badge className="rounded-full border border-[#d7a12b]/30 bg-[#d7a12b]/14 px-3 py-1 text-[#f1c967] hover:bg-[#d7a12b]/18 dark:border-[#074838]/25 dark:bg-[#074838]/10 dark:text-[#074838]">
-              {school.schoolCode}
-            </Badge>
             <h1 className="mt-6 max-w-[12ch] text-5xl font-semibold leading-[0.94] tracking-normal sm:text-6xl lg:text-7xl">
               Schoolio Demo
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-[#fffaf0]/74 dark:text-[#263a34] sm:text-lg">
-              Masuk ke sandbox {school.name}. Data tersimpan di database
-              selama sesi demo dan terpisah untuk setiap browser.
+              Masuk ke sandbox {school.name}. Data tersimpan di database selama
+              sesi demo dan terpisah untuk setiap browser.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-8 sm:grid-cols-2">
             {roles.map((item) => {
               const Icon = roleIcons[item.role];
               const isLoading = loadingRole === item.role;
@@ -103,17 +101,41 @@ export default function Demo({ password, roles, school }: DemoProps) {
                   type="button"
                   onClick={() => handleStart(item.role)}
                   disabled={Boolean(loadingRole)}
-                  className="group min-h-[148px] rounded-2xl border border-[#fffaf0]/12 bg-[#fffaf0]/8 p-5 text-left transition hover:-translate-y-0.5 hover:border-[#d7a12b]/40 hover:bg-[#fffaf0]/12 disabled:cursor-wait disabled:opacity-70 dark:border-[#13231f]/12 dark:bg-[#13231f]/5 dark:hover:border-[#074838]/30 dark:hover:bg-[#13231f]/8"
+                  className="group min-h-[148px] rounded-2xl border border-[#fffaf0]/12 bg-[#fffaf0]/8 p-5 text-left transition  disabled:cursor-wait disabled:opacity-70 dark:border-[#13231f]/12 dark:bg-[#13231f]/5 dark:hover:border-[#074838]/30 dark:hover:bg-[#13231f]/8"
                 >
-                  <span className="flex items-center justify-between gap-3">
+                  <span className="flex items-center justify-start gap-3">
                     <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#d7a12b] text-[#13231f] dark:bg-[#074838] dark:text-[#fffaf0]">
                       <Icon className="h-5 w-5" />
                     </span>
+
+                    <span className="block text-xl font-semibold whitespace-pre-line flex-1">
+                      {isLoading
+                        ? "Membuka..."
+                        : `Masuk sebagai\n${item.label}`}
+                    </span>
+
                     <ArrowRight className="h-5 w-5 opacity-70 transition group-hover:translate-x-1" />
                   </span>
-                  <span className="mt-5 block text-xl font-semibold">
-                    {isLoading ? "Membuka..." : `Masuk sebagai ${item.label}`}
-                  </span>
+
+                  {/*
+                    "key": "admin",
+                    "role": "ADMIN",
+                    "label": "Admin",
+                    "title": "Admin Sekolah",
+                    "name": "Nur Aisyah Rahma",
+                    "identifier": "admin.sekolah",
+                    "email": "nur.aisyah@alhikmahnusantara.sch.id",
+                    "seedIdentifier": "admin.sekolah",
+                    "description": "Kelola struktur sekolah, data pengguna, kelas, mapel, dan pengaturan operasional."
+                  */}
+                  {/* <div className="bg-white !text-black !text-base !font-normal min-h-4 my-4 rounded-lg">
+                    <pre>{JSON.stringify(item, null, 2)}</pre>
+                  </div> */}
+                  {/* <div className="bg-white !text-black !text-base !font-normal min-h-4 my-4 rounded-lg p-4">
+                    <p>Name: {item.name}</p>
+                    <p>Title: {item.title}</p>
+                    <p>Role: {item.role}</p>
+                  </div> */}
                   <span className="mt-2 block text-sm leading-6 text-[#fffaf0]/68 dark:text-[#46554e]">
                     {item.description}
                   </span>
@@ -122,9 +144,9 @@ export default function Demo({ password, roles, school }: DemoProps) {
             })}
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[0.72fr_1fr] lg:px-8 lg:py-12">
+      {/* <section className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[0.72fr_1fr] lg:px-8 lg:py-12">
         <Card className="h-fit border-[#13231f]/12 bg-[#fffaf0] shadow-none dark:border-[#fffaf0]/10 dark:bg-[#17231f]">
           <CardHeader>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#0e6b53]/10 text-[#0e6b53] dark:bg-[#4fb796]/14 dark:text-[#7fd3b9]">
@@ -195,8 +217,7 @@ export default function Demo({ password, roles, school }: DemoProps) {
             </Card>
           ))}
         </div>
-      </section>
+      </section> */}
     </main>
   );
 }
-

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Role, ROLE_LABELS } from "@/lib/constants";
-import { MoreVertical, Pencil, Trash2, Link2, UserPlus, KeyRound } from "lucide-react";
+import {
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Link2,
+  UserPlus,
+  KeyRound,
+} from "lucide-react";
 
 interface UserCardProps {
   id: string;
@@ -51,7 +58,7 @@ export function UserCard({
   onResetPassword,
 }: UserCardProps) {
   const hasActions = Boolean(
-    onEdit || onDelete || onLink || onCreateParentInvite || onResetPassword
+    onEdit || onDelete || onLink || onCreateParentInvite || onResetPassword,
   );
   const initials = name
     .split(" ")
@@ -61,7 +68,9 @@ export function UserCard({
     .slice(0, 2);
 
   return (
-    <Card className={`group hover:shadow-md transition-all duration-200 ${className}`}>
+    <Card
+      className={`group hover:shadow-md transition-all duration-200 ${className}`}
+    >
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           <Avatar className="h-12 w-12 ring-2 ring-muted">
@@ -73,9 +82,13 @@ export function UserCard({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <div>
-                <h4 className="font-semibold text-foreground truncate">{name}</h4>
-                <p className="text-sm text-muted-foreground truncate">{email}</p>
+              <div className="min-w-0">
+                <h4 className="font-semibold text-foreground truncate">
+                  {name}
+                </h4>
+                <p className="text-sm text-muted-foreground truncate w-full">
+                  {email}
+                </p>
               </div>
               {hasActions && (
                 <DropdownMenu>
@@ -102,7 +115,9 @@ export function UserCard({
                       </DropdownMenuItem>
                     )}
                     {role === "STUDENT" && onCreateParentInvite && (
-                      <DropdownMenuItem onClick={() => onCreateParentInvite(id)}>
+                      <DropdownMenuItem
+                        onClick={() => onCreateParentInvite(id)}
+                      >
                         <UserPlus className="h-4 w-4 mr-2" />
                         Buat Kode Undangan Ortu
                       </DropdownMenuItem>

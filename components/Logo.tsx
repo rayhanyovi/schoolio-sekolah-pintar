@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { GraduationCap } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
@@ -6,6 +6,7 @@ import { APP_NAME } from "@/lib/constants";
 interface LogoProps {
   size?: "sm" | "md" | "lg";
   showText?: boolean;
+  type?: "primary" | "secondary";
 }
 
 const sizeClasses = {
@@ -20,16 +21,25 @@ const textSizeClasses = {
   lg: "text-3xl",
 };
 
-export function Logo({ size = "md", showText = true }: LogoProps) {
+export function Logo({
+  size = "md",
+  showText = true,
+  type = "primary",
+}: LogoProps) {
   return (
     <div className="flex items-center gap-3">
       <div
         className={`${sizeClasses[size]} rounded-xl gradient-primary flex items-center justify-center border border-primary/20 shadow-lg`}
       >
-        <GraduationCap className="text-primary-foreground" style={{ width: '60%', height: '60%' }} />
+        <GraduationCap
+          className="text-primary-foreground"
+          style={{ width: "60%", height: "60%" }}
+        />
       </div>
       {showText && (
-        <span className={`${textSizeClasses[size]} font-bold tracking-tight text-foreground`}>
+        <span
+          className={`${textSizeClasses[size]} font-bold tracking-tight ${type === "primary" ? "text-foreground" : "text-primary-foreground"}`}
+        >
           {APP_NAME}
         </span>
       )}

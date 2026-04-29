@@ -121,7 +121,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
     >
       {/* Header */}
       <div className="relative p-4 border-b border-sidebar-border flex items-center justify-between">
-        <Logo size="sm" showText={!collapsed} />
+        <Logo size="sm" showText={!collapsed} type="secondary" />
         <Button
           variant="ghost"
           size="icon"
