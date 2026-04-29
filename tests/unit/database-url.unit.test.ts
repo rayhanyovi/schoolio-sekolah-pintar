@@ -86,4 +86,34 @@ describe("app mode + database resolution", () => {
       "Database URL is required in saas mode. Set SUPABASE_DATABASE_URL (recommended) or DATABASE_URL."
     );
   });
+
+  it("menambahkan parameter Prisma aman untuk Supabase transaction pooler", () => {
+    process.env.APP_MODE = "saas";
+    process.env.SUPABASE_DATABASE_URL =
+      "postgresql://user:pass@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres";
+
+    expect(resolveDatabaseUrl()).toBe(
+      "postgresql://user:pass@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require"
+    );
+  });
+
+  it("mempertahankan parameter pooler yang sudah disediakan", () => {
+    process.env.APP_MODE = "saas";
+    process.env.SUPABASE_DATABASE_URL =
+      "postgresql://user:pass@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=3";
+
+    expect(resolveDatabaseUrl()).toBe(
+      "postgresql://user:pass@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=3&sslmode=require"
+    );
+  });
+
+  it("tidak mengubah direct connection non-pooler", () => {
+    process.env.APP_MODE = "saas";
+    process.env.SUPABASE_DATABASE_URL =
+      "postgresql://user:pass@db.example.com:5432/postgres?sslmode=require";
+
+    expect(resolveDatabaseUrl()).toBe(
+      "postgresql://user:pass@db.example.com:5432/postgres?sslmode=require"
+    );
+  });
 });

@@ -16,12 +16,43 @@ const getSupabaseDatabaseUrl = () =>
       process.env.SUPABASE_POSTGRES_URL
   );
 
+const normalizeSupabasePoolerUrl = (value: string) => {
+  if (!value) return value;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return value;
+  }
+
+  const isSupabasePooler = parsed.hostname.includes("pooler.supabase.com");
+  const isTransactionPooler = parsed.port === "6543";
+  if (!isSupabasePooler || !isTransactionPooler) {
+    return value;
+  }
+
+  if (!parsed.searchParams.has("pgbouncer")) {
+    parsed.searchParams.set("pgbouncer", "true");
+  }
+  if (!parsed.searchParams.has("connection_limit")) {
+    parsed.searchParams.set("connection_limit", "1");
+  }
+  if (!parsed.searchParams.has("sslmode")) {
+    parsed.searchParams.set("sslmode", "require");
+  }
+
+  return parsed.toString();
+};
+
 export function resolveDatabaseUrl() {
   const mode = getAppMode();
   const databaseUrl = getDatabaseUrl();
 
   if (mode === "saas") {
-    const supabaseDatabaseUrl = getSupabaseDatabaseUrl();
+    const supabaseDatabaseUrl = normalizeSupabasePoolerUrl(
+      getSupabaseDatabaseUrl()
+    );
     if (supabaseDatabaseUrl) {
       return supabaseDatabaseUrl;
     }
