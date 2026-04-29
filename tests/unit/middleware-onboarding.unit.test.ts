@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { middleware } from "@/middleware";
+import { proxy } from "@/proxy";
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from "@/lib/csrf";
 import { verifySessionToken } from "@/lib/server-auth";
 import { ROLES } from "@/lib/constants";
@@ -38,7 +38,7 @@ describe("middleware onboarding gate", () => {
     } as never);
 
     const request = new NextRequest("http://localhost/dashboard");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toContain("/onboarding");
@@ -57,7 +57,7 @@ describe("middleware onboarding gate", () => {
     } as never);
 
     const request = new NextRequest("http://localhost/dashboard");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toContain("/change-password");
@@ -65,7 +65,7 @@ describe("middleware onboarding gate", () => {
 
   it("menerbitkan cookie CSRF pada halaman auth", async () => {
     const request = new NextRequest("http://localhost/auth");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("set-cookie")).toContain(CSRF_COOKIE_NAME);
@@ -73,7 +73,7 @@ describe("middleware onboarding gate", () => {
 
   it("menerbitkan cookie CSRF pada landing page", async () => {
     const request = new NextRequest("http://localhost/");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("set-cookie")).toContain(CSRF_COOKIE_NAME);
@@ -82,7 +82,7 @@ describe("middleware onboarding gate", () => {
   it("redirect auth ke demo saat demo mode aktif", async () => {
     process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = "true";
     const request = new NextRequest("http://localhost/auth?from=/dashboard");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
@@ -96,7 +96,7 @@ describe("middleware onboarding gate", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ identifier: "admin", password: "admin" }),
     });
-    const response = await middleware(request);
+    const response = await proxy(request);
     const payload = await response.json();
 
     expect(response.status).toBe(403);
@@ -115,7 +115,7 @@ describe("middleware onboarding gate", () => {
       },
       body: JSON.stringify({ identifier: "admin", password: "admin" }),
     });
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("x-middleware-next")).toBe("1");
@@ -131,7 +131,7 @@ describe("middleware onboarding gate", () => {
       },
       body: JSON.stringify({ identifier: "admin", password: "admin" }),
     });
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(403);
   });

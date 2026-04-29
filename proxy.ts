@@ -106,7 +106,7 @@ const createForwardResponse = (
   return finalizeResponse(request, response, correlationId);
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const correlationId =
     request.headers.get("x-correlation-id") ?? crypto.randomUUID();
