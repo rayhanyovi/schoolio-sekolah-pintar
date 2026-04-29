@@ -14,6 +14,10 @@ import { hashPassword } from "@/lib/password";
 import { normalizeCredentialIdentifier } from "@/lib/auth-credential";
 import { invalidateOutstandingPasswordResetTokens } from "@/lib/password-reset";
 import { recordAudit } from "@/lib/audit";
+import {
+  DEMO_MODE_FORBIDDEN_MESSAGE,
+  isDemoModeEnabled,
+} from "@/lib/demo-mode";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -28,6 +32,9 @@ const resolveTargetUserId = async (context: RouteContext) => {
 export async function POST(request: NextRequest, context: RouteContext) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
+  if (isDemoModeEnabled() && auth.isDemo) {
+    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+  }
   const roleError = requireRole(auth, [ROLES.ADMIN]);
   if (roleError) return roleError;
   const schoolId = requireSchoolContext(auth);

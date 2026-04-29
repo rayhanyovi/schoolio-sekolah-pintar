@@ -10,8 +10,19 @@ vi.mock("@/lib/server-auth", () => ({
 }));
 
 describe("middleware onboarding gate", () => {
+  const originalDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
+
   beforeEach(() => {
     vi.resetAllMocks();
+    delete process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
+  });
+
+  afterAll(() => {
+    if (originalDemoMode === undefined) {
+      delete process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
+    } else {
+      process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = originalDemoMode;
+    }
   });
 
   it("redirect ke onboarding jika user belum selesai onboarding saat akses dashboard", async () => {
@@ -58,6 +69,17 @@ describe("middleware onboarding gate", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("set-cookie")).toContain(CSRF_COOKIE_NAME);
+  });
+
+  it("redirect auth ke demo saat demo mode aktif", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = "true";
+    const request = new NextRequest("http://localhost/auth?from=/dashboard");
+    const response = await middleware(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost/demo?from=%2Fdashboard"
+    );
   });
 
   it("menolak POST API tanpa pasangan cookie/header CSRF", async () => {

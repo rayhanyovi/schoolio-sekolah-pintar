@@ -5,6 +5,7 @@ import {
   isSafeCsrfMethod,
   setCsrfCookie,
 } from "@/lib/csrf";
+import { isDemoModeEnabled } from "@/lib/demo-mode";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/server-auth";
 
 const PUBLIC_API_PATHS = new Set([
@@ -12,6 +13,7 @@ const PUBLIC_API_PATHS = new Set([
   "/api/auth/register",
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
+  "/api/demo/session",
 ]);
 
 const MUST_CHANGE_PASSWORD_ALLOWED_API_PATHS = new Set([
@@ -112,6 +114,7 @@ export async function middleware(request: NextRequest) {
     pathname === "/onboarding" || pathname.startsWith("/onboarding/");
   const isChangePasswordRoute =
     pathname === "/change-password" || pathname.startsWith("/change-password/");
+  const isAuthRoute = pathname === "/auth" || pathname.startsWith("/auth/");
   const isApiRoute = pathname.startsWith("/api");
   const isProtectedApiRoute = isApiRoute && !isPublicApiPath(pathname);
   const shouldProtectRoute =
@@ -123,6 +126,17 @@ export async function middleware(request: NextRequest) {
   if (isApiRoute) {
     console.info(
       `[api-request] correlationId=${correlationId} ${request.method} ${pathname}`
+    );
+  }
+
+  if (!isApiRoute && isDemoModeEnabled() && isAuthRoute) {
+    const demoUrl = new URL("/demo", request.url);
+    const from = request.nextUrl.searchParams.get("from");
+    if (from) demoUrl.searchParams.set("from", from);
+    return finalizeResponse(
+      request,
+      NextResponse.redirect(demoUrl),
+      correlationId
     );
   }
 
@@ -189,7 +203,10 @@ export async function middleware(request: NextRequest) {
     return buildUnauthorizedApiResponse(request, correlationId);
   }
 
-  const authUrl = new URL("/auth", request.url);
+  const authUrl = new URL(
+    isDemoModeEnabled() ? "/demo" : "/auth",
+    request.url
+  );
   authUrl.searchParams.set("from", pathname);
   return finalizeResponse(
     request,
@@ -202,6 +219,8 @@ export const config = {
   matcher: [
     "/auth",
     "/auth/:path*",
+    "/demo",
+    "/demo/:path*",
     "/dashboard/:path*",
     "/onboarding",
     "/onboarding/:path*",

@@ -18,6 +18,10 @@ import {
 } from "@/lib/server-auth";
 import { invalidateOutstandingPasswordResetTokens } from "@/lib/password-reset";
 import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
+import {
+  DEMO_MODE_FORBIDDEN_MESSAGE,
+  isDemoModeEnabled,
+} from "@/lib/demo-mode";
 
 const changePasswordSchema = z
   .object({
@@ -35,6 +39,9 @@ const changePasswordSchema = z
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
+  if (isDemoModeEnabled() && auth.isDemo) {
+    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+  }
   const roleError = requireRole(auth, [
     ROLES.ADMIN,
     ROLES.TEACHER,

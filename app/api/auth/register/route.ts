@@ -17,6 +17,10 @@ import {
   isParentInviteExpired,
 } from "@/lib/parent-invite-code";
 import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
+import {
+  DEMO_MODE_FORBIDDEN_MESSAGE,
+  isDemoModeEnabled,
+} from "@/lib/demo-mode";
 
 const registerSchema = z.object({
   email: z.string().trim().email("email tidak valid"),
@@ -30,6 +34,10 @@ const registerSchema = z.object({
   });
 
 export async function POST(request: NextRequest) {
+  if (isDemoModeEnabled()) {
+    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+  }
+
   const parsedBody = await parseJsonBody(request, registerSchema);
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;

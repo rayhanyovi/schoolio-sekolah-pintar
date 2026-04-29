@@ -52,8 +52,11 @@ const buildTransactionMock = () => ({
 });
 
 describe("auth change password route", () => {
+  const originalDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
+
   beforeEach(() => {
     vi.resetAllMocks();
+    delete process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
     vi.mocked(requireAuth).mockResolvedValue({
       userId: "user-1",
       name: "Siswa",
@@ -63,6 +66,8 @@ describe("auth change password route", () => {
       issuedAt: 1,
       expiresAt: 2,
       schoolId: "school-1",
+      isDemo: false,
+      demoInstanceId: null,
     } as never);
     vi.mocked(prisma.authCredential.findUnique).mockResolvedValue({
       id: "credential-1",
@@ -86,6 +91,14 @@ describe("auth change password route", () => {
       passwordSalt: "new-salt",
     });
     vi.mocked(createSessionToken).mockResolvedValue("session-token");
+  });
+
+  afterAll(() => {
+    if (originalDemoMode === undefined) {
+      delete process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
+    } else {
+      process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = originalDemoMode;
+    }
   });
 
   it("mengganti password dan menginvalidasi token reset aktif", async () => {
@@ -157,5 +170,38 @@ describe("auth change password route", () => {
     expect(response.status).toBe(401);
     expect(payload.error.code).toBe("UNAUTHORIZED");
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("menolak ganti password untuk session demo", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = "true";
+    vi.mocked(requireAuth).mockResolvedValue({
+      userId: "user-demo",
+      name: "Demo",
+      role: ROLES.STUDENT,
+      canUseDebugPanel: false,
+      onboardingCompleted: true,
+      issuedAt: 1,
+      expiresAt: 2,
+      schoolId: "school-demo",
+      isDemo: true,
+      demoInstanceId: "demo-1",
+    } as never);
+
+    const response = await changePassword(
+      new Request("http://localhost/api/auth/change-password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: "password-lama",
+          newPassword: "password-baru",
+          confirmPassword: "password-baru",
+        }),
+      }) as never
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(payload.error.code).toBe("FORBIDDEN");
+    expect(prisma.authCredential.findUnique).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { PrismaClient, Role } from "@prisma/client";
 import { resolveDatabaseUrl } from "../lib/database-url";
+import { DEMO_CATALOG } from "../lib/demo-catalog";
 import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient({
@@ -12,18 +13,10 @@ const prisma = new PrismaClient({
   },
 });
 
-const DEMO_PASSWORD = "DemoSekolah2026!";
+const DEMO_PASSWORD = DEMO_CATALOG.password;
 const DEMO_DOC_PATH = path.resolve(process.cwd(), "docs", "DEMO_CREDENTIALS.md");
 
-const SCHOOL = {
-  schoolCode: "SCH-ALHIKMAH",
-  name: "SMA Al Hikmah Nusantara",
-  address: "Jl. KH. Ahmad Dahlan No. 18, Sleman, DI Yogyakarta",
-  phone: "(0274) 555120",
-  email: "info@alhikmahnusantara.sch.id",
-  website: "https://alhikmahnusantara.sch.id",
-  principalName: "Dr. Hj. Nur Aisyah Rahma, M.Pd.",
-};
+const SCHOOL = DEMO_CATALOG.templateSchool;
 
 const ACADEMIC_YEARS = [
   {
@@ -711,6 +704,15 @@ const buildDemoCredentialsMarkdown = () => {
     `- Semester aktif: **2025/2026 - Genap**`,
     `- Password semua akun demo: \`${DEMO_PASSWORD}\``,
     "- Semua identifier login menggunakan huruf kecil.",
+    "",
+    "## Peran Demo Publik",
+    "",
+    "| Peran | Nama | Identifier | Email | Password |",
+    "|---|---|---|---|---|",
+    ...DEMO_CATALOG.publicRoles.map(
+      (account) =>
+        `| ${account.label} | ${account.name} | \`${account.identifier}\` | ${account.email} | \`${DEMO_PASSWORD}\` |`
+    ),
     "",
     "## Akun Utama",
     "",

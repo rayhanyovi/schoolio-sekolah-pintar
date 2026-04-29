@@ -10,6 +10,15 @@ Dokumen ini dibuat untuk dataset seed demo **SMA Al Hikmah Nusantara**.
 - Password semua akun demo: `DemoSekolah2026!`
 - Semua identifier login menggunakan huruf kecil.
 
+## Peran Demo Publik
+
+| Peran | Nama | Identifier | Email | Password |
+|---|---|---|---|---|
+| Admin | Nur Aisyah Rahma | `admin.sekolah` | nur.aisyah@alhikmahnusantara.sch.id | `DemoSekolah2026!` |
+| Guru | Deni Kurniawan | `guru.deni` | deni.kurniawan@alhikmahnusantara.sch.id | `DemoSekolah2026!` |
+| Siswa | Alya Safitri | `siswa.xmipa1.01` | siswa.xmipa1.01@demo.schoolio.id | `DemoSekolah2026!` |
+| Orang Tua | Budi Safitri | `ortu.xmipa1.01` | ortu.xmipa1.01@demo.schoolio.id | `DemoSekolah2026!` |
+
 ## Akun Utama
 
 | Role | Nama | Identifier | Email | Password |
@@ -100,4 +109,3 @@ Dokumen ini dibuat untuk dataset seed demo **SMA Al Hikmah Nusantara**.
 - Akun siswa dan orang tua sudah saling terhubung.
 - Semua akun sudah melewati onboarding dan siap login.
 - Dataset berisi jadwal kelas, tugas, materi, forum, absensi, notifikasi, dan contoh rapor.
-

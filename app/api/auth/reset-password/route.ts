@@ -11,6 +11,10 @@ import {
   isPasswordResetTokenExpired,
 } from "@/lib/password-reset";
 import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
+import {
+  DEMO_MODE_FORBIDDEN_MESSAGE,
+  isDemoModeEnabled,
+} from "@/lib/demo-mode";
 
 const resetPasswordSchema = z
   .object({
@@ -26,6 +30,10 @@ const resetPasswordSchema = z
   });
 
 export async function POST(request: NextRequest) {
+  if (isDemoModeEnabled()) {
+    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+  }
+
   const rateLimitError = enforceRateLimit(
     request,
     RATE_LIMIT_POLICIES.authResetPassword

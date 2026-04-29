@@ -15,6 +15,8 @@ type SessionTokenPayload = {
   onboardingCompleted?: boolean;
   schoolId?: string | null;
   mustChangePassword?: boolean;
+  isDemo?: boolean;
+  demoInstanceId?: string | null;
   iat: number;
   exp: number;
 };
@@ -27,6 +29,8 @@ export type AuthSession = {
   onboardingCompleted: boolean;
   schoolId: string | null;
   mustChangePassword: boolean;
+  isDemo: boolean;
+  demoInstanceId: string | null;
   issuedAt: number;
   expiresAt: number;
 };
@@ -39,6 +43,8 @@ type SessionInput = {
   onboardingCompleted: boolean;
   schoolId?: string | null;
   mustChangePassword?: boolean;
+  isDemo?: boolean;
+  demoInstanceId?: string | null;
 };
 
 const roles = new Set<Role>(Object.values(ROLES));
@@ -163,6 +169,12 @@ const toSession = (payload: Partial<SessionTokenPayload>): AuthSession | null =>
     typeof payload.mustChangePassword === "boolean"
       ? payload.mustChangePassword
       : false;
+  const isDemo =
+    typeof payload.isDemo === "boolean" ? payload.isDemo : false;
+  const demoInstanceId =
+    typeof payload.demoInstanceId === "string" || payload.demoInstanceId === null
+      ? payload.demoInstanceId
+      : null;
 
   return {
     userId: payload.userId,
@@ -172,6 +184,8 @@ const toSession = (payload: Partial<SessionTokenPayload>): AuthSession | null =>
     onboardingCompleted,
     schoolId,
     mustChangePassword,
+    isDemo,
+    demoInstanceId,
     issuedAt: payload.iat,
     expiresAt: payload.exp,
   };
@@ -188,6 +202,8 @@ export const createSessionToken = async (session: SessionInput) => {
     ...session,
     schoolId: session.schoolId ?? null,
     mustChangePassword: session.mustChangePassword ?? false,
+    isDemo: session.isDemo ?? false,
+    demoInstanceId: session.demoInstanceId ?? null,
     iat: now,
     exp: now + SESSION_TTL_SECONDS,
   };

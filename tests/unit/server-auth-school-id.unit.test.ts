@@ -34,7 +34,7 @@ const signLegacyPayload = async (encodedPayload: string) => {
 };
 
 describe("server auth schoolId token", () => {
-  it("membawa schoolId pada token baru", async () => {
+  it("membawa schoolId dan metadata demo pada token baru", async () => {
     const token = await createSessionToken({
       userId: "admin-1",
       name: "Admin",
@@ -43,12 +43,16 @@ describe("server auth schoolId token", () => {
       onboardingCompleted: true,
       schoolId: "school-1",
       mustChangePassword: true,
+      isDemo: true,
+      demoInstanceId: "demo-1",
     });
 
     const session = await verifySessionToken(token);
     expect(session).not.toBeNull();
     expect(session?.schoolId).toBe("school-1");
     expect(session?.mustChangePassword).toBe(true);
+    expect(session?.isDemo).toBe(true);
+    expect(session?.demoInstanceId).toBe("demo-1");
   });
 
   it("tetap bisa membaca token lama tanpa schoolId", async () => {
@@ -71,6 +75,8 @@ describe("server auth schoolId token", () => {
     expect(session?.schoolId).toBeNull();
     expect(session?.userId).toBe("teacher-1");
     expect(session?.mustChangePassword).toBe(false);
+    expect(session?.isDemo).toBe(false);
+    expect(session?.demoInstanceId).toBeNull();
   });
 });
 

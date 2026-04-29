@@ -6,13 +6,14 @@ import { verifyPassword } from "@/lib/password";
 import { normalizeCredentialIdentifier } from "@/lib/auth-credential";
 import {
   createSessionToken,
-  isDebugImpersonationEnabled,
   sessionCookieOptions,
   SESSION_COOKIE_NAME,
 } from "@/lib/server-auth";
-import { Role, ROLES } from "@/lib/constants";
-import { Prisma } from "@prisma/client";
 import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
+import {
+  DEMO_MODE_FORBIDDEN_MESSAGE,
+  isDemoModeEnabled,
+} from "@/lib/demo-mode";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1).optional(),
@@ -20,116 +21,11 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-type DemoAccount = {
-  userId: string;
-  name: string;
-  role: Role;
-  password: string;
-  aliases: string[];
-};
-
-const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    userId: "demo-admin",
-    name: "Admin Demo",
-    role: ROLES.ADMIN,
-    password: "admin",
-    aliases: ["admin", "admin@school.local"],
-  },
-  {
-    userId: "demo-teacher",
-    name: "Guru Demo",
-    role: ROLES.TEACHER,
-    password: "teacher",
-    aliases: ["teacher", "teacher@school.local"],
-  },
-  {
-    userId: "demo-student",
-    name: "Siswa Demo",
-    role: ROLES.STUDENT,
-    password: "student",
-    aliases: ["student", "student@school.local"],
-  },
-  {
-    userId: "demo-parent",
-    name: "Orang Tua Demo",
-    role: ROLES.PARENT,
-    password: "parent",
-    aliases: ["parent", "parent@school.local"],
-  },
-];
-
-const isDemoLoginEnabled = () => process.env.NODE_ENV !== "production";
-const DEMO_SCHOOL_CODE = "SCH-DEMO01";
-
-const findAccount = (username: string, password: string) =>
-  DEMO_ACCOUNTS.find(
-    (account) =>
-      account.password === password &&
-      account.aliases.some((alias) => alias === username)
-  );
-
-const ensureDemoSchoolAndUser = async (account: DemoAccount) => {
-  const school = await prisma.schoolProfile.upsert({
-    where: { schoolCode: DEMO_SCHOOL_CODE },
-    update: {},
-    create: {
-      schoolCode: DEMO_SCHOOL_CODE,
-      name: "Sekolah Demo",
-      address: "Jalan Demo No. 1",
-      phone: "",
-      email: "demo@schoolio.local",
-      website: "",
-      principalName: "",
-    },
-    select: { id: true },
-  });
-
-  await prisma.user.upsert({
-    where: { id: account.userId },
-    update: {
-      name: account.name,
-      role: account.role,
-      schoolId: school.id,
-      onboardingCompletedAt: new Date(),
-      roleSelectedAt: new Date(),
-    },
-    create: {
-      id: account.userId,
-      name: account.name,
-      role: account.role,
-      email: account.aliases.find((alias) => alias.includes("@")) ?? null,
-      schoolId: school.id,
-      onboardingCompletedAt: new Date(),
-      roleSelectedAt: new Date(),
-    },
-    select: { id: true },
-  });
-
-  if (account.role === ROLES.TEACHER) {
-    await prisma.teacherProfile.upsert({
-      where: { userId: account.userId },
-      update: {},
-      create: { userId: account.userId },
-    });
-  } else if (account.role === ROLES.STUDENT) {
-    await prisma.studentProfile.upsert({
-      where: { userId: account.userId },
-      update: {},
-      create: { userId: account.userId, status: "ACTIVE" },
-    });
-  } else if (account.role === ROLES.PARENT) {
-    await prisma.parentProfile.upsert({
-      where: { userId: account.userId },
-      update: {},
-      create: { userId: account.userId },
-    });
+export async function POST(request: NextRequest) {
+  if (isDemoModeEnabled()) {
+    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
   }
 
-  return school.id;
-};
-
-export async function POST(request: NextRequest) {
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -153,47 +49,6 @@ export async function POST(request: NextRequest) {
     identifier
   );
   if (rateLimitError) return rateLimitError;
-
-  const demoAccount =
-    isDemoLoginEnabled() ? findAccount(identifier, parsed.data.password) : null;
-  if (demoAccount) {
-    let schoolId: string | null = null;
-    try {
-      schoolId = await ensureDemoSchoolAndUser(demoAccount);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientInitializationError) {
-        return jsonError("CONFLICT", "Layanan database belum tersedia", 503);
-      }
-      throw error;
-    }
-
-    const canUseDebugPanel =
-      demoAccount.role === ROLES.ADMIN && isDebugImpersonationEnabled();
-    const token = await createSessionToken({
-      userId: demoAccount.userId,
-      name: demoAccount.name,
-      role: demoAccount.role,
-      canUseDebugPanel,
-      onboardingCompleted: true,
-      schoolId,
-      mustChangePassword: false,
-    });
-
-    const response = jsonOk({
-      user: {
-        id: demoAccount.userId,
-        name: demoAccount.name,
-        role: demoAccount.role,
-      },
-      canUseDebugPanel,
-      onboardingCompleted: true,
-      schoolId,
-      mustChangePassword: false,
-    });
-
-    response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
-    return response;
-  }
 
   const credential = await prisma.authCredential.findUnique({
     where: { identifier },

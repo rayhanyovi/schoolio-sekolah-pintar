@@ -25,6 +25,8 @@ describe("auth session route", () => {
       issuedAt: 1,
       expiresAt: 2,
       schoolId: null,
+      isDemo: true,
+      demoInstanceId: "demo-1",
     } as never);
 
     const response = await getSession(
@@ -35,5 +37,7 @@ describe("auth session route", () => {
     expect(response.status).toBe(200);
     expect(payload.data.onboardingCompleted).toBe(false);
     expect(payload.data.schoolId).toBeNull();
+    expect(payload.data.isDemo).toBe(true);
+    expect(payload.data.demoInstanceId).toBe("demo-1");
   });
 });

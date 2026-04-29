@@ -12,6 +12,10 @@ import {
 } from "@/lib/password-reset";
 import { enforceRateLimit, RATE_LIMIT_POLICIES } from "@/lib/rate-limit";
 import { isResendConfigured, sendPasswordResetEmail } from "@/lib/resend";
+import {
+  DEMO_MODE_FORBIDDEN_MESSAGE,
+  isDemoModeEnabled,
+} from "@/lib/demo-mode";
 
 const forgotPasswordSchema = z.object({
   email: z.string().trim().email("email tidak valid"),
@@ -23,6 +27,10 @@ const SELF_HOST_RESPONSE_MESSAGE =
   "Mode self-host: hubungi admin agar password Anda direset ke password default server.";
 
 export async function POST(request: NextRequest) {
+  if (isDemoModeEnabled()) {
+    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+  }
+
   const parsedBody = await parseJsonBody(request, forgotPasswordSchema);
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;

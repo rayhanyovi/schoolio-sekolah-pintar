@@ -33,15 +33,22 @@ vi.mock("@/lib/password", () => ({
 
 describe("auth login route", () => {
   const originalNodeEnv = process.env.NODE_ENV;
+  const originalDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
 
   beforeEach(() => {
     vi.resetAllMocks();
     resetRateLimitForTests();
     process.env.NODE_ENV = "test";
+    delete process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
   });
 
   afterAll(() => {
     process.env.NODE_ENV = originalNodeEnv;
+    if (originalDemoMode === undefined) {
+      delete process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
+    } else {
+      process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = originalDemoMode;
+    }
   });
 
   it("login credential database berhasil", async () => {
@@ -103,14 +110,8 @@ describe("auth login route", () => {
     expect(payload.error.code).toBe("UNAUTHORIZED");
   });
 
-  it("akun demo aktif di non-production", async () => {
-    vi.mocked(prisma.schoolProfile.upsert).mockResolvedValue({
-      id: "school-demo",
-    } as never);
-    vi.mocked(prisma.user.upsert).mockResolvedValue({
-      id: "demo-admin",
-    } as never);
-
+  it("menolak login manual saat demo mode aktif", async () => {
+    process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = "true";
     const request = new Request("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -123,29 +124,9 @@ describe("auth login route", () => {
     const response = await login(request as never);
     const payload = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(payload.data.user.role).toBe(ROLES.ADMIN);
-    expect(payload.data.onboardingCompleted).toBe(true);
-  });
-
-  it("akun demo ditolak di production", async () => {
-    process.env.NODE_ENV = "production";
-    vi.mocked(prisma.authCredential.findUnique).mockResolvedValue(null as never);
-
-    const request = new Request("http://localhost/api/auth/login", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        identifier: "admin",
-        password: "admin",
-      }),
-    });
-
-    const response = await login(request as never);
-    const payload = await response.json();
-
-    expect(response.status).toBe(401);
-    expect(payload.error.code).toBe("UNAUTHORIZED");
+    expect(response.status).toBe(403);
+    expect(payload.error.code).toBe("FORBIDDEN");
+    expect(prisma.authCredential.findUnique).not.toHaveBeenCalled();
   });
 
   it("membatasi percobaan login berulang untuk identifier dan IP yang sama", async () => {

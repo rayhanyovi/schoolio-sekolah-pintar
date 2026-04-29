@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { isDemoModeEnabled } from "@/lib/demo-mode";
 
 const navItems = [
   { label: "Platform", href: "#platform" },
@@ -566,6 +567,8 @@ function RoleShowcase({ role }: { role: (typeof roleShowcases)[number] }) {
 
 export default function Index() {
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false);
+  const isDemo = isDemoModeEnabled();
+  const publicEntryHref = isDemo ? "/demo" : "/auth";
 
   useEffect(() => {
     const updateHeaderState = () => {
@@ -632,13 +635,13 @@ export default function Index() {
               }`}
               asChild
             >
-              <Link href="/auth">Sign in</Link>
+              <Link href={publicEntryHref}>{isDemo ? "Demo" : "Sign in"}</Link>
             </Button>
             <Button
               className="h-11 rounded-full border border-[var(--schoolio-accent)] bg-[var(--schoolio-accent)] px-5 font-semibold text-[#13231f] shadow-none hover:bg-[#e1b044] dark:border-[#074838] dark:bg-[#074838] dark:text-[#fffaf0] dark:hover:bg-[#0e6b53]"
               asChild
             >
-              <Link href="/auth">
+              <Link href={publicEntryHref}>
                 Start
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -671,7 +674,7 @@ export default function Index() {
                 className="h-12 rounded-full border border-[var(--schoolio-accent)] bg-[var(--schoolio-accent)] px-6 text-base font-semibold text-[#13231f] shadow-none hover:bg-[#e1b044] dark:border-[#074838] dark:bg-[#074838] dark:text-[#fffaf0] dark:hover:bg-[#0e6b53]"
                 asChild
               >
-                <Link href="/auth">
+                <Link href={publicEntryHref}>
                   Open Schoolio
                   <ArrowRight className="h-5 w-5" />
                 </Link>
@@ -897,7 +900,7 @@ export default function Index() {
               className="h-12 rounded-full border border-[#fffaf0] bg-[#fffaf0] px-6 text-base font-semibold text-[#13231f] hover:bg-[#f8f4ea] dark:border-[#074838] dark:bg-[#074838] dark:text-[#fffaf0] dark:hover:bg-[#0e6b53]"
               asChild
             >
-              <Link href="/auth">
+              <Link href={publicEntryHref}>
                 Start now
                 <ArrowRight className="h-5 w-5" />
               </Link>
@@ -907,7 +910,7 @@ export default function Index() {
               className="h-12 rounded-full border border-[#fffaf0]/25 bg-[#fffaf0]/5 px-6 text-base font-semibold text-[#fffaf0] hover:bg-[#fffaf0]/10 hover:text-[#fffaf0] dark:border-[#13231f]/20 dark:bg-[#13231f]/5 dark:text-[#13231f] dark:hover:bg-[#13231f]/10"
               asChild
             >
-              <Link href="/dashboard">View dashboard</Link>
+              <Link href={publicEntryHref}>View dashboard</Link>
             </Button>
           </div>
         </div>

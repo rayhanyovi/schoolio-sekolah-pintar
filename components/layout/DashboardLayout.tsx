@@ -11,12 +11,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { HelpMenu } from "@/components/help/HelpMenu";
 import { apiGet } from "@/lib/api-client";
+import { isDemoModeEnabled } from "@/lib/demo-mode";
 
 type SessionResponse = {
   userId: string;
   name: string;
   role: Role;
   canUseDebugPanel: boolean;
+  isDemo: boolean;
+  demoInstanceId: string | null;
 };
 
 interface DashboardLayoutProps {
@@ -34,8 +37,10 @@ export function DashboardLayout({
   const [role, setRole] = useState<Role>(initialRole);
   const [isSessionReady, setIsSessionReady] = useState(false);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [isDemoSession, setIsDemoSession] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedUserName, setSelectedUserName] = useState<string>(userName);
+  const shouldShowDemoRibbon = isDemoModeEnabled() && isDemoSession;
 
   useEffect(() => {
     let isMounted = true;
@@ -46,6 +51,7 @@ export function DashboardLayout({
         if (!isMounted) return;
         setRole(session.role);
         setShowDebugPanel(session.canUseDebugPanel);
+        setIsDemoSession(session.isDemo);
         setSelectedUserId(session.userId);
         setSelectedUserName(session.name);
       } catch {
@@ -136,7 +142,19 @@ export function DashboardLayout({
 
         {/* Main Content */}
         <RoleProvider role={role} userId={selectedUserId} userName={selectedUserName}>
-          <main id="dashboard-main" className="flex-1 overflow-auto p-6">
+          <main id="dashboard-main" className="relative flex-1 overflow-auto p-6">
+            {shouldShowDemoRibbon && (
+              <div className="sticky top-0 z-20 mb-4 flex justify-end pointer-events-none">
+                <div className="rounded-xl border border-amber-300/50 bg-amber-50 px-4 py-2 text-right shadow-sm dark:border-amber-400/30 dark:bg-amber-950/40">
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                    Demo App
+                  </p>
+                  <p className="text-xs text-amber-800/80 dark:text-amber-100/75">
+                    Full version is still ongoing
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="mx-auto w-full max-w-7xl">
               {children}
             </div>

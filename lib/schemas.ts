@@ -81,6 +81,8 @@ export const authSessionSchema = z.object({
   onboardingCompleted: z.boolean().default(true),
   schoolId: z.string().nullable().default(null),
   mustChangePassword: z.boolean().default(false),
+  isDemo: z.boolean().default(false),
+  demoInstanceId: z.string().nullable().default(null),
 });
 export type AuthSessionSummary = z.infer<typeof authSessionSchema>;
 
@@ -95,6 +97,8 @@ export const authLoginResultSchema = z.object({
   roleSelectionRequired: z.boolean().default(false),
   schoolId: z.string().nullable().default(null),
   mustChangePassword: z.boolean().default(false),
+  isDemo: z.boolean().default(false),
+  demoInstanceId: z.string().nullable().default(null),
 });
 export type AuthLoginResult = z.infer<typeof authLoginResultSchema>;
 
