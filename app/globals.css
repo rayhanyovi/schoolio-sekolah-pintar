@@ -8,6 +8,11 @@
   :root {
     --background: 42 47% 95%;
     --foreground: 164 30% 11%;
+    --schoolio-ink: #13231f;
+    --schoolio-cream: #fffaf0;
+    --schoolio-green: #0e6b53;
+    --schoolio-green-deep: #074838;
+    --schoolio-accent: #d7a12b;
 
     --card: 40 100% 97%;
     --card-foreground: 164 30% 11%;
@@ -49,24 +54,6 @@
     --role-teacher: 166 83% 16%;
     --role-student: 184 55% 37%;
     --role-parent: 42 68% 51%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(
-      135deg,
-      hsl(166 83% 16%) 0%,
-      hsl(184 55% 37%) 100%
-    );
-    --gradient-hero: linear-gradient(
-      135deg,
-      hsl(40 100% 97%) 0%,
-      hsl(42 47% 95%) 42%,
-      hsl(156 46% 92%) 100%
-    );
-    --gradient-card: linear-gradient(
-      180deg,
-      hsl(40 100% 97%) 0%,
-      hsl(42 47% 95%) 100%
-    );
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 hsl(164 30% 11% / 0.05);
@@ -138,10 +125,9 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: "Plus Jakarta Sans", system-ui, sans-serif;
     background-image:
-      radial-gradient(circle at 10% 10%, hsl(var(--accent) / 0.12), transparent 24rem),
       linear-gradient(90deg, hsl(var(--foreground) / 0.025) 1px, transparent 1px),
       linear-gradient(0deg, hsl(var(--foreground) / 0.018) 1px, transparent 1px);
-    background-size: auto, 38px 38px, 38px 38px;
+    background-size: 38px 38px;
     background-attachment: fixed;
   }
 
@@ -157,15 +143,15 @@
 
 @layer utilities {
   .gradient-primary {
-    background: var(--gradient-primary);
+    background: hsl(var(--primary));
   }
 
   .gradient-hero {
-    background: var(--gradient-hero);
+    background: hsl(var(--primary));
   }
 
   .gradient-card {
-    background: var(--gradient-card);
+    background: hsl(var(--card));
   }
 
   .shadow-glow {
@@ -173,9 +159,11 @@
   }
 
   .dashboard-shell {
-    background:
-      linear-gradient(180deg, hsl(var(--background) / 0.7), hsl(var(--background)) 18rem),
-      radial-gradient(circle at top right, hsl(var(--accent) / 0.12), transparent 18rem);
+    background-color: hsl(var(--background));
+    background-image:
+      linear-gradient(90deg, hsl(var(--foreground) / 0.035) 1px, transparent 1px),
+      linear-gradient(0deg, hsl(var(--foreground) / 0.025) 1px, transparent 1px);
+    background-size: 38px 38px;
   }
 
   .dashboard-topbar {
@@ -184,8 +172,7 @@
   }
 
   .dashboard-panel {
-    background:
-      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.92) 100%);
+    background: hsl(var(--card));
     box-shadow: var(--shadow-md);
   }
 
