@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -35,15 +35,26 @@ interface SidebarProps {
   userName: string;
 }
 
-const menuItems: Record<Role, Array<{ icon: typeof LayoutDashboard; label: string; href: string }>> = {
+const menuItems: Record<
+  Role,
+  Array<{ icon: typeof LayoutDashboard; label: string; href: string }>
+> = {
   ADMIN: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "Pengguna", href: "/dashboard/users" },
     { icon: School, label: "Kelas", href: "/dashboard/classes" },
     { icon: Layers, label: "Jurusan", href: "/dashboard/majors" },
-    { icon: GraduationCap, label: "Mata Pelajaran", href: "/dashboard/subjects" },
+    {
+      icon: GraduationCap,
+      label: "Mata Pelajaran",
+      href: "/dashboard/subjects",
+    },
     { icon: Calendar, label: "Jadwal", href: "/dashboard/schedules" },
-    { icon: CalendarDays, label: "Kalender Akademik", href: "/dashboard/calendar" },
+    {
+      icon: CalendarDays,
+      label: "Kalender Akademik",
+      href: "/dashboard/calendar",
+    },
     { icon: ClipboardCheck, label: "Absensi", href: "/dashboard/attendance" },
     { icon: Settings, label: "Pengaturan", href: "/dashboard/settings" },
   ],
@@ -72,7 +83,11 @@ const menuItems: Record<Role, Array<{ icon: typeof LayoutDashboard; label: strin
   ],
   PARENT: [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-    { icon: ClipboardCheck, label: "Kehadiran Anak", href: "/dashboard/attendance" },
+    {
+      icon: ClipboardCheck,
+      label: "Kehadiran Anak",
+      href: "/dashboard/attendance",
+    },
     { icon: FileText, label: "Tugas Anak", href: "/dashboard/assignments" },
     { icon: BarChart3, label: "Nilai Anak", href: "/dashboard/grades" },
     { icon: CalendarDays, label: "Kalender", href: "/dashboard/calendar" },
@@ -101,10 +116,9 @@ export function Sidebar({ role, userName }: SidebarProps) {
     <aside
       className={cn(
         "relative h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-all duration-300",
-        collapsed ? "w-20" : "w-64"
+        collapsed ? "w-20" : "w-64",
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(215,161,43,0.16),transparent_22rem)]" />
       {/* Header */}
       <div className="relative p-4 border-b border-sidebar-border flex items-center justify-between">
         <Logo size="sm" showText={!collapsed} />
@@ -117,7 +131,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
           <ChevronLeft
             className={cn(
               "h-4 w-4 transition-transform duration-300",
-              collapsed && "rotate-180"
+              collapsed && "rotate-180",
             )}
           />
         </Button>
@@ -134,11 +148,13 @@ export function Sidebar({ role, userName }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200",
                 isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-none"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               )}
             >
-              <item.icon className={cn("h-5 w-5 shrink-0", collapsed && "mx-auto")} />
+              <item.icon
+                className={cn("h-5 w-5 shrink-0", collapsed && "mx-auto")}
+              />
               {!collapsed && <span className="font-medium">{item.label}</span>}
             </Link>
           );
@@ -151,7 +167,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
           <div className="mb-3">
             <Link
               href="/dashboard/profile"
-              className="font-semibold text-sidebar-foreground truncate hover:text-accent transition-colors cursor-pointer block"
+              className="font-semibold text-sidebar-foreground truncate hover:text-[var(--schoolio-accent)] transition-colors cursor-pointer block"
             >
               {userName}
             </Link>
@@ -180,14 +196,18 @@ export function Sidebar({ role, userName }: SidebarProps) {
             variant="ghost"
             className={cn(
               "w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10",
-              collapsed && "justify-center"
+              collapsed && "justify-center",
             )}
             onClick={handleSignOut}
             disabled={isSigningOut}
             aria-label="Keluar dari dashboard"
           >
             <LogOut className="h-5 w-5" />
-            {!collapsed && <span className="ml-2">{isSigningOut ? "Keluar..." : "Keluar"}</span>}
+            {!collapsed && (
+              <span className="ml-2">
+                {isSigningOut ? "Keluar..." : "Keluar"}
+              </span>
+            )}
           </Button>
         </div>
       </div>
