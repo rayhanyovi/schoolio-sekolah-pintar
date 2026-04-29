@@ -800,28 +800,24 @@ export default function Schedules() {
                   {/* Schedule entries */}
                   <div className="flex-1 space-y-1 overflow-hidden">
                     {daySchedules.slice(0, 3).map((schedule) => (
-                      <>
-                        <pre>{JSON.stringify(schedule, null, 2)}</pre>
-                        <div
-                          key={schedule.id}
-                          className={cn(
-                            "text-xs px-1.5 py-0.5 rounded ",
-                            schedule.color || "bg-primary",
-                          )}
-                        >
-                          <span className="flex items-center justify-between gap-2 w-full">
-                            <span className="truncate min-w-0">
-                              {schedule.subjectCode || schedule.subjectName}
-                            </span>
-                            {selectedClassId === "all" &&
-                              schedule.className && (
-                                <span className="shrink-0 text-[10px] opacity-90">
-                                  {schedule.className}
-                                </span>
-                              )}
+                      <div
+                        key={schedule.id}
+                        className={cn(
+                          "text-xs px-1.5 py-0.5 rounded ",
+                          schedule.color || "bg-primary",
+                        )}
+                      >
+                        <span className="flex items-center justify-between gap-2 w-full">
+                          <span className="truncate min-w-0">
+                            {schedule.subjectCode || schedule.subjectName}
                           </span>
-                        </div>
-                      </>
+                          {selectedClassId === "all" && schedule.className && (
+                            <span className="shrink-0 text-[10px] opacity-90">
+                              {schedule.className}
+                            </span>
+                          )}
+                        </span>
+                      </div>
                     ))}
                     {daySchedules.length > 3 && (
                       <div className="text-xs text-muted-foreground pl-1">
