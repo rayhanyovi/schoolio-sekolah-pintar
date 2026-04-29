@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRoleContext } from "@/hooks/useRoleContext";
+import { ProfileSkeleton } from "@/components/dashboard/PageSkeletons";
 import { ROLE_LABELS } from "@/lib/constants";
 import { apiGet } from "@/lib/api-client";
 import { changePassword } from "@/lib/handlers/auth";
@@ -211,16 +212,7 @@ export default function Profile() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center space-y-2">
-          <h2 className="text-xl font-semibold text-muted-foreground">
-            Memuat profil...
-          </h2>
-          <p className="text-sm text-muted-foreground">Mohon tunggu sebentar</p>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!profile) {

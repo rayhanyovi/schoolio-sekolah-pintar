@@ -29,6 +29,12 @@ import {
 } from "@/components/admin/UserFormDialog";
 import { LinkUserDialog } from "@/components/admin/LinkUserDialog";
 import { UserStatsCard } from "@/components/admin/UserStatsCard";
+import {
+  StatCardsSkeleton,
+  TabsSkeleton,
+  ToolbarSkeleton,
+  UserCardsSkeleton,
+} from "@/components/dashboard/PageSkeletons";
 import { Grade, Role, ROLES, GRADES } from "@/lib/constants";
 import {
   createParentInvite,
@@ -506,40 +512,44 @@ export default function Users({ isSaasMode = false }: UsersProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <UserStatsCard
-          title="Total Siswa"
-          value={stats.totalStudents}
-          caption="Total data siswa"
-          icon={GraduationCap}
-          iconColor="text-success"
-          bgColor="bg-success/10"
-        />
-        <UserStatsCard
-          title="Total Guru"
-          value={stats.totalTeachers}
-          caption="Tenaga pengajar"
-          icon={BookOpen}
-          iconColor="text-primary"
-          bgColor="bg-primary/10"
-        />
-        <UserStatsCard
-          title="Total Orang Tua"
-          value={stats.totalParents}
-          caption="Akun pendamping"
-          icon={UsersIcon}
-          iconColor="text-warning"
-          bgColor="bg-warning/10"
-        />
-        <UserStatsCard
-          title="Siswa Terhubung"
-          value={stats.linkedStudents}
-          caption="Sudah tertaut"
-          icon={UserCheck}
-          iconColor="text-info"
-          bgColor="bg-info/10"
-        />
-      </div>
+      {isLoading ? (
+        <StatCardsSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <UserStatsCard
+            title="Total Siswa"
+            value={stats.totalStudents}
+            caption="Total data siswa"
+            icon={GraduationCap}
+            iconColor="text-success"
+            bgColor="bg-success/10"
+          />
+          <UserStatsCard
+            title="Total Guru"
+            value={stats.totalTeachers}
+            caption="Tenaga pengajar"
+            icon={BookOpen}
+            iconColor="text-primary"
+            bgColor="bg-primary/10"
+          />
+          <UserStatsCard
+            title="Total Orang Tua"
+            value={stats.totalParents}
+            caption="Akun pendamping"
+            icon={UsersIcon}
+            iconColor="text-warning"
+            bgColor="bg-warning/10"
+          />
+          <UserStatsCard
+            title="Siswa Terhubung"
+            value={stats.linkedStudents}
+            caption="Sudah tertaut"
+            icon={UserCheck}
+            iconColor="text-info"
+            bgColor="bg-info/10"
+          />
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs
@@ -547,7 +557,10 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         onValueChange={(v) => setActiveTab(v as typeof activeTab)}
       >
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <TabsList className="grid w-full md:w-auto grid-cols-3 rounded-2xl border border-border/80 bg-card/70 p-1">
+          {isLoading ? (
+            <TabsSkeleton />
+          ) : (
+            <TabsList className="grid w-full md:w-auto grid-cols-3 rounded-2xl border border-border/80 bg-card/70 p-1">
             <TabsTrigger value="students" className="gap-2">
               <GraduationCap className="h-4 w-4" />
               <span className="hidden sm:inline">Siswa</span>
@@ -569,10 +582,14 @@ export default function Users({ isSaasMode = false }: UsersProps) {
                 {parents.length}
               </Badge>
             </TabsTrigger>
-          </TabsList>
+            </TabsList>
+          )}
 
           {/* Search & Filters */}
-          <div className="flex flex-col gap-2 sm:flex-row">
+          {isLoading ? (
+            <ToolbarSkeleton controls={2} />
+          ) : (
+            <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -629,18 +646,14 @@ export default function Users({ isSaasMode = false }: UsersProps) {
                 </Select>
               </>
             )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Students Tab */}
         <TabsContent value="students" className="mt-6">
           {isLoading ? (
-            <div
-              aria-live="polite"
-              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
-            >
-              Memuat data siswa…
-            </div>
+            <UserCardsSkeleton />
           ) : filteredStudents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <GraduationCap className="h-12 w-12 mb-4 opacity-50" />
@@ -683,12 +696,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         {/* Teachers Tab */}
         <TabsContent value="teachers" className="mt-6">
           {isLoading ? (
-            <div
-              aria-live="polite"
-              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
-            >
-              Memuat data guru…
-            </div>
+            <UserCardsSkeleton />
           ) : filteredTeachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BookOpen className="h-12 w-12 mb-4 opacity-50" />
@@ -722,12 +730,7 @@ export default function Users({ isSaasMode = false }: UsersProps) {
         {/* Parents Tab */}
         <TabsContent value="parents" className="mt-6">
           {isLoading ? (
-            <div
-              aria-live="polite"
-              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
-            >
-              Memuat data orang tua…
-            </div>
+            <UserCardsSkeleton />
           ) : filteredParents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <UsersIcon className="h-12 w-12 mb-4 opacity-50" />

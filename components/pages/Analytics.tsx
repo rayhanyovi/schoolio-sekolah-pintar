@@ -20,6 +20,12 @@ import {
   PieChart,
 } from "lucide-react";
 import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
+import {
+  ChartCardSkeleton,
+  ContentCardsSkeleton,
+  StatCardsSkeleton,
+  TabsSkeleton,
+} from "@/components/dashboard/PageSkeletons";
 import { useRoleContext } from "@/hooks/useRoleContext";
 import {
   BarChart,
@@ -77,8 +83,10 @@ export default function Analytics() {
   const [grades, setGrades] = useState<AnalyticsGrades | null>(null);
   const [demographics, setDemographics] =
     useState<AnalyticsDemographics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
       const [overviewResult, attendanceResult, gradesResult, demoResult] =
         await Promise.allSettled([
           getAnalyticsOverview(),
@@ -98,6 +106,7 @@ export default function Analytics() {
       if (demoResult.status === "fulfilled") {
         setDemographics(demoResult.value);
       }
+      setIsLoading(false);
     };
 
     loadData();
@@ -196,40 +205,47 @@ export default function Analytics() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <InfoStatCard
-          title="Total Siswa"
-          value={overview?.totalStudents ?? 0}
-          caption="Total data siswa"
-          icon={Users}
-        />
-        <InfoStatCard
-          title="Rata-rata Nilai"
-          value={weightedAverage.toFixed(1)}
-          caption="Rata-rata pengumpulan"
-          icon={Award}
-          iconColor="text-info"
-          iconBackground="bg-info/10"
-        />
-        <InfoStatCard
-          title="Tingkat Kehadiran"
-          value={`${attendanceRate}%`}
-          caption="Rasio hadir"
-          icon={CheckCircle}
-          iconColor="text-success"
-          iconBackground="bg-success/10"
-        />
-        <InfoStatCard
-          title="Catatan Tidak Hadir"
-          value={attendanceCounts.ABSENT}
-          caption="Rekap absensi"
-          icon={AlertTriangle}
-          iconColor="text-warning"
-          iconBackground="bg-warning/10"
-        />
-      </div>
+      {isLoading ? (
+        <StatCardsSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <InfoStatCard
+            title="Total Siswa"
+            value={overview?.totalStudents ?? 0}
+            caption="Total data siswa"
+            icon={Users}
+          />
+          <InfoStatCard
+            title="Rata-rata Nilai"
+            value={weightedAverage.toFixed(1)}
+            caption="Rata-rata pengumpulan"
+            icon={Award}
+            iconColor="text-info"
+            iconBackground="bg-info/10"
+          />
+          <InfoStatCard
+            title="Tingkat Kehadiran"
+            value={`${attendanceRate}%`}
+            caption="Rasio hadir"
+            icon={CheckCircle}
+            iconColor="text-success"
+            iconBackground="bg-success/10"
+          />
+          <InfoStatCard
+            title="Catatan Tidak Hadir"
+            value={attendanceCounts.ABSENT}
+            caption="Rekap absensi"
+            icon={AlertTriangle}
+            iconColor="text-warning"
+            iconBackground="bg-warning/10"
+          />
+        </div>
+      )}
 
       <Tabs defaultValue="attendance" className="space-y-6">
+        {isLoading ? (
+          <TabsSkeleton />
+        ) : (
         <TabsList className="rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger value="attendance" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
@@ -244,9 +260,20 @@ export default function Analytics() {
             Demografi
           </TabsTrigger>
         </TabsList>
+        )}
 
         {/* Attendance Tab */}
         <TabsContent value="attendance" className="space-y-6">
+          {isLoading ? (
+            <>
+              <ChartCardSkeleton />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ChartCardSkeleton height={240} />
+                <ContentCardsSkeleton count={4} className="grid-cols-1" compact />
+              </div>
+            </>
+          ) : (
+          <>
           <Card>
             <CardHeader>
               <CardTitle>Rekap Status Kehadiran</CardTitle>
@@ -357,6 +384,8 @@ export default function Analytics() {
               </CardContent>
             </Card>
           </div>
+          </>
+          )}
         </TabsContent>
 
         {/* Grades Tab */}

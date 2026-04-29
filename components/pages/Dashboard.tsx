@@ -5,6 +5,12 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { ScheduleCard } from "@/components/dashboard/ScheduleCard";
 import { AssignmentCard } from "@/components/dashboard/AssignmentCard";
 import {
+  AssignmentCardsSkeleton,
+  AttendanceWeekSkeleton,
+  ScheduleCardsSkeleton,
+  StatCardsSkeleton,
+} from "@/components/dashboard/PageSkeletons";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -357,15 +363,19 @@ export default function Dashboard() {
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat, index) => (
-          <div
-            key={stat.title}
-            className="animate-slide-up"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <StatCard {...stat} />
-          </div>
-        ))}
+        {isLoading ? (
+          <StatCardsSkeleton className="sm:col-span-2 xl:col-span-4" />
+        ) : (
+          stats.map((stat, index) => (
+            <div
+              key={stat.title}
+              className="animate-slide-up"
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <StatCard {...stat} />
+            </div>
+          ))
+        )}
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_1.3fr]">
@@ -391,9 +401,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoading ? (
-              <div className="rounded-[1.25rem] border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-                Memuat jadwal…
-              </div>
+              <ScheduleCardsSkeleton count={4} />
             ) : scheduleCards.length > 0 ? (
               scheduleCards.map((schedule, index) => (
                 <ScheduleCard key={`${schedule.subject}-${index}`} {...schedule} />
@@ -429,9 +437,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoading ? (
-              <div className="rounded-[1.25rem] border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-                Memuat tugas…
-              </div>
+              <AssignmentCardsSkeleton count={3} />
             ) : recentAssignments.length > 0 ? (
               recentAssignments.map((assignment, index) => (
                 <AssignmentCard key={`${assignment.title}-${index}`} {...assignment} />
@@ -468,33 +474,37 @@ export default function Dashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-            {attendanceSummary.map((item, index) => {
-              const attendance = item.value;
-              const stateClass =
-                attendance === null
-                  ? "border-border/70 bg-muted/45"
-                  : attendance >= 90
-                    ? "border-success/20 bg-success/8"
-                    : "border-warning/30 bg-warning/12";
+          {isLoading ? (
+            <AttendanceWeekSkeleton />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+              {attendanceSummary.map((item, index) => {
+                const attendance = item.value;
+                const stateClass =
+                  attendance === null
+                    ? "border-border/70 bg-muted/45"
+                    : attendance >= 90
+                      ? "border-success/20 bg-success/8"
+                      : "border-warning/30 bg-warning/12";
 
-              return (
-                <div
-                  key={`${item.label}-${index}`}
-                  className={`rounded-[1.25rem] border p-4 text-center ${stateClass}`}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    {item.label}
-                  </p>
-                  {attendance !== null ? (
-                    <p className="mt-3 text-2xl font-bold text-foreground">{attendance}%</p>
-                  ) : (
-                    <p className="mt-3 text-2xl font-bold text-muted-foreground">-</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                return (
+                  <div
+                    key={`${item.label}-${index}`}
+                    className={`rounded-[1.25rem] border p-4 text-center ${stateClass}`}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {item.label}
+                    </p>
+                    {attendance !== null ? (
+                      <p className="mt-3 text-2xl font-bold text-foreground">{attendance}%</p>
+                    ) : (
+                      <p className="mt-3 text-2xl font-bold text-muted-foreground">-</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

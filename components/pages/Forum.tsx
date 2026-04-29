@@ -9,6 +9,7 @@ import { ThreadCard } from "@/components/forum/ThreadCard";
 import { ThreadFormDialog } from "@/components/forum/ThreadFormDialog";
 import { ThreadDetailSheet } from "@/components/forum/ThreadDetailSheet";
 import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
+import { ThreadCardsSkeleton } from "@/components/dashboard/PageSkeletons";
 import {
   createThread,
   listThreads,
@@ -248,12 +249,7 @@ export default function Forum() {
         <TabsContent value={selectedSubject} className="mt-6">
           <div className="space-y-3">
             {isLoading ? (
-              <div
-                className="text-center py-12 text-muted-foreground"
-                aria-live="polite"
-              >
-                Memuat diskusi…
-              </div>
+              <ThreadCardsSkeleton />
             ) : (
               sortedThreads.map((thread) => (
                 <ThreadCard

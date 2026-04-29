@@ -779,7 +779,7 @@ export default function Schedules() {
                   className={cn(
                     "min-h-[100px] p-2 rounded-lg border text-left transition-all duration-200 flex flex-col",
                     isCurrentMonth
-                      ? "bg-card hover:bg-accent/50"
+                      ? "bg-card hover:bg-muted/40"
                       : "bg-muted/30 text-muted-foreground",
                     isToday && "ring-2 ring-primary ring-offset-2",
                     isSelected && "bg-primary/10 border-primary",

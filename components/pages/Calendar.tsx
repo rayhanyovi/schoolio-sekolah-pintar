@@ -16,6 +16,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
+import {
+  CalendarSkeleton,
+  StatCardsSkeleton,
+  TabsSkeleton,
+  ToolbarSkeleton,
+} from "@/components/dashboard/PageSkeletons";
 import { EventCard } from "@/components/calendar/EventCard";
 import { EventFormDialog } from "@/components/calendar/EventFormDialog";
 import {
@@ -199,50 +205,61 @@ export default function AcademicCalendar() {
     <div className="space-y-6 animate-fade-in">
       <section>
         <div className="flex justify-end">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <InfoStatCard
-              title="Total Event"
-              value={events.length}
-              caption="Seluruh agenda"
-              icon={CalendarDays}
-            />
-            <InfoStatCard
-              title="7 Hari Ke Depan"
-              value={upcomingEvents.length}
-              caption="Event terdekat"
-              icon={Clock}
-              iconColor="text-success"
-              iconBackground="bg-success/10"
-            />
-            <InfoStatCard
-              title="Tanggal Aktif"
-              value={selectedDateLabel}
-              caption="Filter kalender"
-              icon={ChevronRight}
-              iconColor="text-warning"
-              iconBackground="bg-warning/10"
-            />
-          </div>
+          {isLoading ? (
+            <StatCardsSkeleton count={3} className="w-full lg:max-w-4xl lg:grid-cols-3" />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <InfoStatCard
+                title="Total Event"
+                value={events.length}
+                caption="Seluruh agenda"
+                icon={CalendarDays}
+              />
+              <InfoStatCard
+                title="7 Hari Ke Depan"
+                value={upcomingEvents.length}
+                caption="Event terdekat"
+                icon={Clock}
+                iconColor="text-success"
+                iconBackground="bg-success/10"
+              />
+              <InfoStatCard
+                title="Tanggal Aktif"
+                value={selectedDateLabel}
+                caption="Filter kalender"
+                icon={ChevronRight}
+                iconColor="text-warning"
+                iconBackground="bg-warning/10"
+              />
+            </div>
+          )}
         </div>
       </section>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {canEdit && (
-          <Button
-            onClick={() => {
-              setSelectedEvent(null);
-              setFormDialogOpen(true);
-            }}
-            className="sm:ml-auto"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah Event
-          </Button>
-        )}
-      </div>
+      {isLoading ? (
+        <ToolbarSkeleton withSearch={false} controls={0} withButton={canEdit} />
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {canEdit && (
+            <Button
+              onClick={() => {
+                setSelectedEvent(null);
+                setFormDialogOpen(true);
+              }}
+              className="sm:ml-auto"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Event
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <Tabs defaultValue="all" onValueChange={setSelectedType}>
+        {isLoading ? (
+          <TabsSkeleton count={5} />
+        ) : (
         <TabsList className="h-auto w-full flex-nowrap overflow-x-auto rounded-2xl border border-border/80 bg-card/70 p-1">
           <TabsTrigger
             value="all"
@@ -260,8 +277,12 @@ export default function AcademicCalendar() {
             </TabsTrigger>
           ))}
         </TabsList>
+        )}
       </Tabs>
 
+      {isLoading ? (
+        <CalendarSkeleton showSidebar />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar */}
         <Card className="lg:col-span-2">
@@ -444,6 +465,7 @@ export default function AcademicCalendar() {
           </Card>
         </div>
       </div>
+      )}
 
       {/* Dialog */}
       <EventFormDialog

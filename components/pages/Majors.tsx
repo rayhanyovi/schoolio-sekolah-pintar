@@ -27,6 +27,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { UserCard } from "@/components/admin/UserCard";
+import {
+  ContentCardsSkeleton,
+  UserCardsSkeleton,
+} from "@/components/dashboard/PageSkeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -425,12 +429,7 @@ export default function Majors() {
 
         <TabsContent value="classes" className="mt-6">
           {isLoading ? (
-            <div
-              className="text-center py-10 text-muted-foreground"
-              aria-live="polite"
-            >
-              Memuat data kelas…
-            </div>
+            <ContentCardsSkeleton />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredClasses.map((item) => {
@@ -475,12 +474,7 @@ export default function Majors() {
 
         <TabsContent value="students" className="mt-6">
           {isLoading ? (
-            <div
-              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
-              aria-live="polite"
-            >
-              Memuat data siswa…
-            </div>
+            <UserCardsSkeleton />
           ) : filteredStudents.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <GraduationCap className="h-12 w-12 mb-4 opacity-50" />
@@ -508,12 +502,7 @@ export default function Majors() {
 
         <TabsContent value="teachers" className="mt-6">
           {isLoading ? (
-            <div
-              className="flex flex-col items-center justify-center py-12 text-muted-foreground"
-              aria-live="polite"
-            >
-              Memuat data guru…
-            </div>
+            <UserCardsSkeleton />
           ) : filteredTeachers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <BookOpen className="h-12 w-12 mb-4 opacity-50" />

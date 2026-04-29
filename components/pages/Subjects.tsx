@@ -10,6 +10,7 @@ import { Plus, Search, BookOpen, Users } from "lucide-react";
 import { SubjectCard } from "@/components/subjects/SubjectCard";
 import { SubjectFormDialog } from "@/components/subjects/SubjectFormDialog";
 import { AssignTeacherDialog } from "@/components/subjects/AssignTeacherDialog";
+import { ContentCardsSkeleton } from "@/components/dashboard/PageSkeletons";
 import {
   createSubject,
   deleteSubject,
@@ -257,9 +258,7 @@ export default function Subjects() {
 
         <TabsContent value={selectedCategory} className="mt-6">
           {isLoading ? (
-            <div aria-live="polite" className="text-center py-12 text-muted-foreground">
-              Memuat data mata pelajaran…
-            </div>
+            <ContentCardsSkeleton />
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -38,6 +38,7 @@ import { useRoleContext } from "@/hooks/useRoleContext";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
+import { ContentCardsSkeleton } from "@/components/dashboard/PageSkeletons";
 
 const NOTE_COLORS = [
   "bg-blue-100 dark:bg-blue-900/30",
@@ -276,12 +277,7 @@ export default function Notes() {
 
         <TabsContent value={activeTab} className="mt-6">
           {isLoading ? (
-            <div
-              className="text-center py-12 text-muted-foreground"
-              aria-live="polite"
-            >
-              Memuat catatan…
-            </div>
+            <ContentCardsSkeleton />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {sortedNotes.map((note) => (

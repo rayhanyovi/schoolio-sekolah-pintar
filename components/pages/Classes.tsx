@@ -10,6 +10,11 @@ import { ClassFormDialog } from "@/components/classes/ClassFormDialog";
 import { ClassDetailSheet } from "@/components/classes/ClassDetailSheet";
 import { InfoStatCard } from "@/components/dashboard/InfoStatCard";
 import {
+  ContentCardsSkeleton,
+  StatCardsSkeleton,
+  TabsSkeleton,
+} from "@/components/dashboard/PageSkeletons";
+import {
   createClass,
   deleteClass,
   listClasses,
@@ -169,30 +174,34 @@ export default function Classes() {
     <div className="space-y-6 animate-fade-in">
       <section>
         <div className="flex justify-end">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <InfoStatCard
-              title="Total Kelas"
-              value={classes.length}
-              caption="Unit kelas aktif"
-              icon={School}
-            />
-            <InfoStatCard
-              title="Total Siswa"
-              value={totalStudents}
-              caption="Populasi siswa"
-              icon={Users}
-              iconColor="text-success"
-              iconBackground="bg-success/10"
-            />
-            <InfoStatCard
-              title="Rata-rata Siswa"
-              value={avgStudentsPerClass}
-              caption="Per kelas"
-              icon={Sigma}
-              iconColor="text-warning"
-              iconBackground="bg-warning/10"
-            />
-          </div>
+          {isLoading ? (
+            <StatCardsSkeleton count={3} className="w-full lg:max-w-4xl lg:grid-cols-3" />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <InfoStatCard
+                title="Total Kelas"
+                value={classes.length}
+                caption="Unit kelas aktif"
+                icon={School}
+              />
+              <InfoStatCard
+                title="Total Siswa"
+                value={totalStudents}
+                caption="Populasi siswa"
+                icon={Users}
+                iconColor="text-success"
+                iconBackground="bg-success/10"
+              />
+              <InfoStatCard
+                title="Rata-rata Siswa"
+                value={avgStudentsPerClass}
+                caption="Per kelas"
+                icon={Sigma}
+                iconColor="text-warning"
+                iconBackground="bg-warning/10"
+              />
+            </div>
+          )}
         </div>
       </section>
 
@@ -227,23 +236,22 @@ export default function Classes() {
 
       {/* Tabs by Grade */}
       <Tabs defaultValue="all" onValueChange={setSelectedGrade}>
-        <TabsList className="flex-wrap rounded-2xl border border-border/80 bg-card/70 p-1">
-          <TabsTrigger value="all">Semua</TabsTrigger>
-          {availableGrades.map((grade) => (
-            <TabsTrigger key={grade} value={grade.toString()}>
-              Kelas {grade}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {isLoading ? (
+          <TabsSkeleton />
+        ) : (
+          <TabsList className="flex-wrap rounded-2xl border border-border/80 bg-card/70 p-1">
+            <TabsTrigger value="all">Semua</TabsTrigger>
+            {availableGrades.map((grade) => (
+              <TabsTrigger key={grade} value={grade.toString()}>
+                Kelas {grade}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        )}
 
         <TabsContent value={selectedGrade} className="mt-6">
           {isLoading ? (
-            <div
-              className="text-center py-12 text-muted-foreground"
-              aria-live="polite"
-            >
-              Memuat data kelas…
-            </div>
+            <ContentCardsSkeleton />
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
