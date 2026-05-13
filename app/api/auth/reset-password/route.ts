@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
-import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import { jsonOk, parseJsonBody } from "@/lib/api";
+import { jsonAuthError, jsonUnexpectedAuthError } from "@/lib/auth-error-response";
 import { recordAudit } from "@/lib/audit";
 import { isSaasMode } from "@/lib/app-mode";
 import {
@@ -31,7 +32,14 @@ const resetPasswordSchema = z
 
 export async function POST(request: NextRequest) {
   if (isDemoModeEnabled()) {
-    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+    return jsonAuthError(
+      request,
+      "reset-password",
+      "FORBIDDEN",
+      DEMO_MODE_FORBIDDEN_MESSAGE,
+      403,
+      "demo_mode_enabled"
+    );
   }
 
   const rateLimitError = enforceRateLimit(
@@ -41,10 +49,13 @@ export async function POST(request: NextRequest) {
   if (rateLimitError) return rateLimitError;
 
   if (!isSaasMode()) {
-    return jsonError(
+    return jsonAuthError(
+      request,
+      "reset-password",
       "FORBIDDEN",
       "Reset password via email hanya tersedia di mode SaaS",
-      403
+      403,
+      "self_host_mode"
     );
   }
 
@@ -52,82 +63,93 @@ export async function POST(request: NextRequest) {
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;
 
-  const tokenHash = hashPasswordResetToken(body.token);
-  const resetToken = await prisma.passwordResetToken.findUnique({
-    where: { tokenHash },
-    select: {
-      id: true,
-      credentialId: true,
-      expiresAt: true,
-      usedAt: true,
-      credential: {
-        select: {
-          user: {
-            select: {
-              id: true,
-              role: true,
-              email: true,
+  try {
+    const tokenHash = hashPasswordResetToken(body.token);
+    const resetToken = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      select: {
+        id: true,
+        credentialId: true,
+        expiresAt: true,
+        usedAt: true,
+        credential: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                role: true,
+                email: true,
+              },
             },
           },
         },
       },
-    },
-  });
-  if (
-    !resetToken ||
-    resetToken.usedAt ||
-    isPasswordResetTokenExpired(resetToken.expiresAt)
-  ) {
-    return jsonError("FORBIDDEN", "Token reset password tidak valid", 403);
+    });
+    if (
+      !resetToken ||
+      resetToken.usedAt ||
+      isPasswordResetTokenExpired(resetToken.expiresAt)
+    ) {
+      return jsonAuthError(
+        request,
+        "reset-password",
+        "FORBIDDEN",
+        "Token reset password tidak valid",
+        403,
+        "reset_token_invalid_or_expired"
+      );
+    }
+
+    const password = await hashPassword(body.password);
+    await prisma.$transaction(async (tx) => {
+      const usedAt = new Date();
+
+      await tx.authCredential.update({
+        where: { id: resetToken.credentialId },
+        data: {
+          passwordHash: password.passwordHash,
+          passwordSalt: password.passwordSalt,
+          mustChangePassword: false,
+          isDefaultPassword: false,
+        },
+      });
+
+      await tx.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { usedAt },
+      });
+
+      await invalidateOutstandingPasswordResetTokens(tx, resetToken.credentialId, {
+        usedAt,
+        exceptTokenId: resetToken.id,
+      });
+
+      await recordAudit(
+        {
+          userId: resetToken.credential.user.id,
+          role: resetToken.credential.user.role,
+        },
+        {
+          action: "AUTH_PASSWORD_RESET_COMPLETED",
+          entityType: "User",
+          entityId: resetToken.credential.user.id,
+          beforeData: null,
+          afterData: {
+            id: resetToken.credential.user.id,
+            email: resetToken.credential.user.email,
+            resetTokenId: resetToken.id,
+          },
+          metadata: {
+            credentialId: resetToken.credentialId,
+            tokenExpiresAt: resetToken.expiresAt,
+          },
+        },
+        tx
+      );
+    });
+  } catch (error) {
+    return jsonUnexpectedAuthError(request, "reset-password", error);
   }
-
-  const password = await hashPassword(body.password);
-  await prisma.$transaction(async (tx) => {
-    const usedAt = new Date();
-
-    await tx.authCredential.update({
-      where: { id: resetToken.credentialId },
-      data: {
-        passwordHash: password.passwordHash,
-        passwordSalt: password.passwordSalt,
-        mustChangePassword: false,
-        isDefaultPassword: false,
-      },
-    });
-
-    await tx.passwordResetToken.update({
-      where: { id: resetToken.id },
-      data: { usedAt },
-    });
-
-    await invalidateOutstandingPasswordResetTokens(tx, resetToken.credentialId, {
-      usedAt,
-      exceptTokenId: resetToken.id,
-    });
-
-    await recordAudit(
-      {
-        userId: resetToken.credential.user.id,
-        role: resetToken.credential.user.role,
-      },
-      {
-        action: "AUTH_PASSWORD_RESET_COMPLETED",
-        entityType: "User",
-        entityId: resetToken.credential.user.id,
-        beforeData: null,
-        afterData: {
-          id: resetToken.credential.user.id,
-          email: resetToken.credential.user.email,
-          resetTokenId: resetToken.id,
-        },
-        metadata: {
-          credentialId: resetToken.credentialId,
-          tokenExpiresAt: resetToken.expiresAt,
-        },
-      },
-      tx
-    );
-  });
 
   return jsonOk({ success: true });
 }

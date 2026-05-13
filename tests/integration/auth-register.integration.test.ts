@@ -36,12 +36,27 @@ const buildTransactionMock = () => ({
 });
 
 describe("auth register route", () => {
+  const originalDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
+
   beforeEach(() => {
     vi.resetAllMocks();
+    delete process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
     vi.mocked(hashPassword).mockResolvedValue({
       passwordHash: "hash",
       passwordSalt: "salt",
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  afterAll(() => {
+    if (originalDemoMode === undefined) {
+      delete process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED;
+    } else {
+      process.env.NEXT_PUBLIC_DEMO_MODE_ENABLED = originalDemoMode;
+    }
   });
 
   it("membuat akun baru tanpa memilih role saat register", async () => {
@@ -99,6 +114,11 @@ describe("auth register route", () => {
 
     expect(response.status).toBe(409);
     expect(payload.error.code).toBe("CONFLICT");
+    expect(payload.error.details).toMatchObject({
+      operation: "register",
+      reason: "identifier_already_registered",
+      field: "email",
+    });
   });
 
   it("menolak payload jika konfirmasi password tidak cocok", async () => {
@@ -117,6 +137,10 @@ describe("auth register route", () => {
 
     expect(response.status).toBe(400);
     expect(payload.error.code).toBe("VALIDATION_ERROR");
+    expect(payload.error.details).toMatchObject({
+      reason: "schema_validation_failed",
+    });
+    expect(payload.error.details.issues[0].path).toEqual(["confirmPassword"]);
   });
 
   it("register parent via invite code valid akan langsung role parent", async () => {
@@ -165,5 +189,38 @@ describe("auth register route", () => {
     expect(payload.data.roleSelectionRequired).toBe(false);
     expect(tx.parentStudent.create).toHaveBeenCalledTimes(1);
     expect(tx.parentInvite.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("mengembalikan detail diagnostik saat register gagal tidak terduga", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.mocked(prisma.authCredential.findUnique).mockRejectedValue(
+      new Error("database timeout") as never
+    );
+
+    const request = new Request("http://localhost/api/auth/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: "baru-error@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+      }),
+    });
+
+    const response = await register(request as never);
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.error.code).toBe("CONFLICT");
+    expect(payload.error.message).toBe("Gagal memproses registrasi");
+    expect(payload.error.details).toMatchObject({
+      operation: "register",
+      reason: "unexpected_error",
+      debugMessage: "database timeout",
+    });
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("operation=register"),
+      expect.any(Error)
+    );
   });
 });

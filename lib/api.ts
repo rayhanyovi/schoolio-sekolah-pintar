@@ -14,9 +14,24 @@ export const isMockEnabled = () => process.env.DEBUG_WITH_MOCK_DATA === "true";
 export const jsonOk = <T>(data: T, init?: ResponseInit) =>
   NextResponse.json({ data }, init);
 
-export const jsonError = (code: string, message: string, status = 400) => {
+type JsonErrorOptions = {
+  details?: unknown;
+};
+
+export const jsonError = (
+  code: string,
+  message: string,
+  status = 400,
+  options: JsonErrorOptions = {},
+) => {
   const severity = monitorApiError({ code, message, status });
-  return NextResponse.json({ error: { code, message, severity } }, { status });
+  const error = {
+    code,
+    message,
+    severity,
+    ...(options.details === undefined ? {} : { details: options.details }),
+  };
+  return NextResponse.json({ error }, { status });
 };
 
 export const parseNumber = (value: string | null) => {
@@ -71,7 +86,9 @@ export const parseJsonBody = async <T>(
   try {
     payload = await request.json();
   } catch {
-    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400);
+    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400, {
+      details: { reason: "invalid_json" },
+    });
   }
 
   const parsed = schema.safeParse(payload);
@@ -80,6 +97,16 @@ export const parseJsonBody = async <T>(
       "VALIDATION_ERROR",
       toValidationMessage(parsed.error),
       400,
+      {
+        details: {
+          reason: "schema_validation_failed",
+          issues: parsed.error.issues.map((issue) => ({
+            code: issue.code,
+            message: issue.message,
+            path: issue.path.map(String),
+          })),
+        },
+      },
     );
   }
   return parsed.data;
@@ -99,7 +126,9 @@ export const parseJsonRecordBodyAllowEmpty = async (
   try {
     rawBody = await request.text();
   } catch {
-    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400);
+    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400, {
+      details: { reason: "invalid_json" },
+    });
   }
 
   if (!rawBody.trim()) {
@@ -110,7 +139,9 @@ export const parseJsonRecordBodyAllowEmpty = async (
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400);
+    return jsonError("VALIDATION_ERROR", "Body JSON tidak valid", 400, {
+      details: { reason: "invalid_json" },
+    });
   }
 
   const parsed = z.record(z.unknown()).safeParse(payload);
@@ -119,6 +150,16 @@ export const parseJsonRecordBodyAllowEmpty = async (
       "VALIDATION_ERROR",
       toValidationMessage(parsed.error),
       400,
+      {
+        details: {
+          reason: "schema_validation_failed",
+          issues: parsed.error.issues.map((issue) => ({
+            code: issue.code,
+            message: issue.message,
+            path: issue.path.map(String),
+          })),
+        },
+      },
     );
   }
   return parsed.data;

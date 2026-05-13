@@ -3,12 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import {
-  jsonError,
   jsonOk,
   parseJsonBody,
   requireAuth,
   requireRole,
 } from "@/lib/api";
+import { jsonAuthError, jsonUnexpectedAuthError } from "@/lib/auth-error-response";
 import { recordAudit } from "@/lib/audit";
 import { ROLES } from "@/lib/constants";
 import {
@@ -40,7 +40,14 @@ export async function POST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (auth instanceof Response) return auth;
   if (isDemoModeEnabled() && auth.isDemo) {
-    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+    return jsonAuthError(
+      request,
+      "change-password",
+      "FORBIDDEN",
+      DEMO_MODE_FORBIDDEN_MESSAGE,
+      403,
+      "demo_mode_enabled"
+    );
   }
   const roleError = requireRole(auth, [
     ROLES.ADMIN,
@@ -60,103 +67,124 @@ export async function POST(request: NextRequest) {
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;
 
-  const credential = await prisma.authCredential.findUnique({
-    where: { userId: auth.userId },
-    select: {
-      id: true,
-      passwordSalt: true,
-      passwordHash: true,
-      mustChangePassword: true,
-      isDefaultPassword: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          role: true,
-          schoolId: true,
-          onboardingCompletedAt: true,
+  try {
+    const credential = await prisma.authCredential.findUnique({
+      where: { userId: auth.userId },
+      select: {
+        id: true,
+        passwordSalt: true,
+        passwordHash: true,
+        mustChangePassword: true,
+        isDefaultPassword: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            schoolId: true,
+            onboardingCompletedAt: true,
+          },
         },
-      },
-    },
-  });
-  if (!credential) {
-    return jsonError("UNAUTHORIZED", "Akun belum memiliki kredensial login", 401);
-  }
-
-  const isCurrentPasswordValid = await verifyPassword(
-    body.currentPassword,
-    credential.passwordSalt,
-    credential.passwordHash
-  );
-  if (!isCurrentPasswordValid) {
-    return jsonError("UNAUTHORIZED", "Password saat ini tidak valid", 401);
-  }
-
-  const isSameAsCurrent = await verifyPassword(
-    body.newPassword,
-    credential.passwordSalt,
-    credential.passwordHash
-  );
-  if (isSameAsCurrent) {
-    return jsonError(
-      "VALIDATION_ERROR",
-      "Password baru harus berbeda dari password lama",
-      400
-    );
-  }
-
-  const password = await hashPassword(body.newPassword);
-  await prisma.$transaction(async (tx) => {
-    await tx.authCredential.update({
-      where: { id: credential.id },
-      data: {
-        passwordHash: password.passwordHash,
-        passwordSalt: password.passwordSalt,
-        mustChangePassword: false,
-        isDefaultPassword: false,
       },
     });
+    if (!credential) {
+      return jsonAuthError(
+        request,
+        "change-password",
+        "UNAUTHORIZED",
+        "Akun belum memiliki kredensial login",
+        401,
+        "missing_credential"
+      );
+    }
 
-    await invalidateOutstandingPasswordResetTokens(tx, credential.id);
+    const isCurrentPasswordValid = await verifyPassword(
+      body.currentPassword,
+      credential.passwordSalt,
+      credential.passwordHash
+    );
+    if (!isCurrentPasswordValid) {
+      return jsonAuthError(
+        request,
+        "change-password",
+        "UNAUTHORIZED",
+        "Password saat ini tidak valid",
+        401,
+        "current_password_invalid"
+      );
+    }
 
-    await recordAudit(
-      auth,
-      {
-        action: "AUTH_PASSWORD_CHANGED",
-        entityType: "User",
-        entityId: auth.userId,
-        beforeData: {
-          mustChangePassword: credential.mustChangePassword,
-          isDefaultPassword: credential.isDefaultPassword,
-        },
-        afterData: {
+    const isSameAsCurrent = await verifyPassword(
+      body.newPassword,
+      credential.passwordSalt,
+      credential.passwordHash
+    );
+    if (isSameAsCurrent) {
+      return jsonAuthError(
+        request,
+        "change-password",
+        "VALIDATION_ERROR",
+        "Password baru harus berbeda dari password lama",
+        400,
+        "new_password_same_as_current"
+      );
+    }
+
+    const password = await hashPassword(body.newPassword);
+    await prisma.$transaction(async (tx) => {
+      await tx.authCredential.update({
+        where: { id: credential.id },
+        data: {
+          passwordHash: password.passwordHash,
+          passwordSalt: password.passwordSalt,
           mustChangePassword: false,
           isDefaultPassword: false,
         },
-        metadata: {
-          credentialId: credential.id,
+      });
+
+      await invalidateOutstandingPasswordResetTokens(tx, credential.id);
+
+      await recordAudit(
+        auth,
+        {
+          action: "AUTH_PASSWORD_CHANGED",
+          entityType: "User",
+          entityId: auth.userId,
+          beforeData: {
+            mustChangePassword: credential.mustChangePassword,
+            isDefaultPassword: credential.isDefaultPassword,
+          },
+          afterData: {
+            mustChangePassword: false,
+            isDefaultPassword: false,
+          },
+          metadata: {
+            credentialId: credential.id,
+          },
         },
-      },
-      tx
-    );
-  });
+        tx
+      );
+    });
 
-  const onboardingCompleted = Boolean(credential.user.onboardingCompletedAt);
-  const token = await createSessionToken({
-    userId: credential.user.id,
-    name: credential.user.name,
-    role: credential.user.role,
-    canUseDebugPanel: auth.canUseDebugPanel,
-    onboardingCompleted,
-    schoolId: credential.user.schoolId,
-    mustChangePassword: false,
-  });
+    const onboardingCompleted = Boolean(credential.user.onboardingCompletedAt);
+    const token = await createSessionToken({
+      userId: credential.user.id,
+      name: credential.user.name,
+      role: credential.user.role,
+      canUseDebugPanel: auth.canUseDebugPanel,
+      onboardingCompleted,
+      schoolId: credential.user.schoolId,
+      mustChangePassword: false,
+    });
 
-  const response = jsonOk({
-    success: true,
-    mustChangePassword: false,
-    onboardingCompleted,
-  });
-  response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
-  return response;
+    const response = jsonOk({
+      success: true,
+      mustChangePassword: false,
+      onboardingCompleted,
+    });
+    response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+    return response;
+  } catch (error) {
+    return jsonUnexpectedAuthError(request, "change-password", error);
+  }
 }

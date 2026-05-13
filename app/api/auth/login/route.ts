@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { jsonError, jsonOk } from "@/lib/api";
+import { jsonOk } from "@/lib/api";
+import { jsonAuthError, jsonUnexpectedAuthError } from "@/lib/auth-error-response";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { normalizeCredentialIdentifier } from "@/lib/auth-credential";
@@ -23,25 +24,53 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   if (isDemoModeEnabled()) {
-    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+    return jsonAuthError(
+      request,
+      "login",
+      "FORBIDDEN",
+      DEMO_MODE_FORBIDDEN_MESSAGE,
+      403,
+      "demo_mode_enabled"
+    );
   }
 
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
-    return jsonError("VALIDATION_ERROR", "Invalid request payload");
+    return jsonAuthError(
+      request,
+      "login",
+      "VALIDATION_ERROR",
+      "Invalid request payload",
+      400,
+      "invalid_json"
+    );
   }
 
   const parsed = loginSchema.safeParse(rawBody);
   if (!parsed.success) {
-    return jsonError("VALIDATION_ERROR", "identifier and password are required");
+    return jsonAuthError(
+      request,
+      "login",
+      "VALIDATION_ERROR",
+      "identifier and password are required",
+      400,
+      "schema_validation_failed"
+    );
   }
 
   const identifierSource = parsed.data.identifier ?? parsed.data.username ?? "";
   const identifier = normalizeCredentialIdentifier(identifierSource);
   if (!identifier) {
-    return jsonError("VALIDATION_ERROR", "identifier and password are required");
+    return jsonAuthError(
+      request,
+      "login",
+      "VALIDATION_ERROR",
+      "identifier and password are required",
+      400,
+      "missing_identifier"
+    );
   }
   const rateLimitError = enforceRateLimit(
     request,
@@ -50,64 +79,82 @@ export async function POST(request: NextRequest) {
   );
   if (rateLimitError) return rateLimitError;
 
-  const credential = await prisma.authCredential.findUnique({
-    where: { identifier },
-    select: {
-      id: true,
-      passwordSalt: true,
-      passwordHash: true,
-      mustChangePassword: true,
-      isDefaultPassword: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          role: true,
-          onboardingCompletedAt: true,
-          schoolId: true,
+  try {
+    const credential = await prisma.authCredential.findUnique({
+      where: { identifier },
+      select: {
+        id: true,
+        passwordSalt: true,
+        passwordHash: true,
+        mustChangePassword: true,
+        isDefaultPassword: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+            onboardingCompletedAt: true,
+            schoolId: true,
+          },
         },
       },
-    },
-  });
-  if (!credential) {
-    return jsonError("UNAUTHORIZED", "Username atau kata sandi salah", 401);
-  }
+    });
+    if (!credential) {
+      return jsonAuthError(
+        request,
+        "login",
+        "UNAUTHORIZED",
+        "Username atau kata sandi salah",
+        401,
+        "invalid_credentials"
+      );
+    }
 
-  const isValidPassword = await verifyPassword(
-    parsed.data.password,
-    credential.passwordSalt,
-    credential.passwordHash
-  );
-  if (!isValidPassword) {
-    return jsonError("UNAUTHORIZED", "Username atau kata sandi salah", 401);
-  }
+    const isValidPassword = await verifyPassword(
+      parsed.data.password,
+      credential.passwordSalt,
+      credential.passwordHash
+    );
+    if (!isValidPassword) {
+      return jsonAuthError(
+        request,
+        "login",
+        "UNAUTHORIZED",
+        "Username atau kata sandi salah",
+        401,
+        "invalid_credentials"
+      );
+    }
 
-  const onboardingCompleted = Boolean(credential.user.onboardingCompletedAt);
-  const mustChangePassword =
-    credential.mustChangePassword || credential.isDefaultPassword;
+    const onboardingCompleted = Boolean(credential.user.onboardingCompletedAt);
+    const mustChangePassword =
+      credential.mustChangePassword || credential.isDefaultPassword;
 
-  const token = await createSessionToken({
-    userId: credential.user.id,
-    name: credential.user.name,
-    role: credential.user.role,
-    canUseDebugPanel: false,
-    onboardingCompleted,
-    schoolId: credential.user.schoolId,
-    mustChangePassword,
-  });
-
-  const response = jsonOk({
-    user: {
-      id: credential.user.id,
+    const token = await createSessionToken({
+      userId: credential.user.id,
       name: credential.user.name,
       role: credential.user.role,
-    },
-    canUseDebugPanel: false,
-    onboardingCompleted,
-    schoolId: credential.user.schoolId,
-    mustChangePassword,
-  });
+      canUseDebugPanel: false,
+      onboardingCompleted,
+      schoolId: credential.user.schoolId,
+      mustChangePassword,
+    });
 
-  response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
-  return response;
+    const response = jsonOk({
+      user: {
+        id: credential.user.id,
+        name: credential.user.name,
+        role: credential.user.role,
+      },
+      canUseDebugPanel: false,
+      onboardingCompleted,
+      schoolId: credential.user.schoolId,
+      mustChangePassword,
+    });
+
+    response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
+    return response;
+  } catch (error) {
+    return jsonUnexpectedAuthError(request, "login", error);
+  }
 }

@@ -24,6 +24,7 @@ copy .env.saas.example .env.saas
    - `APP_MODE=self_host`
    - `DATABASE_URL=postgresql://...`
    - `CSRF_COOKIE_SECURE=false` jika app diakses via HTTP di intranet
+   - `AUTH_ERROR_DEBUG=true` sementara saat debug error auth/register
 2. Jalankan DB lokal:
 ```bash
 docker compose up -d db

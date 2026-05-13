@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  CSRF_COOKIE_NAME,
+  CSRF_HEADER_NAME,
   getOrCreateRequestCsrfToken,
   hasValidCsrfTokenPair,
   isSafeCsrfMethod,
@@ -85,6 +87,14 @@ const buildCsrfApiResponse = (request: NextRequest, correlationId: string) =>
         error: {
           code: "FORBIDDEN",
           message: "Token CSRF tidak valid",
+          details: {
+            reason: "csrf_cookie_header_missing_or_mismatch",
+            correlationId,
+            csrfCookiePresent: Boolean(
+              request.cookies.get(CSRF_COOKIE_NAME)?.value
+            ),
+            csrfHeaderPresent: Boolean(request.headers.get(CSRF_HEADER_NAME)),
+          },
         },
       },
       { status: 403 }

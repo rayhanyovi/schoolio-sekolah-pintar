@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import { jsonOk, parseJsonBody } from "@/lib/api";
+import { jsonAuthError, jsonUnexpectedAuthError } from "@/lib/auth-error-response";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { normalizeCredentialIdentifier } from "@/lib/auth-credential";
@@ -35,7 +35,14 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   if (isDemoModeEnabled()) {
-    return jsonError("FORBIDDEN", DEMO_MODE_FORBIDDEN_MESSAGE, 403);
+    return jsonAuthError(
+      request,
+      "register",
+      "FORBIDDEN",
+      DEMO_MODE_FORBIDDEN_MESSAGE,
+      403,
+      "demo_mode_enabled"
+    );
   }
 
   const parsedBody = await parseJsonBody(request, registerSchema);
@@ -44,7 +51,15 @@ export async function POST(request: NextRequest) {
   const identifier = normalizeCredentialIdentifier(body.email);
 
   if (!identifier) {
-    return jsonError("VALIDATION_ERROR", "email wajib diisi", 400);
+    return jsonAuthError(
+      request,
+      "register",
+      "VALIDATION_ERROR",
+      "email wajib diisi",
+      400,
+      "missing_identifier",
+      { field: "email" }
+    );
   }
   const rateLimitError = enforceRateLimit(
     request,
@@ -59,7 +74,15 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
     if (existingCredential) {
-      return jsonError("CONFLICT", "Identifier sudah terdaftar", 409);
+      return jsonAuthError(
+        request,
+        "register",
+        "CONFLICT",
+        "Identifier sudah terdaftar",
+        409,
+        "identifier_already_registered",
+        { field: "email" }
+      );
     }
 
     const rawParentInviteCode = body.parentInviteCode?.trim() ?? "";
@@ -183,7 +206,14 @@ export async function POST(request: NextRequest) {
       return user;
     });
     if (!created) {
-      return jsonError("FORBIDDEN", "Kode undangan orang tua tidak valid", 403);
+      return jsonAuthError(
+        request,
+        "register",
+        "FORBIDDEN",
+        "Kode undangan orang tua tidak valid",
+        403,
+        "parent_invite_invalid_or_expired"
+      );
     }
 
     const onboardingCompleted = Boolean(created.onboardingCompletedAt);
@@ -217,18 +247,8 @@ export async function POST(request: NextRequest) {
     response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions);
     return response;
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return jsonError("CONFLICT", "Identifier sudah terdaftar", 409);
-    }
-    if (error instanceof Prisma.PrismaClientInitializationError) {
-      return jsonError("CONFLICT", "Layanan database belum tersedia", 503);
-    }
-    if (error instanceof Prisma.PrismaClientUnknownRequestError) {
-      return jsonError("CONFLICT", "Gagal mengakses database", 500);
-    }
-    throw error;
+    return jsonUnexpectedAuthError(request, "register", error, {
+      uniqueConflictMessage: "Identifier sudah terdaftar",
+    });
   }
 }

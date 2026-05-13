@@ -8,6 +8,7 @@ import {
   requireRole,
   requireSchoolContext,
 } from "@/lib/api";
+import { jsonUnexpectedAuthError } from "@/lib/auth-error-response";
 import { ROLES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -27,45 +28,49 @@ export async function POST(request: NextRequest) {
   if (parsedBody instanceof Response) return parsedBody;
   const body = parsedBody;
 
-  const student = await prisma.user.findFirst({
-    where: {
-      id: body.studentId,
-      role: ROLES.STUDENT,
-      schoolId,
-    },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
-  if (!student) {
-    return jsonError("NOT_FOUND", "Siswa tidak ditemukan", 404);
-  }
-
-  const existing = await prisma.parentStudent.findUnique({
-    where: {
-      parentId_studentId: {
-        parentId: auth.userId,
-        studentId: student.id,
+  try {
+    const student = await prisma.user.findFirst({
+      where: {
+        id: body.studentId,
+        role: ROLES.STUDENT,
+        schoolId,
       },
-    },
-    select: { parentId: true },
-  });
-
-  if (!existing) {
-    await prisma.parentStudent.create({
-      data: {
-        parentId: auth.userId,
-        studentId: student.id,
+      select: {
+        id: true,
+        name: true,
       },
     });
-  }
+    if (!student) {
+      return jsonError("NOT_FOUND", "Siswa tidak ditemukan", 404);
+    }
 
-  return jsonOk({
-    linked: true,
-    child: {
-      id: student.id,
-      name: student.name,
-    },
-  });
+    const existing = await prisma.parentStudent.findUnique({
+      where: {
+        parentId_studentId: {
+          parentId: auth.userId,
+          studentId: student.id,
+        },
+      },
+      select: { parentId: true },
+    });
+
+    if (!existing) {
+      await prisma.parentStudent.create({
+        data: {
+          parentId: auth.userId,
+          studentId: student.id,
+        },
+      });
+    }
+
+    return jsonOk({
+      linked: true,
+      child: {
+        id: student.id,
+        name: student.name,
+      },
+    });
+  } catch (error) {
+    return jsonUnexpectedAuthError(request, "onboarding-link-child", error);
+  }
 }
