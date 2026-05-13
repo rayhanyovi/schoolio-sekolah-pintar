@@ -11,15 +11,16 @@ Project ini mendukung dua mode deployment:
 
 ## Setup Environment
 
-1. Copy env template:
+1. Copy env template sesuai mode:
 ```bash
-copy .env.example .env
+copy .env.self-host.example .env.self-host
+copy .env.saas.example .env.saas
 ```
-2. Isi variabel sesuai mode yang dipakai.
+2. Isi variabel di file mode yang dipakai.
 
 ## Self-Host Quickstart
 
-1. Set di `.env`:
+1. Set di `.env.self-host`:
    - `APP_MODE=self_host`
    - `DATABASE_URL=postgresql://...`
 2. Jalankan DB lokal:
@@ -29,29 +30,29 @@ docker compose up -d db
 3. Install + migrate:
 ```bash
 npm install
-npm run prisma:generate
-npm run prisma:migrate
+npm run prisma:generate:self-host
+npm run prisma:migrate:self-host
 ```
 4. Jalankan app:
 ```bash
-npm run dev
+npm run dev:self-host
 ```
 
 ## SaaS Quickstart (Supabase)
 
-1. Set di `.env`:
+1. Set di `.env.saas`:
    - `APP_MODE=saas`
    - `SUPABASE_DATABASE_URL=postgresql://...` (recommended)
    - `SESSION_SECRET=<secret-production>`
 2. Install + migrate:
 ```bash
 npm install
-npm run prisma:generate
-npm run prisma:migrate
+npm run prisma:generate:saas
+npm run prisma:migrate:saas
 ```
 3. Jalankan app:
 ```bash
-npm run dev
+npm run dev:saas
 ```
 
 ## Utility Scripts

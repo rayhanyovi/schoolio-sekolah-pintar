@@ -4,16 +4,30 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:self-host": "node scripts/run-with-env.mjs .env.self-host -- next dev",
+    "dev:saas": "node scripts/run-with-env.mjs .env.saas -- next dev",
     "build": "prisma generate && next build",
+    "build:self-host": "node scripts/run-with-env.mjs .env.self-host -- npm run build",
+    "build:saas": "node scripts/run-with-env.mjs .env.saas -- npm run build",
     "start": "next start",
+    "start:self-host": "node scripts/run-with-env.mjs .env.self-host -- next start",
+    "start:saas": "node scripts/run-with-env.mjs .env.saas -- next start",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:release-authz-integrity": "node scripts/release-gate-authz-integrity.mjs",
     "prisma:generate": "prisma generate",
+    "prisma:generate:self-host": "node scripts/run-with-env.mjs .env.self-host -- prisma generate",
+    "prisma:generate:saas": "node scripts/run-with-env.mjs .env.saas -- prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:self-host": "node scripts/run-with-env.mjs .env.self-host -- prisma migrate dev",
+    "prisma:migrate:saas": "node scripts/run-with-env.mjs .env.saas -- prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "academic-year:rollover": "tsx scripts/academic-year-rollover.ts"
+    "prisma:studio:self-host": "node scripts/run-with-env.mjs .env.self-host -- prisma studio",
+    "prisma:studio:saas": "node scripts/run-with-env.mjs .env.saas -- prisma studio",
+    "academic-year:rollover": "tsx scripts/academic-year-rollover.ts",
+    "academic-year:rollover:self-host": "node scripts/run-with-env.mjs .env.self-host -- tsx scripts/academic-year-rollover.ts",
+    "academic-year:rollover:saas": "node scripts/run-with-env.mjs .env.saas -- tsx scripts/academic-year-rollover.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
