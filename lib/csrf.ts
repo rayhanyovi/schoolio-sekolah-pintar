@@ -6,6 +6,8 @@ export const CSRF_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 8;
 
 const CSRF_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
 const SAFE_CSRF_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const TRUE_VALUES = new Set(["true", "1", "yes", "on"]);
+const FALSE_VALUES = new Set(["false", "0", "no", "off"]);
 
 export const isSafeCsrfMethod = (method: string) =>
   SAFE_CSRF_METHODS.has(method.toUpperCase());
@@ -53,13 +55,24 @@ export const getRequestCsrfHeader = (request: NextRequest) => {
 export const getOrCreateRequestCsrfToken = (request: NextRequest) =>
   getRequestCsrfCookie(request) ?? createCsrfToken();
 
+export const shouldUseSecureCsrfCookie = () => {
+  const configuredValue = process.env.CSRF_COOKIE_SECURE?.trim().toLowerCase();
+
+  if (configuredValue) {
+    if (TRUE_VALUES.has(configuredValue)) return true;
+    if (FALSE_VALUES.has(configuredValue)) return false;
+  }
+
+  return process.env.NODE_ENV === "production";
+};
+
 export const setCsrfCookie = <T extends NextResponse>(
   response: T,
   token: string
 ) => {
   response.cookies.set(CSRF_COOKIE_NAME, token, {
     httpOnly: false,
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCsrfCookie(),
     sameSite: "lax",
     path: "/",
     maxAge: CSRF_COOKIE_MAX_AGE_SECONDS,

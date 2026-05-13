@@ -23,6 +23,7 @@ copy .env.saas.example .env.saas
 1. Set di `.env.self-host`:
    - `APP_MODE=self_host`
    - `DATABASE_URL=postgresql://...`
+   - `CSRF_COOKIE_SECURE=false` jika app diakses via HTTP di intranet
 2. Jalankan DB lokal:
 ```bash
 docker compose up -d db

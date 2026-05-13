@@ -5,6 +5,7 @@ import {
   getCsrfTokenFromCookie,
   isSafeCsrfMethod,
   isValidCsrfToken,
+  shouldUseSecureCsrfCookie,
 } from "@/lib/csrf";
 import { apiGet, apiPost } from "@/lib/api-client";
 import { uploadContentWithSignedUrl } from "@/lib/handlers/uploads";
@@ -12,8 +13,17 @@ import { uploadContentWithSignedUrl } from "@/lib/handlers/uploads";
 const TOKEN = "a".repeat(64);
 
 describe("csrf helpers", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalCsrfCookieSecure = process.env.CSRF_COOKIE_SECURE;
+
   afterEach(() => {
     vi.unstubAllGlobals();
+    process.env.NODE_ENV = originalNodeEnv;
+    if (originalCsrfCookieSecure === undefined) {
+      delete process.env.CSRF_COOKIE_SECURE;
+    } else {
+      process.env.CSRF_COOKIE_SECURE = originalCsrfCookieSecure;
+    }
   });
 
   it("membuat token hex valid untuk cookie CSRF", () => {
@@ -36,6 +46,27 @@ describe("csrf helpers", () => {
     expect(isSafeCsrfMethod("head")).toBe(true);
     expect(isSafeCsrfMethod("OPTIONS")).toBe(true);
     expect(isSafeCsrfMethod("POST")).toBe(false);
+  });
+
+  it("default cookie CSRF secure mengikuti NODE_ENV production", () => {
+    delete process.env.CSRF_COOKIE_SECURE;
+    process.env.NODE_ENV = "production";
+
+    expect(shouldUseSecureCsrfCookie()).toBe(true);
+  });
+
+  it("mengizinkan CSRF_COOKIE_SECURE=false untuk self-host HTTP", () => {
+    process.env.NODE_ENV = "production";
+    process.env.CSRF_COOKIE_SECURE = "false";
+
+    expect(shouldUseSecureCsrfCookie()).toBe(false);
+  });
+
+  it("mengizinkan CSRF_COOKIE_SECURE=true di luar production", () => {
+    process.env.NODE_ENV = "development";
+    process.env.CSRF_COOKIE_SECURE = "true";
+
+    expect(shouldUseSecureCsrfCookie()).toBe(true);
   });
 });
 
